@@ -36,8 +36,6 @@ Thumbs.db
 build/
 dist/
 
-# Ignorar a pasta frontend
-frontend/
 
 # Ignorar logs
 backend/app.log
