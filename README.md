@@ -111,4 +111,4 @@ Este projeto está sob a licença **MIT**. Consulte o arquivo [LICENSE](./LICENS
 
 ---
 
-**Desenvolvido por [Leonardo Fragoso]**.
+**Desenvolvido por Leonardo Fragoso**.
