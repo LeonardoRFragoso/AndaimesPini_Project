@@ -29,7 +29,7 @@ Este é um projeto de Sistema de Gestão de Locações desenvolvido com **React.
 1. Clone o repositório:
 
    ```bash
-   git clone https://github.com/seu-usuario/sistema-gestao-locacoes.git
+   git clone https://github.com/LeonardoRFragoso/AndaimesPini_Project
    cd sistema-gestao-locacoes
    ```
 
