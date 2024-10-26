@@ -1,5 +1,5 @@
 // src/components/Forms/RegisterFormView.js
-import React from "react";
+import React, { useState } from "react";
 import {
   TextField,
   Button,
@@ -20,8 +20,61 @@ const RegisterFormView = ({
   handleSubmit,
   addItem,
   CATEGORIES,
+  estoqueDisponivel, // Recebe o estoque disponível do componente pai
   handleDiasCombinadosChange,
 }) => {
+  // Estado local para armazenar o modelo, quantidade e unidade antes de adicionar ao inventário
+  const [itemState, setItemState] = useState({});
+
+  const handleModelChange = (category, modelo) => {
+    setItemState((prev) => ({
+      ...prev,
+      [category]: { ...prev[category], modelo },
+    }));
+  };
+
+  const handleQuantityChange = (category, quantidade) => {
+    setItemState((prev) => ({
+      ...prev,
+      [category]: { ...prev[category], quantidade: parseInt(quantidade) || 0 },
+    }));
+  };
+
+  const handleUnitChange = (category, unidade) => {
+    setItemState((prev) => ({
+      ...prev,
+      [category]: { ...prev[category], unidade },
+    }));
+  };
+
+  const handleAddItem = (category) => {
+    const { modelo, quantidade, unidade } = itemState[category] || {};
+
+    // Validação de modelo e quantidade
+    if (!modelo || quantidade <= 0) {
+      alert("Selecione um modelo e informe uma quantidade válida.");
+      return;
+    }
+
+    // Verificação do estoque disponível
+    const quantidadeEstoque = estoqueDisponivel[modelo] || 0;
+    if (quantidade > quantidadeEstoque) {
+      alert(
+        `Quantidade solicitada para ${modelo} excede o estoque disponível (${quantidadeEstoque} unidades).`
+      );
+      return;
+    }
+
+    // Adiciona o item usando a função `addItem` passada como prop
+    addItem(category, modelo, quantidade, unidade || "peças");
+
+    // Limpa o estado do item após a adição bem-sucedida
+    setItemState((prev) => ({
+      ...prev,
+      [category]: { modelo: "", quantidade: 0, unidade: "peças" },
+    }));
+  };
+
   const renderCategoryFields = (category) => (
     <Grid item xs={12} sm={6} md={4} key={category}>
       <Card variant="outlined" style={{ marginBottom: 16 }}>
@@ -29,11 +82,11 @@ const RegisterFormView = ({
           <Typography variant="h6">
             {category.charAt(0).toUpperCase() + category.slice(1)}
           </Typography>
-          <FormControl fullWidth>
+          <FormControl fullWidth style={{ marginBottom: 8 }}>
             <InputLabel>Selecione o modelo de {category}</InputLabel>
             <Select
-              onChange={(e) => addItem(category, 0, e.target.value)}
-              defaultValue=""
+              value={itemState[category]?.modelo || ""}
+              onChange={(e) => handleModelChange(category, e.target.value)}
             >
               {(CATEGORIES[category] || []).map((modelo, index) => (
                 <MenuItem key={index} value={modelo}>
@@ -45,23 +98,32 @@ const RegisterFormView = ({
           <TextField
             label="Quantidade"
             type="number"
-            onChange={(e) =>
-              addItem(category, parseInt(e.target.value) || 0, "peças")
-            }
+            value={itemState[category]?.quantidade || ""}
+            onChange={(e) => handleQuantityChange(category, e.target.value)}
             style={{ marginTop: 16 }}
           />
+          {/* Adiciona seleção de unidade para andaimes */}
           {category === "andaimes" && (
             <FormControl fullWidth style={{ marginTop: 16 }}>
               <InputLabel>Unidade</InputLabel>
               <Select
-                onChange={(e) => addItem(category, 1, e.target.value)}
-                defaultValue="peças"
+                value={itemState[category]?.unidade || "peças"}
+                onChange={(e) => handleUnitChange(category, e.target.value)}
               >
                 <MenuItem value="peças">Peças</MenuItem>
                 <MenuItem value="metros">Metros</MenuItem>
               </Select>
             </FormControl>
           )}
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            style={{ marginTop: 16 }}
+            onClick={() => handleAddItem(category)}
+          >
+            Adicionar {category}
+          </Button>
         </CardContent>
       </Card>
     </Grid>

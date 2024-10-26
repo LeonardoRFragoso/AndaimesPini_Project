@@ -5,7 +5,6 @@ import RegisterFormView from "./RegisterFormView";
 
 const RegisterFormContainer = () => {
   const [clientes, setClientes] = useState([]);
-  const [itensInventario, setItensInventario] = useState([]);
   const [estoqueDisponivel, setEstoqueDisponivel] = useState({});
   const [novaLocacao, setNovaLocacao] = useState({
     numero_nota: "",
@@ -25,6 +24,7 @@ const RegisterFormContainer = () => {
     itens: [],
   });
 
+  // Lista de categorias e modelos disponíveis
   const CATEGORIES = {
     andaimes: ["1,0m", "1,5m"],
     escoras: ["2,8m", "3,0m", "3,2m", "3,5m", "3,8m", "4,0m"],
@@ -36,6 +36,7 @@ const RegisterFormContainer = () => {
     ferros: ["Ferro 2,0m", "Ferro 3,0m"],
   };
 
+  // Buscar dados de clientes e inventário do backend
   useEffect(() => {
     const fetchClientes = async () => {
       try {
@@ -50,11 +51,10 @@ const RegisterFormContainer = () => {
       try {
         const response = await axios.get("http://127.0.0.1:5000/inventario");
         if (response.data) {
-          setItensInventario(response.data);
-          const estoqueMap = {};
-          response.data.forEach((item) => {
-            estoqueMap[item.nome_item] = item.quantidade;
-          });
+          const estoqueMap = response.data.reduce((acc, item) => {
+            acc[item.nome_item] = item.quantidade;
+            return acc;
+          }, {});
           setEstoqueDisponivel(estoqueMap);
         }
       } catch (error) {
@@ -66,6 +66,7 @@ const RegisterFormContainer = () => {
     fetchInventario();
   }, []);
 
+  // Atualizar valor a receber com base nos valores inseridos
   useEffect(() => {
     setNovaLocacao((prev) => ({
       ...prev,
@@ -73,6 +74,7 @@ const RegisterFormContainer = () => {
     }));
   }, [novaLocacao.valor_total, novaLocacao.valor_pago_entrega]);
 
+  // Função para lidar com mudanças de campos
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.startsWith("cliente_info.")) {
@@ -92,11 +94,12 @@ const RegisterFormContainer = () => {
     }
   };
 
+  // Função para atualizar a data de término da locação
   const updateDataFim = (dataInicio, diasCombinados) => {
     if (dataInicio && diasCombinados >= 0) {
       const inicio = new Date(dataInicio);
       const fim = new Date(inicio);
-      fim.setDate(inicio.getDate() + parseInt(diasCombinados) - 1);
+      fim.setDate(inicio.getDate() + parseInt(diasCombinados, 10) - 1);
       setNovaLocacao((prev) => ({
         ...prev,
         data_fim: fim.toISOString().split("T")[0],
@@ -104,8 +107,9 @@ const RegisterFormContainer = () => {
     }
   };
 
+  // Função para alterar a quantidade de dias combinados
   const handleDiasCombinadosChange = (e) => {
-    const dias = parseInt(e.target.value) || 0;
+    const dias = parseInt(e.target.value, 10) || 0;
     setNovaLocacao((prev) => ({
       ...prev,
       dias_combinados: dias,
@@ -113,23 +117,40 @@ const RegisterFormContainer = () => {
     updateDataFim(novaLocacao.data_inicio, dias);
   };
 
+  // Função para enviar os dados da locação ao backend
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!novaLocacao.data_inicio || !novaLocacao.cliente_info.nome) {
+      alert("Preencha a data de início e as informações do cliente.");
+      return;
+    }
 
     if (novaLocacao.itens.length === 0) {
       alert("Adicione ao menos um item ao inventário.");
       return;
     }
 
+    const itensInvalidos = novaLocacao.itens.some(
+      (item) => !item.modelo || item.quantidade <= 0
+    );
+
+    if (itensInvalidos) {
+      alert(
+        "Certifique-se de que todos os itens possuem um modelo e quantidade válidos."
+      );
+      return;
+    }
+
     const locacaoData = {
       ...novaLocacao,
-      dias_combinados: parseInt(novaLocacao.dias_combinados),
+      dias_combinados: parseInt(novaLocacao.dias_combinados, 10),
       valor_total: parseFloat(novaLocacao.valor_total),
       valor_pago_entrega: parseFloat(novaLocacao.valor_pago_entrega),
       valor_receber_final: parseFloat(novaLocacao.valor_receber_final),
       itens: novaLocacao.itens.map((item) => ({
         modelo: item.modelo,
-        quantidade: item.quantidade,
+        quantidade: parseInt(item.quantidade, 10),
         unidade: item.unidade,
       })),
     };
@@ -143,6 +164,7 @@ const RegisterFormContainer = () => {
       );
       if (response.status === 201) {
         alert("Locação registrada com sucesso!");
+        setNovaLocacao({ ...novaLocacao, itens: [] }); // Limpa os itens após registro
       }
     } catch (error) {
       console.error("Erro ao registrar locação:", error);
@@ -150,57 +172,30 @@ const RegisterFormContainer = () => {
     }
   };
 
-  const addItem = (category, quantidade, unidade = "peças") => {
-    // Verifica se a categoria está definida e lista de modelos está disponível
-    if (!CATEGORIES[category]) {
-      alert("Categoria inválida.");
+  // Função para adicionar itens ao inventário da locação
+  const addItem = (category, modelo, quantidade, unidade = "peças") => {
+    if (!category || !modelo || !CATEGORIES[category]?.includes(modelo)) {
+      alert("Selecione uma categoria e um modelo válidos.");
       return;
     }
 
-    // Obtém o primeiro modelo da categoria selecionada para teste
-    const modeloSelecionado =
-      novaLocacao.itens.find((item) => item.modelo === category) ||
-      CATEGORIES[category][0]; // Default para o primeiro modelo da categoria
-
-    if (!modeloSelecionado) {
-      alert("Selecione um modelo válido.");
-      return;
-    }
-
-    // Verifica se a quantidade é válida
-    if (quantidade <= 0) {
-      alert("Informe uma quantidade válida.");
-      return;
-    }
-
-    if (quantidade > (estoqueDisponivel[modeloSelecionado] || 0)) {
+    const quantidadeEstoque = estoqueDisponivel[modelo] || 0;
+    if (quantidade > 0 && quantidade <= quantidadeEstoque) {
+      setNovaLocacao((prev) => ({
+        ...prev,
+        itens: [
+          ...prev.itens.filter((item) => item.modelo !== modelo),
+          { modelo, quantidade, unidade },
+        ],
+      }));
+      console.log("Item adicionado:", { modelo, quantidade, unidade });
+    } else if (quantidade > quantidadeEstoque) {
       alert(
-        `Quantidade solicitada para ${modeloSelecionado} excede o estoque disponível.`
+        `Quantidade solicitada para ${modelo} excede o estoque disponível (${quantidadeEstoque} unidades).`
       );
-      return;
+    } else {
+      alert("Informe uma quantidade válida.");
     }
-
-    // Atualiza o item selecionado com a quantidade e unidade correta
-    const updatedItems = novaLocacao.itens.filter(
-      (item) => item.modelo !== modeloSelecionado
-    );
-
-    updatedItems.push({
-      modelo: modeloSelecionado,
-      quantidade,
-      unidade,
-    });
-
-    setNovaLocacao((prev) => ({
-      ...prev,
-      itens: updatedItems,
-    }));
-
-    console.log("Item adicionado:", {
-      modelo: modeloSelecionado,
-      quantidade,
-      unidade,
-    });
   };
 
   return (
@@ -210,6 +205,7 @@ const RegisterFormContainer = () => {
       handleSubmit={handleSubmit}
       addItem={addItem}
       CATEGORIES={CATEGORIES}
+      estoqueDisponivel={estoqueDisponivel} // Passa o estoque disponível para o componente filho
       handleDiasCombinadosChange={handleDiasCombinadosChange}
     />
   );
