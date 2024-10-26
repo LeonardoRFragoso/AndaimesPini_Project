@@ -33,6 +33,7 @@ const RegisterFormView = ({
   addItem,
   CATEGORIES,
   estoqueDisponivel,
+  fetchEstoque, // Função para atualizar o estoque
   handleDiasCombinadosChange,
 }) => {
   const [itemState, setItemState] = useState({});
@@ -94,10 +95,25 @@ const RegisterFormView = ({
     setItensAdicionados((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleConfirmSubmit = (event) => {
+  const resetForm = () => {
+    setItemState({});
+    setItensAdicionados([]);
+    handleChange({ target: { name: "numero_nota", value: "" } });
+    handleChange({ target: { name: "cliente_info", value: {} } });
+    handleChange({ target: { name: "data_inicio", value: "" } });
+    handleChange({ target: { name: "dias_combinados", value: "" } });
+    handleChange({ target: { name: "data_fim", value: "" } });
+    handleChange({ target: { name: "valor_total", value: "" } });
+    handleChange({ target: { name: "valor_pago_entrega", value: "" } });
+    handleChange({ target: { name: "valor_receber_final", value: "" } });
+  };
+
+  const handleConfirmSubmit = async (event) => {
     event.preventDefault();
-    handleSubmit(event);
+    await handleSubmit(event); // Confirmar o registro
     setConfirmDialogOpen(false);
+    resetForm(); // Limpar os campos do formulário
+    fetchEstoque(); // Atualizar o estoque após o registro
   };
 
   const renderCategoryFields = (category) => (

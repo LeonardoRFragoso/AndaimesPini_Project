@@ -24,7 +24,6 @@ const RegisterFormContainer = () => {
     itens: [],
   });
 
-  // Lista de categorias e modelos disponíveis
   const CATEGORIES = {
     andaimes: ["1,0m", "1,5m"],
     escoras: ["2,8m", "3,0m", "3,2m", "3,5m", "3,8m", "4,0m"],
@@ -36,37 +35,35 @@ const RegisterFormContainer = () => {
     ferros: ["Ferro 2,0m", "Ferro 3,0m"],
   };
 
-  // Buscar dados de clientes e inventário do backend
+  const fetchClientes = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:5000/clientes");
+      setClientes(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar clientes:", error);
+    }
+  };
+
+  const fetchInventario = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:5000/inventario");
+      if (response.data) {
+        const estoqueMap = response.data.reduce((acc, item) => {
+          acc[item.nome_item] = item.quantidade;
+          return acc;
+        }, {});
+        setEstoqueDisponivel(estoqueMap);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar inventário:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchClientes = async () => {
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/clientes");
-        setClientes(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar clientes:", error);
-      }
-    };
-
-    const fetchInventario = async () => {
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/inventario");
-        if (response.data) {
-          const estoqueMap = response.data.reduce((acc, item) => {
-            acc[item.nome_item] = item.quantidade;
-            return acc;
-          }, {});
-          setEstoqueDisponivel(estoqueMap);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar inventário:", error);
-      }
-    };
-
     fetchClientes();
     fetchInventario();
   }, []);
 
-  // Atualizar valor a receber com base nos valores inseridos
   useEffect(() => {
     setNovaLocacao((prev) => ({
       ...prev,
@@ -74,7 +71,6 @@ const RegisterFormContainer = () => {
     }));
   }, [novaLocacao.valor_total, novaLocacao.valor_pago_entrega]);
 
-  // Função para lidar com mudanças de campos
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.startsWith("cliente_info.")) {
@@ -94,7 +90,6 @@ const RegisterFormContainer = () => {
     }
   };
 
-  // Função para atualizar a data de término da locação
   const updateDataFim = (dataInicio, diasCombinados) => {
     if (dataInicio && diasCombinados >= 0) {
       const inicio = new Date(dataInicio);
@@ -107,7 +102,6 @@ const RegisterFormContainer = () => {
     }
   };
 
-  // Função para alterar a quantidade de dias combinados
   const handleDiasCombinadosChange = (e) => {
     const dias = parseInt(e.target.value, 10) || 0;
     setNovaLocacao((prev) => ({
@@ -117,7 +111,6 @@ const RegisterFormContainer = () => {
     updateDataFim(novaLocacao.data_inicio, dias);
   };
 
-  // Função para enviar os dados da locação ao backend
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -155,8 +148,6 @@ const RegisterFormContainer = () => {
       })),
     };
 
-    console.log("Dados enviados:", locacaoData);
-
     try {
       const response = await axios.post(
         "http://127.0.0.1:5000/locacoes",
@@ -164,7 +155,26 @@ const RegisterFormContainer = () => {
       );
       if (response.status === 201) {
         alert("Locação registrada com sucesso!");
-        setNovaLocacao({ ...novaLocacao, itens: [] }); // Limpa os itens após registro
+
+        // Limpa o formulário e atualiza o estoque após o registro
+        setNovaLocacao({
+          numero_nota: "",
+          cliente_info: {
+            nome: "",
+            endereco: "",
+            referencia: "",
+            referencia_rapida: "",
+            telefone: "",
+          },
+          data_inicio: "",
+          dias_combinados: 1,
+          data_fim: "",
+          valor_total: 0,
+          valor_pago_entrega: 0,
+          valor_receber_final: 0,
+          itens: [],
+        });
+        fetchInventario(); // Atualiza o estoque chamando a função correta
       }
     } catch (error) {
       console.error("Erro ao registrar locação:", error);
@@ -172,7 +182,6 @@ const RegisterFormContainer = () => {
     }
   };
 
-  // Função para adicionar itens ao inventário da locação
   const addItem = (category, modelo, quantidade, unidade = "peças") => {
     if (!category || !modelo || !CATEGORIES[category]?.includes(modelo)) {
       alert("Selecione uma categoria e um modelo válidos.");
@@ -205,8 +214,9 @@ const RegisterFormContainer = () => {
       handleSubmit={handleSubmit}
       addItem={addItem}
       CATEGORIES={CATEGORIES}
-      estoqueDisponivel={estoqueDisponivel} // Passa o estoque disponível para o componente filho
+      estoqueDisponivel={estoqueDisponivel}
       handleDiasCombinadosChange={handleDiasCombinadosChange}
+      fetchEstoque={fetchInventario} // Passa fetchInventario como fetchEstoque
     />
   );
 };
