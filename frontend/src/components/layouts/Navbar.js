@@ -5,6 +5,8 @@ import HomeIcon from "@mui/icons-material/Home";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import ListIcon from "@mui/icons-material/List";
 import WarehouseIcon from "@mui/icons-material/Warehouse"; // Ícone para o estoque
+import AssessmentIcon from "@mui/icons-material/Assessment"; // Ícone para relatórios
+import PeopleIcon from "@mui/icons-material/People"; // Ícone para clientes
 import { Link } from "react-router-dom";
 
 const Navbar = () => {
@@ -57,6 +59,24 @@ const Navbar = () => {
             sx={{ textTransform: "uppercase" }}
           >
             Estoque
+          </Button>
+          <Button
+            color="inherit"
+            startIcon={<AssessmentIcon />}
+            component={Link}
+            to="/reports" // Link para a página de relatórios
+            sx={{ textTransform: "uppercase" }}
+          >
+            Relatórios
+          </Button>
+          <Button
+            color="inherit"
+            startIcon={<PeopleIcon />}
+            component={Link}
+            to="/clientes" // Link para a página de clientes
+            sx={{ textTransform: "uppercase" }}
+          >
+            Clientes
           </Button>
         </Box>
       </Toolbar>

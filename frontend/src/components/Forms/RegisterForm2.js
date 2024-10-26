@@ -17,6 +17,7 @@ import {
 const RegisterForm = () => {
   const [clientes, setClientes] = useState([]);
   const [itensInventario, setItensInventario] = useState([]);
+  const [estoqueDisponivel, setEstoqueDisponivel] = useState({});
   const [novaLocacao, setNovaLocacao] = useState({
     numero_nota: "",
     cliente_info: {
@@ -60,6 +61,11 @@ const RegisterForm = () => {
       try {
         const response = await axios.get("http://127.0.0.1:5000/inventario");
         setItensInventario(response.data);
+        const estoqueMap = {};
+        response.data.forEach((item) => {
+          estoqueMap[item.nome_item] = item.quantidade;
+        });
+        setEstoqueDisponivel(estoqueMap);
       } catch (error) {
         console.error("Erro ao buscar inventário:", error);
       }
@@ -92,7 +98,6 @@ const RegisterForm = () => {
       }));
     }
 
-    // Atualizar data_fim automaticamente
     if (name === "data_inicio" || name === "dias_combinados") {
       updateDataFim(novaLocacao.data_inicio, novaLocacao.dias_combinados);
     }
@@ -102,21 +107,21 @@ const RegisterForm = () => {
     if (dataInicio && diasCombinados >= 0) {
       const inicio = new Date(dataInicio);
       const fim = new Date(inicio);
-      fim.setDate(inicio.getDate() + parseInt(diasCombinados) - 1); // Adiciona os dias e subtrai 1
+      fim.setDate(inicio.getDate() + parseInt(diasCombinados) - 1);
       setNovaLocacao((prev) => ({
         ...prev,
-        data_fim: fim.toISOString().split("T")[0], // Formato YYYY-MM-DD
+        data_fim: fim.toISOString().split("T")[0],
       }));
     }
   };
 
   const handleDiasCombinadosChange = (e) => {
-    const dias = parseInt(e.target.value) || 0; // Captura o valor
+    const dias = parseInt(e.target.value) || 0;
     setNovaLocacao((prev) => ({
       ...prev,
       dias_combinados: dias,
     }));
-    updateDataFim(novaLocacao.data_inicio, dias); // Atualiza a data final ao mudar a quantidade de dias
+    updateDataFim(novaLocacao.data_inicio, dias);
   };
 
   const handleSubmit = async (e) => {
@@ -165,12 +170,27 @@ const RegisterForm = () => {
   const addItem = (itemName, quantidade, unidade = "peças") => {
     const itemId = getItemIdByName(itemName);
     if (itemId) {
+      if (quantidade > 0) {
+        if (quantidade > (estoqueDisponivel[itemName] || 0)) {
+          alert(
+            `Quantidade solicitada para ${itemName} excede o estoque disponível.`
+          );
+          return; // Sai da função se a quantidade não estiver disponível
+        }
+      }
+
       const updatedItems = novaLocacao.itens.filter(
         (item) => item.modelo !== itemName
       );
+
       if (quantidade > 0) {
-        updatedItems.push({ modelo: itemName, quantidade, unidade });
+        updatedItems.push({
+          modelo: itemName,
+          quantidade: quantidade,
+          unidade,
+        });
       }
+
       setNovaLocacao((prev) => ({
         ...prev,
         itens: updatedItems,
@@ -191,7 +211,7 @@ const RegisterForm = () => {
             <FormControl fullWidth>
               <InputLabel>Selecione o modelo de {category}</InputLabel>
               <Select
-                onChange={(e) => addItem(e.target.value, 1, "peças")}
+                onChange={(e) => addItem(e.target.value, 0, "peças")}
                 defaultValue=""
               >
                 {CATEGORIES[category].map((modelo, index) => (
@@ -209,6 +229,19 @@ const RegisterForm = () => {
               }
               style={{ marginTop: 16 }}
             />
+            {category === "andaimes" && (
+              <FormControl fullWidth>
+                <InputLabel>Unidade</InputLabel>
+                <Select
+                  onChange={(e) => addItem(category, 1, e.target.value)}
+                  defaultValue=""
+                  style={{ marginTop: 16 }}
+                >
+                  <MenuItem value="peças">Peças</MenuItem>
+                  <MenuItem value="metros">Metros</MenuItem>
+                </Select>
+              </FormControl>
+            )}
           </CardContent>
         </Card>
       </Grid>
@@ -238,163 +271,163 @@ const RegisterForm = () => {
             <Typography variant="h5" gutterBottom>
               Dados do Responsável
             </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Nome"
-              name="cliente_info.nome"
-              value={novaLocacao.cliente_info.nome}
-              onChange={handleChange}
-              fullWidth
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Endereço"
-              name="cliente_info.endereco"
-              value={novaLocacao.cliente_info.endereco}
-              onChange={handleChange}
-              fullWidth
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Referência"
-              name="cliente_info.referencia"
-              value={novaLocacao.cliente_info.referencia}
-              onChange={handleChange}
-              fullWidth
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Referência Rápida"
-              name="cliente_info.referencia_rapida"
-              value={novaLocacao.cliente_info.referencia_rapida}
-              onChange={handleChange}
-              fullWidth
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Telefone"
-              name="cliente_info.telefone"
-              value={novaLocacao.cliente_info.telefone}
-              onChange={handleChange}
-              fullWidth
-              required
-            />
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Nome"
+                name="cliente_info.nome"
+                value={novaLocacao.cliente_info.nome}
+                onChange={handleChange}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Endereço"
+                name="cliente_info.endereco"
+                value={novaLocacao.cliente_info.endereco}
+                onChange={handleChange}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Referência"
+                name="cliente_info.referencia"
+                value={novaLocacao.cliente_info.referencia}
+                onChange={handleChange}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Referência Rápida"
+                name="cliente_info.referencia_rapida"
+                value={novaLocacao.cliente_info.referencia_rapida}
+                onChange={handleChange}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Telefone"
+                name="cliente_info.telefone"
+                value={novaLocacao.cliente_info.telefone}
+                onChange={handleChange}
+                fullWidth
+                required
+              />
+            </Grid>
           </Grid>
 
           <Grid item xs={12}>
             <Typography variant="h5" gutterBottom>
               Detalhes da Locação
             </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Data de Início"
-              type="date"
-              name="data_inicio"
-              value={novaLocacao.data_inicio}
-              onChange={handleChange}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Quantidade de Dias Combinados"
-              type="number"
-              name="dias_combinados"
-              value={novaLocacao.dias_combinados}
-              onChange={handleDiasCombinadosChange}
-              fullWidth
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Data de Fim"
-              type="date"
-              name="data_fim"
-              value={novaLocacao.data_fim}
-              InputProps={{ readOnly: true }} // Define o campo como somente leitura
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              required
-            />
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Data de Início"
+                type="date"
+                name="data_inicio"
+                value={novaLocacao.data_inicio}
+                onChange={handleChange}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Quantidade de Dias Combinados"
+                type="number"
+                name="dias_combinados"
+                value={novaLocacao.dias_combinados}
+                onChange={handleDiasCombinadosChange}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Data de Fim"
+                type="date"
+                name="data_fim"
+                value={novaLocacao.data_fim}
+                InputProps={{ readOnly: true }}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                required
+              />
+            </Grid>
           </Grid>
 
           <Grid item xs={12}>
             <Typography variant="h5" gutterBottom>
               Valores da Locação
             </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Valor Total"
-              type="number"
-              name="valor_total"
-              value={novaLocacao.valor_total}
-              onChange={(e) => {
-                const total = parseFloat(e.target.value) || 0;
-                setNovaLocacao((prev) => ({
-                  ...prev,
-                  valor_total: total,
-                  valor_receber_final: total - prev.valor_pago_entrega, // Atualiza o valor a receber
-                }));
-              }}
-              fullWidth
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Valor Pago na Entrega"
-              type="number"
-              name="valor_pago_entrega"
-              value={novaLocacao.valor_pago_entrega}
-              onChange={(e) => {
-                const pago = parseFloat(e.target.value) || 0;
-                setNovaLocacao((prev) => ({
-                  ...prev,
-                  valor_pago_entrega: pago,
-                  valor_receber_final: prev.valor_total - pago, // Atualiza o valor a receber
-                }));
-              }}
-              fullWidth
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Valor a Receber no Final"
-              type="number"
-              name="valor_receber_final"
-              value={novaLocacao.valor_receber_final}
-              onChange={(e) =>
-                setNovaLocacao((prev) => ({
-                  ...prev,
-                  valor_receber_final: parseFloat(e.target.value) || 0, // Permite edição
-                }))
-              }
-              fullWidth
-              required
-            />
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Valor Total"
+                type="number"
+                name="valor_total"
+                value={novaLocacao.valor_total}
+                onChange={(e) => {
+                  const total = parseFloat(e.target.value) || 0;
+                  setNovaLocacao((prev) => ({
+                    ...prev,
+                    valor_total: total,
+                    valor_receber_final: total - prev.valor_pago_entrega,
+                  }));
+                }}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Valor Pago na Entrega"
+                type="number"
+                name="valor_pago_entrega"
+                value={novaLocacao.valor_pago_entrega}
+                onChange={(e) => {
+                  const pago = parseFloat(e.target.value) || 0;
+                  setNovaLocacao((prev) => ({
+                    ...prev,
+                    valor_pago_entrega: pago,
+                    valor_receber_final: prev.valor_total - pago,
+                  }));
+                }}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Valor a Receber no Final"
+                type="number"
+                name="valor_receber_final"
+                value={novaLocacao.valor_receber_final}
+                onChange={(e) =>
+                  setNovaLocacao((prev) => ({
+                    ...prev,
+                    valor_receber_final: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                fullWidth
+                required
+              />
+            </Grid>
           </Grid>
 
           <Grid item xs={12}>
             <Typography variant="h5" gutterBottom>
               Itens do Inventário
             </Typography>
+            {Object.keys(CATEGORIES).map((category) =>
+              renderCategoryFields(category)
+            )}
           </Grid>
-          {Object.keys(CATEGORIES).map((category) =>
-            renderCategoryFields(category)
-          )}
 
           <Grid item xs={12}>
             <Button type="submit" variant="contained" color="primary" fullWidth>

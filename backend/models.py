@@ -17,7 +17,7 @@ class Cliente:
             conn.commit()
             return cliente_id
         except psycopg2.Error as e:
-            conn.rollback()  # Rollback para garantir a integridade do banco
+            conn.rollback()
             print(f"Erro ao adicionar cliente: {e}")
             return None
         finally:
@@ -61,12 +61,7 @@ class Inventario:
             cursor = conn.cursor()
             cursor.execute('SELECT id FROM inventario WHERE nome_item = %s', (modelo_item,))
             item_id = cursor.fetchone()
-            
-            if item_id:
-                return item_id[0]
-            else:
-                print(f"Item não encontrado no inventário: {modelo_item}")
-                return None
+            return item_id[0] if item_id else None
         except psycopg2.Error as e:
             print(f"Erro ao buscar item por modelo: {e}")
             return None
@@ -98,7 +93,7 @@ class Inventario:
             ''', (quantidade, item_id))
             conn.commit()
         except psycopg2.Error as e:
-            conn.rollback()  # Rollback para garantir a integridade do banco
+            conn.rollback()
             print(f"Erro ao atualizar quantidade do item no inventário: {e}")
         finally:
             cursor.close()
@@ -106,6 +101,7 @@ class Inventario:
 
     @staticmethod
     def validar_estoque(item_id, quantidade):
+        """Valida se há estoque suficiente para o item especificado."""
         try:
             conn = create_connection()
             cursor = conn.cursor()
@@ -118,6 +114,14 @@ class Inventario:
         finally:
             cursor.close()
             conn.close()
+
+    @staticmethod
+    def reduzir_estoque(item_id, quantidade):
+        """Reduz a quantidade de um item no inventário após a locação, se houver estoque suficiente."""
+        if Inventario.validar_estoque(item_id, quantidade):
+            Inventario.update_quantidade(item_id, quantidade)
+        else:
+            raise ValueError("Estoque insuficiente para o item solicitado.")
 
 # Classe para lidar com operações relacionadas às Locações
 class Locacao:
@@ -155,7 +159,6 @@ class Locacao:
             cursor.execute(query)
             locacoes = cursor.fetchall()
 
-            # Agora buscamos os itens locados para cada locação
             locacoes_completas = []
             for locacao in locacoes:
                 locacao_id = locacao[0]

@@ -1,39 +1,40 @@
-// App.js
+// src/App.js
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { Box, CssBaseline } from "@mui/material";
 import Navbar from "./components/layouts/Navbar";
-import HomePage from "./components/pages/HomePage"; // Ajustado para refletir o caminho
-import RegisterPage from "./components/pages/RegisterPage"; // Ajustado para refletir o caminho
-import OrdersPage from "./components/pages/OrdersPage"; // Ajustado para refletir o caminho
-import InventoryPage from "./components/pages/inventory/InventoryPage.js"; // Ajustado para refletir o caminho
+import HomePage from "./components/pages/HomePage"; // Página inicial
+import RegisterFormContainer from "./components/Forms/RegisterFormContainer"; // Container para registrar locação
+import OrdersPage from "./components/pages/OrdersPage"; // Página para visualizar pedidos
+import InventoryPage from "./components/pages/inventory/InventoryPage"; // Página para controle de estoque
+import ClientsPage from "./components/pages/ClientsPage"; // Página para gerenciar clientes
 import "./App.css";
 
 function App() {
   return (
     <Router>
-      {/* CssBaseline aplica um reset de CSS padrão do Material-UI */}
-      <CssBaseline />
-
+      <CssBaseline /> {/* Reset de estilos do navegador */}
       <Box sx={{ display: "flex", flexDirection: "column" }}>
-        {/* Navbar no topo */}
-        <Navbar />
-
-        {/* Conteúdo principal ocupando toda a largura */}
+        <Navbar /> {/* Navbar fixa no topo */}
         <Box
           component="main"
           sx={{
             flexGrow: 1,
             p: 3,
-            mt: 8,
-            transition: "margin-left 0.3s ease",
+            mt: 8, // Ajuste de margem para o conteúdo principal
+            transition: "margin-left 0.3s ease", // Transição suave (caso tenha sidebar)
           }}
         >
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/" element={<HomePage />} /> {/* Rota inicial */}
+            <Route path="/register" element={<RegisterFormContainer />} />{" "}
+            {/* Formulário de registro */}
+            <Route path="/orders" element={<OrdersPage />} />{" "}
+            {/* Visualização de pedidos */}
+            <Route path="/inventory" element={<InventoryPage />} />{" "}
+            {/* Controle de estoque */}
+            <Route path="/clients" element={<ClientsPage />} />{" "}
+            {/* Gerenciamento de clientes */}
           </Routes>
         </Box>
       </Box>

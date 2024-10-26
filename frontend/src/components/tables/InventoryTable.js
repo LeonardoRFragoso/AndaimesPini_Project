@@ -1,5 +1,4 @@
-// InventoryTable.js
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -11,7 +10,12 @@ import {
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
 
-const InventoryTable = ({ items, onEdit, onDelete }) => {
+const InventoryTable = ({ items, onEdit, onDelete, fetchInventory }) => {
+  // Utilize o hook useEffect para atualizar a tabela após cada edição ou exclusão
+  useEffect(() => {
+    fetchInventory();
+  }, [items, fetchInventory]);
+
   return (
     <TableContainer>
       <Table>

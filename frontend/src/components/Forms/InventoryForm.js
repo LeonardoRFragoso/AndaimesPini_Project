@@ -1,11 +1,11 @@
-// InventoryForm.js
 import React, { useState } from "react";
-import { TextField, Button, Grid, Typography } from "@mui/material";
+import { TextField, Button, Grid, Typography, Alert } from "@mui/material";
 
 const InventoryForm = ({ onSubmit, initialData }) => {
   const [itemData, setItemData] = useState(
     initialData || { name: "", quantity: "" }
   );
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -17,7 +17,18 @@ const InventoryForm = ({ onSubmit, initialData }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validação: quantidade deve ser positiva
+    if (itemData.quantity <= 0) {
+      setError("A quantidade deve ser um número positivo.");
+      return;
+    }
+
+    setError(""); // Limpar erro, se houver
     onSubmit(itemData);
+
+    // Limpar formulário após o envio
+    setItemData({ name: "", quantity: "" });
   };
 
   return (
@@ -45,8 +56,14 @@ const InventoryForm = ({ onSubmit, initialData }) => {
             onChange={handleChange}
             fullWidth
             required
+            inputProps={{ min: 1 }}
           />
         </Grid>
+        {error && (
+          <Grid item xs={12}>
+            <Alert severity="error">{error}</Alert>
+          </Grid>
+        )}
         <Grid item xs={12}>
           <Button type="submit" variant="contained" color="primary" fullWidth>
             Salvar

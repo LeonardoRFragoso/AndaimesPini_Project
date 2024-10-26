@@ -44,7 +44,7 @@ def create_tables():
                 CREATE TABLE IF NOT EXISTS inventario (
                     id SERIAL PRIMARY KEY,
                     nome_item VARCHAR(255) NOT NULL,
-                    quantidade INTEGER NOT NULL,
+                    quantidade INTEGER NOT NULL CHECK (quantidade >= 0),  -- Quantidade não pode ser negativa
                     tipo_item VARCHAR(50) NOT NULL -- Ex: andaimes, escoras, etc.
                 )
             ''')
@@ -56,9 +56,9 @@ def create_tables():
                     cliente_id INTEGER NOT NULL,
                     data_inicio DATE NOT NULL,
                     data_fim DATE NOT NULL,
-                    valor_total NUMERIC(10, 2) NOT NULL,
-                    valor_pago_entrega NUMERIC(10, 2),  -- Valor pago na entrega
-                    valor_receber_final NUMERIC(10, 2),  -- Valor a receber ao final
+                    valor_total NUMERIC(10, 2) NOT NULL CHECK (valor_total >= 0),
+                    valor_pago_entrega NUMERIC(10, 2) CHECK (valor_pago_entrega >= 0),  -- Valor pago na entrega
+                    valor_receber_final NUMERIC(10, 2) CHECK (valor_receber_final >= 0),  -- Valor a receber ao final
                     FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
                 )
             ''')
@@ -69,7 +69,7 @@ def create_tables():
                     id SERIAL PRIMARY KEY,
                     locacao_id INTEGER NOT NULL,
                     item_id INTEGER NOT NULL,
-                    quantidade INTEGER NOT NULL,
+                    quantidade INTEGER NOT NULL CHECK (quantidade > 0),
                     FOREIGN KEY (locacao_id) REFERENCES locacoes (id) ON DELETE CASCADE,
                     FOREIGN KEY (item_id) REFERENCES inventario (id) ON DELETE CASCADE
                 )
@@ -80,7 +80,7 @@ def create_tables():
                 CREATE TABLE IF NOT EXISTS registro_danos (
                     id SERIAL PRIMARY KEY,
                     item_id INTEGER NOT NULL,
-                    quantidade_danificada INTEGER NOT NULL,
+                    quantidade_danificada INTEGER NOT NULL CHECK (quantidade_danificada > 0),
                     locacao_id INTEGER NOT NULL,
                     FOREIGN KEY (locacao_id) REFERENCES locacoes (id) ON DELETE CASCADE,
                     FOREIGN KEY (item_id) REFERENCES inventario (id) ON DELETE CASCADE
