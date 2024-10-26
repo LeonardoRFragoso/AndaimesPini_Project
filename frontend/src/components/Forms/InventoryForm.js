@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TextField, Button, Grid, Typography, Alert } from "@mui/material";
 
 const InventoryForm = ({ onSubmit, initialData }) => {
-  const [itemData, setItemData] = useState(
-    initialData || { name: "", quantity: "" }
-  );
+  const [itemData, setItemData] = useState({ name: "", quantity: "" });
   const [error, setError] = useState("");
+
+  // Atualiza itemData sempre que initialData muda (ao alternar entre edição/adicionar)
+  useEffect(() => {
+    setItemData(initialData || { name: "", quantity: "" });
+  }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

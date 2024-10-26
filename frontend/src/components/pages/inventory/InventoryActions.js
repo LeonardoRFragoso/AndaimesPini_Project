@@ -1,4 +1,4 @@
-// InventoryActions.js
+// frontend/src/components/pages/inventory/InventoryActions.js
 import React from "react";
 import { Box, Button } from "@mui/material";
 import { Add } from "@mui/icons-material";
