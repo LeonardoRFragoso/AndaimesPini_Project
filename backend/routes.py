@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from models import Cliente, Inventario, Locacao, ItensLocados, RegistroDanos
-from database import create_connection
+from database import get_connection, release_connection  # Ajustado para usar get_connection e release_connection
 import psycopg2
 
 # Criação do blueprint para as rotas
@@ -109,41 +109,55 @@ def get_itens_locados(locacao_id):
 def add_locacao():
     try:
         nova_locacao = request.get_json()
-        
-        # Dados principais da locação
+        print(f"Recebendo nova locação: {nova_locacao}")
+
         numero_nota = nova_locacao.get('numero_nota')
         cliente_info = nova_locacao.get('cliente_info')
         data_inicio = nova_locacao.get('data_inicio')
+        dias_combinados = nova_locacao.get('dias_combinados')
         data_fim = nova_locacao.get('data_fim')
         valor_total = nova_locacao.get('valor_total')
         itens_locados = nova_locacao.get('itens')
-        
-        # Validação de itens com estoque
-        for item in itens_locados:
-            modelo_item = item.get('modelo')
-            quantidade = item.get('quantidade')
-            item_id = Inventario.get_item_id_by_modelo(modelo_item)
-            
-            # Verifica se o item está no inventário e se a quantidade é suficiente
-            if item_id is None or not Inventario.validar_estoque(item_id, quantidade):
-                return jsonify({"error": f"Estoque insuficiente para o item: {modelo_item}"}), 400
-        
-        # Continua com o processo de criação da locação se o estoque estiver OK
-        cliente_id = Cliente.create(cliente_info['nome'], cliente_info.get('endereco'), cliente_info['telefone'], cliente_info.get('referencia'))
+
+        nome_cliente = cliente_info.get('nome')
+        telefone_cliente = cliente_info.get('telefone')
+
+        if not nome_cliente or not telefone_cliente:
+            return jsonify({"error": "Nome e telefone do cliente são obrigatórios!"}), 400
+
+        cliente_id = Cliente.create(nome_cliente, cliente_info.get('endereco'), telefone_cliente, cliente_info.get('referencia'))
+        if cliente_id is None:
+            return jsonify({"error": "Erro ao criar o cliente"}), 500
+
+        if not numero_nota or not data_inicio or not data_fim or valor_total is None or not itens_locados:
+            return jsonify({"error": "Todos os campos da locação são obrigatórios!"}), 400
+
         locacao_id = Locacao.create(cliente_id, data_inicio, data_fim, valor_total)
+        if locacao_id is None:
+            return jsonify({"error": "Erro ao criar a locação!"}), 500
 
         for item in itens_locados:
             modelo_item = item.get('modelo')
             quantidade = item.get('quantidade')
-            item_id = Inventario.get_item_id_by_modelo(modelo_item)
-            ItensLocados.add_item(locacao_id, item_id, quantidade)
-            Inventario.reduzir_estoque(item_id, quantidade)
-        
-        return jsonify({"message": "Locação adicionada com sucesso!"}), 201
-    except Exception as e:
-        print(f"Erro ao processar locação: {e}")
-        return jsonify({"error": "Erro ao processar locação"}), 500
+            unidade = item.get('unidade')
 
+            if quantidade is None or unidade is None:
+                return jsonify({"error": "Quantidade e unidade são obrigatórias para todos os itens!"}), 400
+
+            item_id = Inventario.get_item_id_by_modelo(modelo_item)
+            if item_id is None:
+                print(f"Item não encontrado no inventário: {modelo_item}")
+                return jsonify({"error": f"Item não encontrado no inventário: {modelo_item}"}), 400
+
+            ItensLocados.add_item(locacao_id, item_id, quantidade)
+
+        return jsonify({"message": "Locação adicionada com sucesso!"}), 201
+    except psycopg2.Error as e:
+        print(f"Erro ao adicionar locação no banco de dados: {e}")
+        return jsonify({"error": f"Erro ao adicionar locação: {e}"}), 500
+    except Exception as ex:
+        print(f"Erro inesperado ao adicionar locação: {ex}")
+        return jsonify({"error": f"Erro inesperado: {ex}"}), 500
 
 # Rotas para registro de danos
 @routes.route('/danos', methods=['POST'])

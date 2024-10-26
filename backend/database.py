@@ -1,29 +1,47 @@
 import psycopg2
-from psycopg2 import Error
+from psycopg2 import pool, Error
+import traceback
 
-# Função para criar a conexão com o banco de dados PostgreSQL
-def create_connection():
-    """Cria uma conexão com o banco de dados PostgreSQL."""
-    conn = None
+# Configuração do pool de conexões
+try:
+    connection_pool = pool.SimpleConnectionPool(
+        1, 20,  # mínimo e máximo de conexões
+        dbname="projetopai",
+        user="usuarioprojeto",
+        password="senhaforte",
+        host="localhost",
+        port="5432"
+    )
+    if connection_pool:
+        print("Pool de conexões criado com sucesso.")
+except Exception as e:
+    print(f"Erro ao criar o pool de conexões: {e}")
+    traceback.print_exc()
+
+# Função para obter uma conexão do pool
+def get_connection():
     try:
-        # Defina as informações de conexão do PostgreSQL
-        conn = psycopg2.connect(
-            dbname="projetopai",
-            user="usuarioprojeto",
-            password="senhaforte",
-            host="localhost",
-            port="5432"
-        )
-        print("Conexão com o banco de dados PostgreSQL estabelecida.")
+        conn = connection_pool.getconn()
+        if conn:
+            print("Conexão obtida do pool com sucesso.")
+        return conn
     except Error as e:
-        print(f"Erro ao conectar com o banco de dados: {e}")
-    return conn
+        print(f"Erro ao obter conexão do pool: {e}")
+        traceback.print_exc()
 
+# Função para liberar a conexão de volta para o pool
+def release_connection(conn):
+    try:
+        connection_pool.putconn(conn)
+        print("Conexão retornada ao pool.")
+    except Error as e:
+        print(f"Erro ao retornar conexão ao pool: {e}")
+        traceback.print_exc()
 
 # Função para criar as tabelas necessárias
 def create_tables():
     """Cria todas as tabelas necessárias no banco de dados."""
-    conn = create_connection()
+    conn = get_connection()
     if conn is not None:
         try:
             cursor = conn.cursor()
@@ -91,10 +109,12 @@ def create_tables():
             print("Tabelas criadas com sucesso!")
         except Error as e:
             print(f"Erro ao criar as tabelas: {e}")
+            traceback.print_exc()
             conn.rollback()  # Rollback para garantir que não fiquem dados inconsistentes
         finally:
-            cursor.close()
-            conn.close()  # Certificar que a conexão será fechada
+            if cursor:
+                cursor.close()
+            release_connection(conn)  # Retorna a conexão ao pool
     else:
         print("Erro! Não foi possível estabelecer a conexão com o banco de dados.")
 

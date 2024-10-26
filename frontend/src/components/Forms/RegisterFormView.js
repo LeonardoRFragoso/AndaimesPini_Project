@@ -1,4 +1,3 @@
-// src/components/Forms/RegisterFormView.js
 import React, { useState } from "react";
 import {
   TextField,
@@ -12,6 +11,10 @@ import {
   CardContent,
   Typography,
   Paper,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from "@mui/material";
 
 const RegisterFormView = ({
@@ -25,6 +28,7 @@ const RegisterFormView = ({
 }) => {
   // Estado local para armazenar o modelo, quantidade e unidade antes de adicionar ao inventário
   const [itemState, setItemState] = useState({});
+  const [itensAdicionados, setItensAdicionados] = useState([]); // Estado para itens adicionados
 
   const handleModelChange = (category, modelo) => {
     setItemState((prev) => ({
@@ -67,6 +71,12 @@ const RegisterFormView = ({
 
     // Adiciona o item usando a função `addItem` passada como prop
     addItem(category, modelo, quantidade, unidade || "peças");
+
+    // Adiciona o item à lista de itens adicionados
+    setItensAdicionados((prev) => [
+      ...prev,
+      { category, modelo, quantidade, unidade: unidade || "peças" },
+    ]);
 
     // Limpa o estado do item após a adição bem-sucedida
     setItemState((prev) => ({
@@ -255,6 +265,26 @@ const RegisterFormView = ({
                 renderCategoryFields(category)
               )}
             </Grid>
+          </Grid>
+
+          {/* Lista de Itens Adicionados */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              Itens Adicionados
+            </Typography>
+            <List>
+              {itensAdicionados.map((item, index) => (
+                <div key={index}>
+                  <ListItem>
+                    <ListItemText
+                      primary={`${item.modelo} - ${item.quantidade} ${item.unidade}`}
+                      secondary={`Categoria: ${item.category}`}
+                    />
+                  </ListItem>
+                  <Divider />
+                </div>
+              ))}
+            </List>
           </Grid>
 
           {/* Botão de Submit */}
