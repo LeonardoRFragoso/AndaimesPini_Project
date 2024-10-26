@@ -1,0 +1,121 @@
+.register-form {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 30px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background-color: #ffffff;
+  /* Fundo branco */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.register-form h2 {
+  margin-bottom: 30px;
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  color: #4caf50;
+  /* Verde da empresa */
+}
+
+.register-form h3,
+.register-form h4 {
+  margin: 25px 0 15px;
+  font-size: 24px;
+  color: #4caf50;
+  /* Verde da empresa */
+}
+
+.register-form .MuiTextField-root,
+.register-form .MuiSelect-root,
+.register-form .MuiFormControl-root {
+  margin-bottom: 25px;
+  width: 100%;
+}
+
+.register-form button {
+  margin-top: 35px;
+  padding: 14px 0;
+  font-size: 20px;
+  background-color: #4caf50;
+  /* Verde da empresa */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.register-form button:hover {
+  background-color: #45a049;
+  /* Cor do botão ao passar o mouse */
+}
+
+.register-form .item-category {
+  margin-bottom: 25px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  /* Fundo suave */
+}
+
+.register-form .item-category h4 {
+  margin: 0 0 10px;
+  color: #4caf50;
+  /* Verde da empresa para os subtítulos */
+}
+
+/* Adicionando cores para o botão "Registrar Locação" */
+.register-form .submit-button {
+  background-color: #4caf50;
+  /* Verde da empresa */
+  color: white;
+}
+
+.register-form .submit-button:hover {
+  background-color: #45a049;
+  /* Cor ao passar o mouse */
+}
+
+@media (max-width: 768px) {
+  .register-form {
+    max-width: 90%;
+    padding: 25px;
+  }
+
+  .register-form h2 {
+    font-size: 24px;
+  }
+
+  .register-form h3,
+  .register-form h4 {
+    font-size: 20px;
+  }
+
+  .register-form button {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-form {
+    padding: 20px;
+  }
+
+  .register-form h2 {
+    font-size: 22px;
+  }
+
+  .register-form h3,
+  .register-form h4 {
+    font-size: 18px;
+  }
+
+  .register-form button {
+    font-size: 16px;
+  }
+}

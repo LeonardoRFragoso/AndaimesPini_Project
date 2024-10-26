@@ -1,0 +1,43 @@
+# Ignore a pasta virtualenv
+venv/
+ENV/
+env/
+.venv/
+
+# Ignore os diretórios de pacotes de dependências
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Ignore arquivos de configuração do sistema
+.DS_Store
+Thumbs.db
+
+# Ignore arquivos de log
+*.log
+
+# Ignore arquivos temporários
+*.tmp
+*.temp
+*.bak
+
+# Ignore arquivos de ambiente
+.env
+.env.local
+.env.*.local
+
+# Ignore arquivos de IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Ignore builds e distribuições
+build/
+dist/
+
+# Ignorar logs
+backend/app.log
+
+# Não ignore a pasta frontend e seus conteúdos
+!frontend/
