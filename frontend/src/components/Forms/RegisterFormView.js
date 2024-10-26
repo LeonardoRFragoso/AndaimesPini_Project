@@ -15,7 +15,16 @@ import {
   ListItem,
   ListItemText,
   Divider,
+  IconButton,
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const RegisterFormView = ({
   novaLocacao,
@@ -23,12 +32,13 @@ const RegisterFormView = ({
   handleSubmit,
   addItem,
   CATEGORIES,
-  estoqueDisponivel, // Recebe o estoque disponível do componente pai
+  estoqueDisponivel,
   handleDiasCombinadosChange,
 }) => {
-  // Estado local para armazenar o modelo, quantidade e unidade antes de adicionar ao inventário
   const [itemState, setItemState] = useState({});
-  const [itensAdicionados, setItensAdicionados] = useState([]); // Estado para itens adicionados
+  const [itensAdicionados, setItensAdicionados] = useState([]);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   const handleModelChange = (category, modelo) => {
     setItemState((prev) => ({
@@ -54,13 +64,11 @@ const RegisterFormView = ({
   const handleAddItem = (category) => {
     const { modelo, quantidade, unidade } = itemState[category] || {};
 
-    // Validação de modelo e quantidade
     if (!modelo || quantidade <= 0) {
       alert("Selecione um modelo e informe uma quantidade válida.");
       return;
     }
 
-    // Verificação do estoque disponível
     const quantidadeEstoque = estoqueDisponivel[modelo] || 0;
     if (quantidade > quantidadeEstoque) {
       alert(
@@ -69,27 +77,34 @@ const RegisterFormView = ({
       return;
     }
 
-    // Adiciona o item usando a função `addItem` passada como prop
     addItem(category, modelo, quantidade, unidade || "peças");
-
-    // Adiciona o item à lista de itens adicionados
     setItensAdicionados((prev) => [
       ...prev,
       { category, modelo, quantidade, unidade: unidade || "peças" },
     ]);
 
-    // Limpa o estado do item após a adição bem-sucedida
     setItemState((prev) => ({
       ...prev,
       [category]: { modelo: "", quantidade: 0, unidade: "peças" },
     }));
+    setSnackbarOpen(true);
+  };
+
+  const handleRemoveItem = (index) => {
+    setItensAdicionados((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleConfirmSubmit = (event) => {
+    event.preventDefault();
+    handleSubmit(event);
+    setConfirmDialogOpen(false);
   };
 
   const renderCategoryFields = (category) => (
     <Grid item xs={12} sm={6} md={4} key={category}>
       <Card variant="outlined" style={{ marginBottom: 16 }}>
         <CardContent>
-          <Typography variant="h6">
+          <Typography variant="h6" gutterBottom>
             {category.charAt(0).toUpperCase() + category.slice(1)}
           </Typography>
           <FormControl fullWidth style={{ marginBottom: 8 }}>
@@ -100,7 +115,7 @@ const RegisterFormView = ({
             >
               {(CATEGORIES[category] || []).map((modelo, index) => (
                 <MenuItem key={index} value={modelo}>
-                  {modelo}
+                  {modelo} - {estoqueDisponivel[modelo] || 0} disponíveis
                 </MenuItem>
               ))}
             </Select>
@@ -112,7 +127,6 @@ const RegisterFormView = ({
             onChange={(e) => handleQuantityChange(category, e.target.value)}
             style={{ marginTop: 16 }}
           />
-          {/* Adiciona seleção de unidade para andaimes */}
           {category === "andaimes" && (
             <FormControl fullWidth style={{ marginTop: 16 }}>
               <InputLabel>Unidade</InputLabel>
@@ -130,6 +144,7 @@ const RegisterFormView = ({
             color="primary"
             fullWidth
             style={{ marginTop: 16 }}
+            startIcon={<AddCircleOutlineIcon />}
             onClick={() => handleAddItem(category)}
           >
             Adicionar {category}
@@ -140,8 +155,8 @@ const RegisterFormView = ({
   );
 
   return (
-    <Paper elevation={3} className="register-form">
-      <form onSubmit={handleSubmit}>
+    <Paper elevation={3} className="register-form" sx={{ padding: 3 }}>
+      <form onSubmit={(e) => e.preventDefault()}>
         <Typography variant="h4" align="center" gutterBottom>
           Registrar nova locação
         </Typography>
@@ -156,6 +171,7 @@ const RegisterFormView = ({
               onChange={handleChange}
               fullWidth
               required
+              variant="outlined"
             />
           </Grid>
 
@@ -191,40 +207,42 @@ const RegisterFormView = ({
             <Typography variant="h5" gutterBottom>
               Detalhes da Locação
             </Typography>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Data de Início"
-                type="date"
-                name="data_inicio"
-                value={novaLocacao?.data_inicio || ""}
-                onChange={handleChange}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Quantidade de Dias Combinados"
-                type="number"
-                name="dias_combinados"
-                value={novaLocacao?.dias_combinados || ""}
-                onChange={handleDiasCombinadosChange}
-                fullWidth
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Data de Fim"
-                type="date"
-                name="data_fim"
-                value={novaLocacao?.data_fim || ""}
-                InputProps={{ readOnly: true }}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                required
-              />
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Data de Início"
+                  type="date"
+                  name="data_inicio"
+                  value={novaLocacao?.data_inicio || ""}
+                  onChange={handleChange}
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Quantidade de Dias Combinados"
+                  type="number"
+                  name="dias_combinados"
+                  value={novaLocacao?.dias_combinados || ""}
+                  onChange={handleDiasCombinadosChange}
+                  fullWidth
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Data de Fim"
+                  type="date"
+                  name="data_fim"
+                  value={novaLocacao?.data_fim || ""}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  required
+                />
+              </Grid>
             </Grid>
           </Grid>
 
@@ -241,7 +259,7 @@ const RegisterFormView = ({
                 name: "valor_receber_final",
               },
             ].map((field) => (
-              <Grid item xs={12} sm={6} key={field.name}>
+              <Grid item xs={12} sm={4} key={field.name}>
                 <TextField
                   label={field.label}
                   type="number"
@@ -275,7 +293,17 @@ const RegisterFormView = ({
             <List>
               {itensAdicionados.map((item, index) => (
                 <div key={index}>
-                  <ListItem>
+                  <ListItem
+                    secondaryAction={
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        onClick={() => handleRemoveItem(index)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    }
+                  >
                     <ListItemText
                       primary={`${item.modelo} - ${item.quantidade} ${item.unidade}`}
                       secondary={`Categoria: ${item.category}`}
@@ -289,12 +317,47 @@ const RegisterFormView = ({
 
           {/* Botão de Submit */}
           <Grid item xs={12}>
-            <Button type="submit" variant="contained" color="primary" fullWidth>
+            <Button
+              type="button"
+              variant="contained"
+              color="primary"
+              fullWidth
+              onClick={() => setConfirmDialogOpen(true)}
+            >
               Registrar Locação
             </Button>
           </Grid>
         </Grid>
       </form>
+
+      {/* Snackbar de confirmação */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        message="Item adicionado com sucesso"
+      />
+
+      {/* Diálogo de confirmação */}
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+      >
+        <DialogTitle>Confirmar Registro de Locação</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Deseja realmente registrar esta locação com os itens informados?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialogOpen(false)} color="secondary">
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirmSubmit} color="primary">
+            Confirmar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 };
