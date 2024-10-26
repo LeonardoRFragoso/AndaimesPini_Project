@@ -27,11 +27,18 @@ def inicializar_banco():
 @app.before_request
 def log_request_info():
     logging.info(f"Requisição recebida: {request.method} {request.url}")
-    if request.method == "POST":
+    if request.method in ["POST", "PUT", "DELETE"]:
+        # Logar dados de requisição apenas para métodos que possam alterar dados
         logging.info(f"Dados recebidos: {request.get_json()}")
 
 # Registrar as rotas do blueprint
 app.register_blueprint(routes)
+
+# Middleware para tratar erros de requisição de forma padronizada e logar erros
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logging.error(f"Erro durante a requisição: {e}")
+    return {"error": "Erro interno no servidor, tente novamente mais tarde."}, 500
 
 # Função principal para rodar a aplicação
 if __name__ == '__main__':
@@ -39,7 +46,6 @@ if __name__ == '__main__':
     inicializar_banco()
     
     # Verificar se a aplicação está no ambiente correto para debug e qual endereço será utilizado
-    # Debug deve estar ativado apenas em desenvolvimento
     try:
         logging.info("Iniciando a aplicação Flask...")
         app.run(debug=True, host='0.0.0.0', port=5000)

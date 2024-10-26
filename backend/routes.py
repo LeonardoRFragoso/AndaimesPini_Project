@@ -6,6 +6,26 @@ import psycopg2
 # Criação do blueprint para as rotas
 routes = Blueprint('routes', __name__)
 
+# Função auxiliar para atualizar o estoque
+def atualizar_estoque(item_id, quantidade_retirada):
+    """
+    Reduz o estoque de um item pelo item_id e pela quantidade especificada.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            UPDATE inventario SET quantidade = quantidade - %s 
+            WHERE id = %s AND quantidade >= %s
+        ''', (quantidade_retirada, item_id, quantidade_retirada))
+        conn.commit()
+    except psycopg2.Error as e:
+        conn.rollback()
+        print(f"Erro ao atualizar o estoque: {e}")
+    finally:
+        cursor.close()
+        release_connection(conn)
+
 # Rotas para clientes
 @routes.route('/clientes', methods=['GET'])
 def get_clientes():
@@ -81,30 +101,6 @@ def add_inventario():
         return jsonify({"error": f"Erro inesperado: {ex}"}), 500
 
 # Rotas para locações
-@routes.route('/locacoes', methods=['GET'])
-def get_locacoes():
-    try:
-        locacoes = Locacao.get_all()
-        return jsonify(locacoes), 200
-    except psycopg2.Error as e:
-        print(f"Erro ao buscar locações no banco de dados: {e}")
-        return jsonify({"error": f"Erro ao buscar locações: {e}"}), 500
-    except Exception as ex:
-        print(f"Erro inesperado ao buscar locações: {ex}")
-        return jsonify({"error": f"Erro inesperado: {ex}"}), 500
-
-@routes.route('/locacoes/<int:locacao_id>/itens', methods=['GET'])
-def get_itens_locados(locacao_id):
-    try:
-        itens_locados = ItensLocados.get_by_locacao(locacao_id)
-        return jsonify(itens_locados), 200
-    except psycopg2.Error as e:
-        print(f"Erro ao buscar itens locados no banco de dados: {e}")
-        return jsonify({"error": f"Erro ao buscar itens locados: {e}"}), 500
-    except Exception as ex:
-        print(f"Erro inesperado ao buscar itens locados: {ex}")
-        return jsonify({"error": f"Erro inesperado: {ex}"}), 500
-
 @routes.route('/locacoes', methods=['POST'])
 def add_locacao():
     try:
@@ -150,8 +146,28 @@ def add_locacao():
                 return jsonify({"error": f"Item não encontrado no inventário: {modelo_item}"}), 400
 
             ItensLocados.add_item(locacao_id, item_id, quantidade)
+            
+            # Atualizar o estoque do item
+            atualizar_estoque(item_id, quantidade)
 
-        return jsonify({"message": "Locação adicionada com sucesso!"}), 201
+        # Obter o estoque atualizado para retorno
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT nome_item, quantidade FROM inventario')
+            estoque_atualizado = cursor.fetchall()
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+        # Transformar o estoque atualizado em um formato adequado para JSON
+        estoque_dict = {item[0]: item[1] for item in estoque_atualizado}
+        
+        return jsonify({
+            "message": "Locação adicionada com sucesso!",
+            "estoque_atualizado": estoque_dict
+        }), 201
+
     except psycopg2.Error as e:
         print(f"Erro ao adicionar locação no banco de dados: {e}")
         return jsonify({"error": f"Erro ao adicionar locação: {e}"}), 500
