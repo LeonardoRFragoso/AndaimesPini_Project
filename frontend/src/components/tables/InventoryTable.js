@@ -10,16 +10,44 @@ import {
   IconButton,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
+import { ArrowUpward, ArrowDownward } from "@mui/icons-material";
 
-const InventoryTable = ({ items, onEdit, onDelete }) => {
+const InventoryTable = ({ items, onEdit, onDelete, sortItems, sortConfig }) => {
+  // Função para exibir o ícone de ordenação baseado na coluna selecionada
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.key === columnKey) {
+      return sortConfig.direction === "asc" ? (
+        <ArrowUpward fontSize="small" />
+      ) : (
+        <ArrowDownward fontSize="small" />
+      );
+    }
+    return null;
+  };
+
   return (
     <TableContainer>
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: "30%" }}>Nome</TableCell>
-            <TableCell sx={{ width: "20%" }}>Tipo</TableCell>
-            <TableCell sx={{ width: "20%" }}>Quantidade</TableCell>
+            <TableCell
+              sx={{ width: "30%", cursor: "pointer" }}
+              onClick={() => sortItems("nome_item")}
+            >
+              Nome {getSortIcon("nome_item")}
+            </TableCell>
+            <TableCell
+              sx={{ width: "20%", cursor: "pointer" }}
+              onClick={() => sortItems("tipo_item")}
+            >
+              Tipo {getSortIcon("tipo_item")}
+            </TableCell>
+            <TableCell
+              sx={{ width: "20%", cursor: "pointer" }}
+              onClick={() => sortItems("quantidade")}
+            >
+              Quantidade {getSortIcon("quantidade")}
+            </TableCell>
             <TableCell align="right" sx={{ width: "30%" }}>
               Ações
             </TableCell>

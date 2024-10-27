@@ -52,6 +52,41 @@ class Cliente:
             cursor.close()
             release_connection(conn)
 
+    @staticmethod
+    def update(cliente_id, nome, endereco, telefone, referencia):
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE clientes SET nome = %s, endereco = %s, telefone = %s, referencia = %s
+                WHERE id = %s
+            ''', (nome, endereco, telefone, referencia, cliente_id))
+            conn.commit()
+            return cursor.rowcount > 0
+        except psycopg2.Error as e:
+            conn.rollback()
+            print(f"Erro ao atualizar cliente: {e}")
+            return False
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def delete(cliente_id):
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('DELETE FROM clientes WHERE id = %s', (cliente_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        except psycopg2.Error as e:
+            conn.rollback()
+            print(f"Erro ao excluir cliente: {e}")
+            return False
+        finally:
+            cursor.close()
+            release_connection(conn)
+
 # Classe para lidar com operações relacionadas ao Inventário
 class Inventario:
     @staticmethod
@@ -77,14 +112,12 @@ class Inventario:
 
     @staticmethod
     def get_all():
-        """Retorna uma lista com o nome do item, quantidade e tipo."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('SELECT id, nome_item, quantidade, tipo_item FROM inventario')
             inventario = cursor.fetchall()
-            inventario_list = [{"id": item[0], "nome_item": item[1], "quantidade": item[2], "tipo_item": item[3]} for item in inventario]
-            return inventario_list
+            return [{"id": item[0], "nome_item": item[1], "quantidade": item[2], "tipo_item": item[3]} for item in inventario]
         except psycopg2.Error as e:
             print(f"Erro ao buscar inventário: {e}")
             return []
@@ -94,7 +127,6 @@ class Inventario:
 
     @staticmethod
     def get_available():
-        """Retorna uma lista de itens no inventário com quantidade maior que zero."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -135,6 +167,22 @@ class Inventario:
         except psycopg2.Error as e:
             print(f"Erro ao buscar item por modelo: {e}")
             return None
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def delete_item(item_id):
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('DELETE FROM inventario WHERE id = %s', (item_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        except psycopg2.Error as e:
+            conn.rollback()
+            print(f"Erro ao excluir item do inventário: {e}")
+            return False
         finally:
             cursor.close()
             release_connection(conn)
@@ -199,15 +247,19 @@ class Locacao:
             release_connection(conn)
 
     @staticmethod
-    def get_by_id(locacao_id):
+    def extend(locacao_id, dias_adicionais):
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute('SELECT * FROM locacoes WHERE id = %s', (locacao_id,))
-            return cursor.fetchone()
+            cursor.execute('''
+                UPDATE locacoes SET data_fim = data_fim + interval '%s days' WHERE id = %s
+            ''', (dias_adicionais, locacao_id))
+            conn.commit()
+            return cursor.rowcount > 0
         except psycopg2.Error as e:
-            print(f"Erro ao buscar locação por ID: {e}")
-            return None
+            conn.rollback()
+            print(f"Erro ao prorrogar locação: {e}")
+            return False
         finally:
             cursor.close()
             release_connection(conn)
@@ -232,21 +284,17 @@ class ItensLocados:
             release_connection(conn)
 
     @staticmethod
-    def get_by_locacao(locacao_id):
+    def return_item(locacao_id, item_id):
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            query = '''
-                SELECT inventario.nome_item, itens_locados.quantidade
-                FROM itens_locados
-                JOIN inventario ON itens_locados.item_id = inventario.id
-                WHERE itens_locados.locacao_id = %s
-            '''
-            cursor.execute(query, (locacao_id,))
-            return [{"nome_item": row[0], "quantidade": row[1]} for row in cursor.fetchall()]
+            cursor.execute('''
+                DELETE FROM itens_locados WHERE locacao_id = %s AND item_id = %s
+            ''', (locacao_id, item_id))
+            conn.commit()
         except psycopg2.Error as e:
-            print(f"Erro ao buscar itens locados: {e}")
-            return []
+            conn.rollback()
+            print(f"Erro ao remover item locado: {e}")
         finally:
             cursor.close()
             release_connection(conn)
@@ -266,34 +314,6 @@ class RegistroDanos:
         except psycopg2.Error as e:
             conn.rollback()
             print(f"Erro ao registrar dano: {e}")
-        finally:
-            cursor.close()
-            release_connection(conn)
-
-    @staticmethod
-    def get_by_locacao(locacao_id):
-        conn = get_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute('SELECT * FROM registro_danos WHERE locacao_id = %s', (locacao_id,))
-            return cursor.fetchall()
-        except psycopg2.Error as e:
-            print(f"Erro ao buscar danos por locação: {e}")
-            return []
-        finally:
-            cursor.close()
-            release_connection(conn)
-
-    @staticmethod
-    def get_all():
-        conn = get_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute('SELECT * FROM registro_danos')
-            return cursor.fetchall()
-        except psycopg2.Error as e:
-            print(f"Erro ao buscar todos os registros de danos: {e}")
-            return []
         finally:
             cursor.close()
             release_connection(conn)

@@ -1,9 +1,10 @@
-// OrdersPage.js
+// frontend/src/components/pages/OrdersPage.js
+
 import React from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { Link } from "react-router-dom";
 import PageLayout from "../layouts/PageLayout";
-import OrdersTable from "../tables/OrdersTable"; // Importa o componente da tabela de pedidos
+import OrdersListView from "../Orders/OrdersListView"; // Caminho correto para o componente OrdersListView
 
 const OrdersPage = () => {
   return (
@@ -16,9 +17,9 @@ const OrdersPage = () => {
         Aqui você pode visualizar todos os pedidos realizados.
       </Typography>
 
-      {/* Conteúdo da Tabela */}
+      {/* Conteúdo do OrdersListView */}
       <Box sx={{ mt: 4 }}>
-        <OrdersTable />
+        <OrdersListView />
       </Box>
 
       {/* Botão para voltar à HomePage */}

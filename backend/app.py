@@ -1,67 +1,56 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # Adicionar suporte a CORS
-from routes import routes  # Certifique-se de que o módulo routes está corretamente configurado
-from database import create_tables  # Importar a função para criar tabelas
+from flask_cors import CORS
+from routes import main_routes  # Importa o blueprint principal com todas as rotas
+from database import create_tables
 import logging
 
 app = Flask(__name__)
 
-# Ativar o CORS para permitir que o frontend se comunique com o backend
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+# Configuração de CORS
+CORS(app)
 
-# Configuração do logger apenas para o console
+# Configuração do logger
+logging.basicConfig(level=logging.WARNING,  # Mude para WARNING para menos verbosidade
+                    format='%(asctime)s %(levelname)s: %(message)s')
 logger = logging.getLogger()
-logger.setLevel(logging.WARNING)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.WARNING)
-formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
 
-# Função para criar/verificar as tabelas no banco de dados ao iniciar a aplicação
+# Função para inicializar o banco de dados ao iniciar a aplicação
 def inicializar_banco():
     try:
         create_tables()
-        logging.info("Tabelas verificadas/criadas com sucesso!")
-        print("Tabelas verificadas/criadas com sucesso!")
+        logger.info("Tabelas verificadas/criadas com sucesso!")
     except Exception as e:
-        logging.error(f"Erro ao criar/verificar tabelas: {e}")
-        print(f"Erro ao criar/verificar tabelas: {e}")
+        logger.error(f"Erro ao criar/verificar tabelas: {e}")
 
-# Middleware para registrar cada requisição recebida
+# Middleware para registrar informações das requisições
 @app.before_request
 def log_request_info():
-    logging.info(f"Requisição recebida: {request.method} {request.url}")
-    # Logar dados da requisição apenas para métodos que possam alterar dados e ignorar o Content-Type no DELETE
+    logger.debug(f"Requisição recebida: {request.method} {request.url}")
     if request.method in ["POST", "PUT", "DELETE"]:
-        try:
-            data = request.get_json(silent=True)  # Usa silent=True para evitar erros quando o body está vazio
-            logging.info(f"Dados recebidos: {data}")
-        except Exception as e:
-            logging.warning(f"Falha ao logar dados da requisição: {e}")
+        data = request.get_json(silent=True)
+        logger.debug(f"Dados recebidos: {data}")
 
-# Configurar o after_request para assegurar que métodos e cabeçalhos apropriados sejam permitidos nas requisições CORS
+# Configuração do after_request
 @app.after_request
 def after_request(response):
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
     response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
     return response
 
-# Registrar as rotas do blueprint
-app.register_blueprint(routes)
+# Registrar as rotas do blueprint principal
+app.register_blueprint(main_routes)  # Registra o blueprint com todas as rotas modularizadas
 
-# Middleware para tratar erros de requisição de forma padronizada e logar erros
+# Middleware para tratar erros de requisição
 @app.errorhandler(Exception)
 def handle_exception(e):
-    logging.error(f"Erro durante a requisição: {e}")
+    logger.error(f"Erro durante a requisição: {e}")
     return jsonify({"error": "Erro interno no servidor, tente novamente mais tarde."}), 500
 
 # Função principal para rodar a aplicação
 if __name__ == '__main__':
     inicializar_banco()
     try:
-        logging.info("Iniciando a aplicação Flask...")
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        logger.info("Iniciando a aplicação Flask...")
+        app.run(debug=False, host='0.0.0.0', port=5000)  # Mude debug para False
     except Exception as e:
-        logging.error(f"Erro ao iniciar a aplicação: {e}")
-        print(f"Erro ao iniciar a aplicação: {e}")
+        logger.error(f"Erro ao iniciar a aplicação: {e}")

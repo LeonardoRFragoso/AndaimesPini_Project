@@ -46,7 +46,6 @@ const RegisterFormContainer = () => {
         }, {});
         setEstoqueDisponivel(estoqueMap);
 
-        // Gerar categorias dinamicamente a partir do inventário
         const categoriasMap = response.data.reduce((acc, item) => {
           if (!acc[item.tipo_item]) {
             acc[item.tipo_item] = [];
@@ -146,9 +145,11 @@ const RegisterFormContainer = () => {
       itens: novaLocacao.itens.map((item) => ({
         modelo: item.modelo,
         quantidade: parseInt(item.quantidade, 10),
-        unidade: item.unidade,
+        unidade: item.unidade || "peças",
       })),
     };
+
+    console.log("Enviando dados de locação:", locacaoData);
 
     try {
       const response = await axios.post(
@@ -157,8 +158,6 @@ const RegisterFormContainer = () => {
       );
       if (response.status === 201) {
         alert("Locação registrada com sucesso!");
-
-        // Limpa o formulário e atualiza o estoque após o registro
         setNovaLocacao({
           numero_nota: "",
           cliente_info: {
@@ -176,11 +175,15 @@ const RegisterFormContainer = () => {
           valor_receber_final: 0,
           itens: [],
         });
-        fetchInventario(); // Atualiza o estoque chamando a função correta
+        fetchInventario();
       }
     } catch (error) {
-      console.error("Erro ao registrar locação:", error);
-      alert("Erro ao registrar locação");
+      console.error("Erro ao registrar locação:", error.response || error);
+      if (error.response && error.response.data) {
+        alert(`Erro ao registrar locação: ${error.response.data.error}`);
+      } else {
+        alert("Erro ao registrar locação");
+      }
     }
   };
 
@@ -215,10 +218,10 @@ const RegisterFormContainer = () => {
       handleChange={handleChange}
       handleSubmit={handleSubmit}
       addItem={addItem}
-      CATEGORIES={categorias} // Usa o estado dinâmico `categorias`
+      CATEGORIES={categorias}
       estoqueDisponivel={estoqueDisponivel}
       handleDiasCombinadosChange={handleDiasCombinadosChange}
-      fetchEstoque={fetchInventario} // Passa fetchInventario como fetchEstoque
+      fetchEstoque={fetchInventario}
     />
   );
 };

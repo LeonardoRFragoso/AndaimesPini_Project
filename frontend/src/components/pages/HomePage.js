@@ -1,4 +1,5 @@
-// HomePage.js
+// frontend/src/pages/HomePage.js
+
 import React from "react";
 import {
   Box,
@@ -26,7 +27,7 @@ const HomePage = () => {
         variant="h4"
         gutterBottom
         align="center"
-        sx={{ fontWeight: "bold", color: "#2c552d", mb: 1 }}
+        sx={{ fontWeight: "bold", color: "#2c552d", mb: 3 }}
       >
         Bem-vindo ao Sistema de Gestão de Locações
       </Typography>
@@ -34,256 +35,135 @@ const HomePage = () => {
         variant="body1"
         paragraph
         align="center"
-        sx={{ fontSize: "1.1rem", color: "#555", mb: 4 }}
+        sx={{ fontSize: "1.1rem", color: "#555", mb: 5 }}
       >
         Selecione uma opção no menu para começar.
       </Typography>
 
       <Grid container spacing={4} justifyContent="center">
-        {/* Card para Registrar Locação */}
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              textAlign: "center",
-              transition: "transform 0.3s ease, box-shadow 0.3s ease",
-              "&:hover": {
-                transform: "scale(1.05)",
-                boxShadow: "0px 8px 16px rgba(44, 85, 45, 0.3)",
-              },
-            }}
-          >
-            <CardContent>
-              <AddCircle
-                sx={{
-                  fontSize: 50,
-                  color: "#2c552d",
-                  transition: "transform 0.3s",
-                  "&:hover": { transform: "scale(1.1)" },
-                }}
-              />
-              <Typography variant="h5" component="div" gutterBottom>
-                Registrar Locação
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                Clique aqui para registrar uma nova locação de materiais.
-              </Typography>
-            </CardContent>
-            <CardActions sx={{ justifyContent: "center" }}>
-              <Button
-                variant="contained"
-                component={Link}
-                to="/register"
-                sx={{
-                  background:
-                    "linear-gradient(135deg, #2c552d 30%, #45a049 90%)",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  borderRadius: "20px",
-                  px: 3,
-                  "&:hover": { backgroundColor: "#45a049" },
-                }}
-              >
-                Registrar
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-
-        {/* Card para Visualizar Pedidos */}
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              textAlign: "center",
-              transition: "transform 0.3s ease, box-shadow 0.3s ease",
-              "&:hover": {
-                transform: "scale(1.05)",
-                boxShadow: "0px 8px 16px rgba(44, 85, 45, 0.3)",
-              },
-            }}
-          >
-            <CardContent>
-              <Visibility
-                sx={{
-                  fontSize: 50,
-                  color: "#2c552d",
-                  transition: "transform 0.3s",
-                  "&:hover": { transform: "scale(1.1)" },
-                }}
-              />
-              <Typography variant="h5" component="div" gutterBottom>
-                Visualizar Pedidos
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                Clique aqui para visualizar todos os pedidos realizados.
-              </Typography>
-            </CardContent>
-            <CardActions sx={{ justifyContent: "center" }}>
-              <Button
-                variant="contained"
-                component={Link}
-                to="/orders"
-                sx={{
-                  background:
-                    "linear-gradient(135deg, #2c552d 30%, #45a049 90%)",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  borderRadius: "20px",
-                  px: 3,
-                  "&:hover": { backgroundColor: "#45a049" },
-                }}
-              >
-                Visualizar
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-
-        {/* Card para Controle de Estoque */}
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              textAlign: "center",
-              transition: "transform 0.3s ease, box-shadow 0.3s ease",
-              "&:hover": {
-                transform: "scale(1.05)",
-                boxShadow: "0px 8px 16px rgba(44, 85, 45, 0.3)",
-              },
-            }}
-          >
-            <CardContent>
-              <Inventory
-                sx={{
-                  fontSize: 50,
-                  color: "#2c552d",
-                  transition: "transform 0.3s",
-                  "&:hover": { transform: "scale(1.1)" },
-                }}
-              />
-              <Typography variant="h5" component="div" gutterBottom>
-                Controle de Estoque
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                Gerencie os itens disponíveis para locação.
-              </Typography>
-            </CardContent>
-            <CardActions sx={{ justifyContent: "center" }}>
-              <Button
-                variant="contained"
-                component={Link}
-                to="/inventory"
-                sx={{
-                  background:
-                    "linear-gradient(135deg, #2c552d 30%, #45a049 90%)",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  borderRadius: "20px",
-                  px: 3,
-                  "&:hover": { backgroundColor: "#45a049" },
-                }}
-              >
-                Acessar
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-
-        {/* Card para Relatórios */}
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              textAlign: "center",
-              transition: "transform 0.3s ease, box-shadow 0.3s ease",
-              "&:hover": {
-                transform: "scale(1.05)",
-                boxShadow: "0px 8px 16px rgba(44, 85, 45, 0.3)",
-              },
-            }}
-          >
-            <CardContent>
-              <Assessment
-                sx={{
-                  fontSize: 50,
-                  color: "#2c552d",
-                  transition: "transform 0.3s",
-                  "&:hover": { transform: "scale(1.1)" },
-                }}
-              />
-              <Typography variant="h5" component="div" gutterBottom>
-                Relatórios
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                Visualize relatórios detalhados sobre locações.
-              </Typography>
-            </CardContent>
-            <CardActions sx={{ justifyContent: "center" }}>
-              <Button
-                variant="contained"
-                component={Link}
-                to="/reports"
-                sx={{
-                  background:
-                    "linear-gradient(135deg, #2c552d 30%, #45a049 90%)",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  borderRadius: "20px",
-                  px: 3,
-                  "&:hover": { backgroundColor: "#45a049" },
-                }}
-              >
-                Visualizar
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-
-        {/* Card para Gerenciar Clientes */}
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              textAlign: "center",
-              transition: "transform 0.3s ease, box-shadow 0.3s ease",
-              "&:hover": {
-                transform: "scale(1.05)",
-                boxShadow: "0px 8px 16px rgba(44, 85, 45, 0.3)",
-              },
-            }}
-          >
-            <CardContent>
-              <PersonAdd
-                sx={{
-                  fontSize: 50,
-                  color: "#2c552d",
-                  transition: "transform 0.3s",
-                  "&:hover": { transform: "scale(1.1)" },
-                }}
-              />
-              <Typography variant="h5" component="div" gutterBottom>
-                Gerenciar Clientes
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                Adicione, edite ou visualize os clientes.
-              </Typography>
-            </CardContent>
-            <CardActions sx={{ justifyContent: "center" }}>
-              <Button
-                variant="contained"
-                component={Link}
-                to="/clients"
-                sx={{
-                  background:
-                    "linear-gradient(135deg, #2c552d 30%, #45a049 90%)",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  borderRadius: "20px",
-                  px: 3,
-                  "&:hover": { backgroundColor: "#45a049" },
-                }}
-              >
-                Acessar
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
+        {/* Card Template */}
+        {[
+          {
+            title: "Registrar Locação",
+            description:
+              "Clique aqui para registrar uma nova locação de materiais.",
+            icon: <AddCircle sx={{ fontSize: 50 }} />,
+            link: "/register",
+            buttonText: "Registrar",
+          },
+          {
+            title: "Visualizar Pedidos",
+            description:
+              "Clique aqui para visualizar todos os pedidos realizados.",
+            icon: <Visibility sx={{ fontSize: 50 }} />,
+            link: "/orders",
+            buttonText: "Visualizar",
+          },
+          {
+            title: "Controle de Estoque",
+            description: "Gerencie os itens disponíveis para locação.",
+            icon: <Inventory sx={{ fontSize: 50 }} />,
+            link: "/inventory",
+            buttonText: "Acessar",
+          },
+          {
+            title: "Relatórios",
+            description: "Visualize relatórios detalhados sobre locações.",
+            icon: <Assessment sx={{ fontSize: 50 }} />,
+            link: "/reports",
+            buttonText: "Visualizar",
+          },
+          {
+            title: "Gerenciar Clientes",
+            description: "Adicione, edite ou visualize os clientes.",
+            icon: <PersonAdd sx={{ fontSize: 50 }} />,
+            link: "/clients",
+            buttonText: "Acessar",
+          },
+        ].map((item, index) => (
+          <Grid item xs={12} sm={6} md={4} key={index}>
+            <Card
+              sx={{
+                textAlign: "center",
+                transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                "&:hover": {
+                  transform: "scale(1.07)",
+                  boxShadow: "0px 8px 20px rgba(44, 85, 45, 0.3)",
+                },
+                borderRadius: 4,
+                padding: 3,
+                mx: "auto",
+                maxWidth: 320,
+              }}
+            >
+              <CardContent>
+                <Box
+                  sx={{
+                    color: "#2c552d",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: 70,
+                    height: 70,
+                    borderRadius: "50%",
+                    backgroundColor: "#f5f5f5",
+                    mb: 2,
+                    transition: "background-color 0.3s, transform 0.3s",
+                    "&:hover": {
+                      backgroundColor: "#e0f2f1",
+                      transform: "scale(1.1)",
+                    },
+                  }}
+                >
+                  {item.icon}
+                </Box>
+                <Typography
+                  variant="h5"
+                  component="div"
+                  gutterBottom
+                  sx={{ fontWeight: "600", color: "#2c552d" }}
+                >
+                  {item.title}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  sx={{ fontSize: "0.9rem" }}
+                >
+                  {item.description}
+                </Typography>
+              </CardContent>
+              <CardActions sx={{ justifyContent: "center" }}>
+                <Button
+                  variant="contained"
+                  component={Link}
+                  to={item.link}
+                  sx={{
+                    background:
+                      "linear-gradient(135deg, #2c552d 30%, #45a049 90%)",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    borderRadius: "20px",
+                    px: 4,
+                    py: 1,
+                    fontSize: "0.9rem",
+                    transition:
+                      "transform 0.3s ease, background-color 0.3s ease",
+                    "&:hover": {
+                      backgroundColor: "#45a049",
+                      transform: "scale(1.05)",
+                    },
+                    "&:active": {
+                      transform: "scale(0.95)",
+                    },
+                  }}
+                >
+                  {item.buttonText}
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
     </PageLayout>
   );
