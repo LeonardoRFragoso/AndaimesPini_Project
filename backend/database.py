@@ -32,8 +32,9 @@ def get_connection():
 # Função para liberar a conexão de volta para o pool
 def release_connection(conn):
     try:
-        connection_pool.putconn(conn)
-        print("Conexão retornada ao pool.")
+        if conn:
+            connection_pool.putconn(conn)
+            print("Conexão retornada ao pool.")
     except Error as e:
         print(f"Erro ao retornar conexão ao pool: {e}")
         traceback.print_exc()
@@ -112,7 +113,7 @@ def create_tables():
             traceback.print_exc()
             conn.rollback()  # Rollback para garantir que não fiquem dados inconsistentes
         finally:
-            if cursor:
+            if 'cursor' in locals() and cursor is not None:
                 cursor.close()
             release_connection(conn)  # Retorna a conexão ao pool
     else:

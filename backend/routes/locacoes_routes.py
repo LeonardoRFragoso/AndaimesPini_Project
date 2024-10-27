@@ -32,12 +32,8 @@ def add_locacao():
         nova_locacao = request.get_json()
         logging.info(f"Dados da nova locação recebidos: {nova_locacao}")
 
-        # Validações de campos obrigatórios
-        if not nova_locacao or 'cliente_info' not in nova_locacao:
-            logging.warning("Dados de locação ausentes.")
-            return jsonify({"error": "Dados de locação ausentes."}), 400
-
-        cliente_info = nova_locacao.get('cliente_info')
+        # Validação de campos obrigatórios para cliente
+        cliente_info = nova_locacao.get('cliente_info', {})
         nome_cliente = cliente_info.get('nome')
         telefone_cliente = cliente_info.get('telefone')
 
@@ -47,7 +43,10 @@ def add_locacao():
 
         # Criação do cliente
         cliente_id = Cliente.create(
-            nome_cliente, cliente_info.get('endereco'), telefone_cliente, cliente_info.get('referencia')
+            nome_cliente, 
+            cliente_info.get('endereco'), 
+            telefone_cliente, 
+            cliente_info.get('referencia')
         )
         if cliente_id is None:
             logging.error("Erro ao criar o cliente")
@@ -55,27 +54,32 @@ def add_locacao():
 
         logging.info(f"Cliente criado com sucesso: ID {cliente_id}")
 
-        # Validações da locação
+        # Validação de campos obrigatórios para locação
         itens_locados = nova_locacao.get('itens', [])
-        if not nova_locacao.get('numero_nota') or not nova_locacao.get('data_inicio') or not nova_locacao.get('data_fim') or nova_locacao.get('valor_total') is None or not itens_locados:
-            logging.warning("Todos os campos da locação são obrigatórios!")
-            return jsonify({"error": "Todos os campos da locação são obrigatórios!"}), 400
+        if not nova_locacao.get('data_inicio') or not nova_locacao.get('data_fim') or nova_locacao.get('valor_total') is None or not itens_locados:
+            logging.warning("Todos os campos da locação e itens são obrigatórios!")
+            return jsonify({"error": "Todos os campos da locação e itens são obrigatórios!"}), 400
 
         # Criação da locação
-        locacao_id = Locacao.create(cliente_id, nova_locacao['data_inicio'], nova_locacao['data_fim'], nova_locacao['valor_total'])
+        locacao_id = Locacao.create(
+            cliente_id, 
+            nova_locacao['data_inicio'], 
+            nova_locacao['data_fim'], 
+            nova_locacao['valor_total']
+        )
         if locacao_id is None:
             logging.error("Erro ao criar a locação!")
             return jsonify({"error": "Erro ao criar a locação!"}), 500
 
         logging.info(f"Locação criada com sucesso: ID {locacao_id}")
 
-        # Adicionando itens locados e atualizando o estoque
+        # Processamento de itens locados e atualização de estoque
         for item in itens_locados:
             modelo_item = item.get('modelo')
             quantidade = item.get('quantidade')
 
             if not modelo_item or quantidade is None or quantidade <= 0:
-                logging.warning("Modelo e quantidade do item são obrigatórios e a quantidade deve ser maior que zero.")
+                logging.warning("Modelo e quantidade do item são obrigatórios e a quantidade deve ser positiva.")
                 return jsonify({"error": "Modelo e quantidade do item são obrigatórios!"}), 400
 
             item_id = Inventario.get_item_id_by_modelo(modelo_item)
@@ -83,7 +87,6 @@ def add_locacao():
                 logging.warning(f"Item não encontrado no inventário: {modelo_item}")
                 return jsonify({"error": f"Item não encontrado no inventário: {modelo_item}"}), 400
 
-            # Adiciona o item à locação e atualiza o estoque
             ItensLocados.add_item(locacao_id, item_id, quantidade)
             atualizar_estoque(item_id, quantidade)
             logging.info(f"Item {modelo_item} adicionado à locação ID {locacao_id} e estoque atualizado.")
@@ -108,9 +111,8 @@ def devolver_locacao(locacao_id):
             logging.warning("Item ID é obrigatório!")
             return jsonify({"error": "Item ID é obrigatório!"}), 400
 
-        # Lógica para marcar o item como devolvido
         ItensLocados.return_item(locacao_id, item_id)
-        restaurar_estoque(item_id, 1)  # Devolvendo 1 unidade do item
+        restaurar_estoque(item_id, 1)
         logging.info(f"Devolução registrada com sucesso para item ID {item_id} na locação ID {locacao_id}.")
         return jsonify({"message": "Devolução registrada com sucesso!"}), 200
     except psycopg2.Error as e:
@@ -127,10 +129,9 @@ def prorrogar_locacao(locacao_id):
         dias_adicionais = dados.get('dias_adicionais')
 
         if dias_adicionais is None or dias_adicionais <= 0:
-            logging.warning("Dias adicionais devem ser maiores que zero!")
-            return jsonify({"error": "Dias adicionais devem ser maiores que zero!"}), 400
+            logging.warning("Dias adicionais devem ser positivos!")
+            return jsonify({"error": "Dias adicionais devem ser positivos!"}), 400
 
-        # Lógica para prorrogar a locação
         Locacao.extend(locacao_id, dias_adicionais)
         logging.info(f"Locação ID {locacao_id} prorrogada com sucesso por {dias_adicionais} dias.")
         return jsonify({"message": "Locação prorrogada com sucesso!"}), 200

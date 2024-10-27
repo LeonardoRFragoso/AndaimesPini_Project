@@ -51,6 +51,6 @@ if __name__ == '__main__':
     inicializar_banco()
     try:
         logger.info("Iniciando a aplicação Flask...")
-        app.run(debug=False, host='0.0.0.0', port=5000)  # Mude debug para False
+        app.run(debug=True, host='0.0.0.0', port=5000)
     except Exception as e:
         logger.error(f"Erro ao iniciar a aplicação: {e}")
