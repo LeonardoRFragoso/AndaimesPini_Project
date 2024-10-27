@@ -1,7 +1,15 @@
 // frontend/src/components/pages/inventory/InventoryDetail.js
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Box, Typography, TextField, Button, Alert } from "@mui/material";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Alert,
+  Snackbar,
+  CircularProgress,
+} from "@mui/material";
 import axios from "axios";
 
 const InventoryDetail = () => {
@@ -10,6 +18,8 @@ const InventoryDetail = () => {
   const [item, setItem] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
+  const [feedback, setFeedback] = useState({ open: false, message: "" });
+  const [loading, setLoading] = useState(true); // Estado de carregamento
 
   useEffect(() => {
     fetchItemDetails();
@@ -17,6 +27,7 @@ const InventoryDetail = () => {
 
   // Função para buscar detalhes do item no backend
   const fetchItemDetails = async () => {
+    setLoading(true);
     try {
       const response = await axios.get(
         `http://127.0.0.1:5000/inventario/${id}`
@@ -26,19 +37,22 @@ const InventoryDetail = () => {
       console.error("Erro ao buscar detalhes do item:", error);
       setError("Erro ao buscar detalhes do item. Por favor, tente novamente.");
     }
+    setLoading(false);
   };
 
   // Função para salvar as alterações do item
   const handleSaveChanges = async () => {
-    if (item.quantity <= 0) {
-      setError("A quantidade deve ser um número positivo.");
+    if (!item.nome_item || item.quantidade <= 0) {
+      setError(
+        "Todos os campos são obrigatórios e a quantidade deve ser positiva."
+      );
       return;
     }
 
     try {
       await axios.put(`http://127.0.0.1:5000/inventario/${id}`, item);
       setIsEditing(false);
-      alert("Item atualizado com sucesso!");
+      setFeedback({ open: true, message: "Item atualizado com sucesso!" });
     } catch (error) {
       console.error("Erro ao salvar alterações:", error);
       setError("Erro ao salvar alterações. Por favor, tente novamente.");
@@ -50,7 +64,7 @@ const InventoryDetail = () => {
     if (window.confirm("Tem certeza de que deseja excluir este item?")) {
       try {
         await axios.delete(`http://127.0.0.1:5000/inventario/${id}`);
-        alert("Item excluído com sucesso!");
+        setFeedback({ open: true, message: "Item excluído com sucesso!" });
         navigate("/inventory"); // Redireciona para a página de inventário
       } catch (error) {
         console.error("Erro ao excluir o item:", error);
@@ -68,8 +82,17 @@ const InventoryDetail = () => {
     }));
   };
 
+  // Fecha o feedback
+  const handleCloseFeedback = () => {
+    setFeedback({ open: false, message: "" });
+  };
+
+  if (loading) {
+    return <CircularProgress />;
+  }
+
   if (!item) {
-    return <Typography>Carregando...</Typography>;
+    return <Typography>Erro ao carregar os dados do item.</Typography>;
   }
 
   return (
@@ -86,7 +109,7 @@ const InventoryDetail = () => {
       <TextField
         label="Nome do Item"
         name="nome_item"
-        value={item.nome_item}
+        value={item.nome_item || ""}
         onChange={handleChange}
         fullWidth
         margin="normal"
@@ -96,7 +119,7 @@ const InventoryDetail = () => {
         label="Quantidade"
         name="quantidade"
         type="number"
-        value={item.quantidade}
+        value={item.quantidade || ""}
         onChange={handleChange}
         fullWidth
         margin="normal"
@@ -144,6 +167,14 @@ const InventoryDetail = () => {
           Voltar ao Inventário
         </Button>
       </Box>
+
+      {/* Feedback de Ações */}
+      <Snackbar
+        open={feedback.open}
+        autoHideDuration={3000}
+        onClose={handleCloseFeedback}
+        message={feedback.message}
+      />
     </Box>
   );
 };

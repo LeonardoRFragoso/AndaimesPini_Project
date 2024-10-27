@@ -33,7 +33,7 @@ const RegisterFormView = ({
   addItem,
   CATEGORIES,
   estoqueDisponivel,
-  fetchEstoque, // Função para atualizar o estoque
+  fetchEstoque,
   handleDiasCombinadosChange,
 }) => {
   const [itemState, setItemState] = useState({});
@@ -101,11 +101,11 @@ const RegisterFormView = ({
     handleChange({ target: { name: "numero_nota", value: "" } });
     handleChange({ target: { name: "cliente_info", value: {} } });
     handleChange({ target: { name: "data_inicio", value: "" } });
-    handleChange({ target: { name: "dias_combinados", value: "" } });
+    handleChange({ target: { name: "dias_combinados", value: 1 } });
     handleChange({ target: { name: "data_fim", value: "" } });
-    handleChange({ target: { name: "valor_total", value: "" } });
-    handleChange({ target: { name: "valor_pago_entrega", value: "" } });
-    handleChange({ target: { name: "valor_receber_final", value: "" } });
+    handleChange({ target: { name: "valor_total", value: 0 } });
+    handleChange({ target: { name: "valor_pago_entrega", value: 0 } });
+    handleChange({ target: { name: "valor_receber_final", value: 0 } });
   };
 
   const handleConfirmSubmit = async (event) => {

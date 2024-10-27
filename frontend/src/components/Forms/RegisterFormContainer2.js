@@ -6,7 +6,6 @@ import RegisterFormView from "./RegisterFormView";
 const RegisterFormContainer = () => {
   const [clientes, setClientes] = useState([]);
   const [estoqueDisponivel, setEstoqueDisponivel] = useState({});
-  const [categorias, setCategorias] = useState({});
   const [novaLocacao, setNovaLocacao] = useState({
     numero_nota: "",
     cliente_info: {
@@ -25,7 +24,17 @@ const RegisterFormContainer = () => {
     itens: [],
   });
 
-  // Função para carregar clientes
+  const CATEGORIES = {
+    andaimes: ["1,0m", "1,5m Azul", "1,5m Verde", "1,5m Vermelho"],
+    escoras: ["2,8m", "3,0m", "3,2m", "3,5m", "3,8m", "4,0m"],
+    forcados: ["Forcado pequeno", "Forcado médio", "Forcado grande"],
+    pranchões: ["Pranchão 1,0m", "Pranchão 2,5m"],
+    sapatas: ["Sapata regulável", "Sapata fixa"],
+    rodizios: ["Rodízio simples", "Rodízio com trava"],
+    madeira: ["Madeira pequena", "Madeira média", "Madeira grande"],
+    ferros: ["Ferro 1,5m", "Ferro 2,0m", "Ferro 3,0m"],
+  };
+
   const fetchClientes = async () => {
     try {
       const response = await axios.get("http://127.0.0.1:5000/clientes");
@@ -35,7 +44,6 @@ const RegisterFormContainer = () => {
     }
   };
 
-  // Função para carregar o inventário e configurar categorias dinamicamente
   const fetchInventario = async () => {
     try {
       const response = await axios.get("http://127.0.0.1:5000/inventario");
@@ -45,16 +53,6 @@ const RegisterFormContainer = () => {
           return acc;
         }, {});
         setEstoqueDisponivel(estoqueMap);
-
-        // Gerar categorias dinamicamente a partir do inventário
-        const categoriasMap = response.data.reduce((acc, item) => {
-          if (!acc[item.tipo_item]) {
-            acc[item.tipo_item] = [];
-          }
-          acc[item.tipo_item].push(item.nome_item);
-          return acc;
-        }, {});
-        setCategorias(categoriasMap);
       }
     } catch (error) {
       console.error("Erro ao buscar inventário:", error);
@@ -185,7 +183,7 @@ const RegisterFormContainer = () => {
   };
 
   const addItem = (category, modelo, quantidade, unidade = "peças") => {
-    if (!category || !modelo || !categorias[category]?.includes(modelo)) {
+    if (!category || !modelo || !CATEGORIES[category]?.includes(modelo)) {
       alert("Selecione uma categoria e um modelo válidos.");
       return;
     }
@@ -215,7 +213,7 @@ const RegisterFormContainer = () => {
       handleChange={handleChange}
       handleSubmit={handleSubmit}
       addItem={addItem}
-      CATEGORIES={categorias} // Usa o estado dinâmico `categorias`
+      CATEGORIES={CATEGORIES}
       estoqueDisponivel={estoqueDisponivel}
       handleDiasCombinadosChange={handleDiasCombinadosChange}
       fetchEstoque={fetchInventario} // Passa fetchInventario como fetchEstoque

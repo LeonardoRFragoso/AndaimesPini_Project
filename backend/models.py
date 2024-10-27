@@ -55,6 +55,76 @@ class Cliente:
 # Classe para lidar com operações relacionadas ao Inventário
 class Inventario:
     @staticmethod
+    def create(nome_item, quantidade, tipo_item):
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                INSERT INTO inventario (nome_item, quantidade, tipo_item)
+                VALUES (%s, %s, %s)
+                RETURNING id
+            ''', (nome_item, quantidade, tipo_item))
+            item_id = cursor.fetchone()[0]
+            conn.commit()
+            return item_id
+        except psycopg2.Error as e:
+            conn.rollback()
+            print(f"Erro ao adicionar item ao inventário: {e}")
+            return None
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def get_all():
+        """Retorna uma lista com o nome do item, quantidade e tipo."""
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT id, nome_item, quantidade, tipo_item FROM inventario')
+            inventario = cursor.fetchall()
+            inventario_list = [{"id": item[0], "nome_item": item[1], "quantidade": item[2], "tipo_item": item[3]} for item in inventario]
+            return inventario_list
+        except psycopg2.Error as e:
+            print(f"Erro ao buscar inventário: {e}")
+            return []
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def get_available():
+        """Retorna uma lista de itens no inventário com quantidade maior que zero."""
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT id, nome_item, quantidade, tipo_item FROM inventario WHERE quantidade > 0')
+            inventario_disponivel = cursor.fetchall()
+            return [{"id": item[0], "nome_item": item[1], "quantidade": item[2], "tipo_item": item[3]} for item in inventario_disponivel]
+        except psycopg2.Error as e:
+            print(f"Erro ao buscar inventário disponível: {e}")
+            return []
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def update_quantidade(item_id, nova_quantidade):
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE inventario SET quantidade = %s WHERE id = %s
+            ''', (nova_quantidade, item_id))
+            conn.commit()
+        except psycopg2.Error as e:
+            conn.rollback()
+            print(f"Erro ao atualizar quantidade do item no inventário: {e}")
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
     def get_item_id_by_modelo(modelo_item):
         conn = get_connection()
         cursor = conn.cursor()
@@ -68,61 +138,6 @@ class Inventario:
         finally:
             cursor.close()
             release_connection(conn)
-
-    @staticmethod
-    def get_all():
-        """Retorna uma lista com o nome do item e a quantidade disponível."""
-        conn = get_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute('SELECT nome_item, quantidade FROM inventario')
-            inventario = cursor.fetchall()
-            inventario_list = [{"nome_item": item[0], "quantidade": item[1]} for item in inventario]
-            return inventario_list
-        except psycopg2.Error as e:
-            print(f"Erro ao buscar inventário: {e}")
-            return []
-        finally:
-            cursor.close()
-            release_connection(conn)
-
-    @staticmethod
-    def update_quantidade(item_id, quantidade):
-        conn = get_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute('''
-                UPDATE inventario SET quantidade = quantidade - %s WHERE id = %s
-            ''', (quantidade, item_id))
-            conn.commit()
-        except psycopg2.Error as e:
-            conn.rollback()
-            print(f"Erro ao atualizar quantidade do item no inventário: {e}")
-        finally:
-            cursor.close()
-            release_connection(conn)
-
-    @staticmethod
-    def validar_estoque(item_id, quantidade):
-        conn = get_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute('SELECT quantidade FROM inventario WHERE id = %s', (item_id,))
-            estoque_atual = cursor.fetchone()
-            return estoque_atual and estoque_atual[0] >= quantidade
-        except psycopg2.Error as e:
-            print(f"Erro ao validar estoque: {e}")
-            return False
-        finally:
-            cursor.close()
-            release_connection(conn)
-
-    @staticmethod
-    def reduzir_estoque(item_id, quantidade):
-        if Inventario.validar_estoque(item_id, quantidade):
-            Inventario.update_quantidade(item_id, quantidade)
-        else:
-            raise ValueError("Estoque insuficiente para o item solicitado.")
 
 # Classe para lidar com operações relacionadas às Locações
 class Locacao:

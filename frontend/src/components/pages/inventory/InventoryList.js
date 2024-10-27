@@ -1,4 +1,4 @@
-// InventoryList.js
+// src/components/pages/inventory/InventoryList.js
 import React from "react";
 import {
   Box,
@@ -21,26 +21,43 @@ const InventoryList = ({ items, onEdit, onDelete }) => {
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>Item</TableCell>
-            <TableCell>Quantidade</TableCell>
-            <TableCell align="right">Ações</TableCell>
+            <TableCell sx={{ width: "50%" }}>Item</TableCell>
+            <TableCell sx={{ width: "30%" }}>Quantidade</TableCell>
+            <TableCell align="right" sx={{ width: "20%" }}>
+              Ações
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell>{item.name}</TableCell>
-              <TableCell>{item.quantity}</TableCell>
-              <TableCell align="right">
-                <IconButton color="primary" onClick={() => onEdit(item)}>
-                  <Edit />
-                </IconButton>
-                <IconButton color="secondary" onClick={() => onDelete(item.id)}>
-                  <Delete />
-                </IconButton>
+          {items.length > 0 ? (
+            items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  {item.nome_item || "Nome não especificado"}
+                </TableCell>
+                <TableCell>
+                  {item.quantidade ?? "Quantidade não especificada"}
+                </TableCell>
+                <TableCell align="right">
+                  <IconButton color="primary" onClick={() => onEdit(item)}>
+                    <Edit />
+                  </IconButton>
+                  <IconButton
+                    color="secondary"
+                    onClick={() => onDelete(item.id)}
+                  >
+                    <Delete />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={3} align="center">
+                Nenhum item encontrado no inventário.
               </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </Box>

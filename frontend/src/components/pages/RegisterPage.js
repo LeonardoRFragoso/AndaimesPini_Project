@@ -2,7 +2,7 @@
 import React from "react";
 import { Typography, Box } from "@mui/material";
 import PageLayout from "../layouts/PageLayout";
-import RegisterForm from "../Forms/RegisterForm";
+import RegisterFormContainer from "../Forms/RegisterFormContainer"; // Atualizado para usar o novo componente
 
 const RegisterPage = () => {
   return (
@@ -17,7 +17,7 @@ const RegisterPage = () => {
 
       {/* Formulário de Registro */}
       <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
-        <RegisterForm />
+        <RegisterFormContainer /> {/* Atualizado para usar o novo componente */}
       </Box>
     </PageLayout>
   );
