@@ -16,13 +16,28 @@ const OrdersPage = () => {
     setSnackbarOpen(true);
   };
 
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+    setSnackbarMessage("");
+  };
+
   return (
     <PageLayout>
       {/* Cabeçalho da página */}
-      <Typography variant="h4" gutterBottom align="center">
+      <Typography
+        variant="h4"
+        gutterBottom
+        align="center"
+        sx={{ color: "#2c552d", fontWeight: "bold", marginTop: "20px" }}
+      >
         Visualizar Pedidos
       </Typography>
-      <Typography variant="body1" paragraph align="center">
+      <Typography
+        variant="body1"
+        paragraph
+        align="center"
+        sx={{ color: "#666", marginBottom: "20px" }}
+      >
         Aqui você pode visualizar todos os pedidos realizados.
       </Typography>
 
@@ -41,6 +56,9 @@ const OrdersPage = () => {
           sx={{
             backgroundColor: "#2c552d",
             "&:hover": { backgroundColor: "#45a049" },
+            padding: "10px 20px",
+            borderRadius: "8px",
+            fontWeight: "bold",
           }}
         >
           Voltar para Início
@@ -51,8 +69,16 @@ const OrdersPage = () => {
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={4000}
-        onClose={() => setSnackbarOpen(false)}
+        onClose={handleSnackbarClose}
         message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        ContentProps={{
+          sx: {
+            backgroundColor: "#333", // Fundo escuro para contraste
+            color: "#fff", // Texto claro para melhor leitura
+            fontSize: "1rem",
+          },
+        }}
       />
     </PageLayout>
   );

@@ -7,28 +7,40 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Typography,
   Snackbar,
+  IconButton,
+  Tooltip,
+  Chip,
+  Button,
 } from "@mui/material";
+import {
+  Check,
+  Event,
+  Info,
+  Replay,
+  WarningAmber,
+  Refresh,
+} from "@mui/icons-material";
 
 const OrdersTable = ({ orders, onAction, loadOrders }) => {
   const [openDetails, setOpenDetails] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false); // Estado para controlar o modal de confirmação
-  const [orderToReturn, setOrderToReturn] = useState(null); // Armazena o pedido para confirmação de devolução
-  const isMounted = useRef(true); // Ref para rastrear se o componente está montado
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [orderToReturn, setOrderToReturn] = useState(null);
+  const isMounted = useRef(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    isMounted.current = true; // Marca como montado
+    isMounted.current = true;
     return () => {
-      isMounted.current = false; // Marca como desmontado ao sair
+      isMounted.current = false;
     };
   }, []);
 
@@ -62,8 +74,8 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
 
   // Função para abrir o modal de confirmação
   const handleConfirmReturn = (orderId) => {
-    setOrderToReturn(orderId); // Define o pedido para devolução
-    setConfirmDialogOpen(true); // Abre o modal de confirmação
+    setOrderToReturn(orderId);
+    setConfirmDialogOpen(true);
   };
 
   // Função que realmente realiza a devolução após confirmação
@@ -86,7 +98,7 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
 
       if (isMounted.current) {
         setSnackbarMessage("Devolução confirmada com sucesso!");
-        loadOrders(); // Recarrega a lista de pedidos para atualizar o status
+        loadOrders();
       }
     } catch (error) {
       if (error.name === "AbortError") {
@@ -101,8 +113,8 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
       if (isMounted.current) {
         setSnackbarOpen(true);
       }
-      setConfirmDialogOpen(false); // Fecha o modal de confirmação
-      setOrderToReturn(null); // Reseta o pedido para devolução
+      setConfirmDialogOpen(false);
+      setOrderToReturn(null);
     }
   };
 
@@ -151,9 +163,9 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
 
   return (
     <>
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ mt: 3 }}>
         <Table>
-          <TableHead>
+          <TableHead sx={{ backgroundColor: "#e0f2f1" }}>
             <TableRow>
               <TableCell>ID do Pedido</TableCell>
               <TableCell>Data de Início</TableCell>
@@ -166,7 +178,13 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
           </TableHead>
           <TableBody>
             {orders.map((order) => (
-              <TableRow key={order.id}>
+              <TableRow
+                key={order.id}
+                sx={{
+                  "&:nth-of-type(odd)": { backgroundColor: "#f9f9f9" },
+                  "&:hover": { backgroundColor: "#e0f7fa" },
+                }}
+              >
                 <TableCell>{order.id}</TableCell>
                 <TableCell>
                   {order.data_inicio || "Data Indisponível"}
@@ -176,35 +194,59 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
                 <TableCell>{`R$ ${(order.valor_total ?? 0).toFixed(
                   2
                 )}`}</TableCell>
-                <TableCell>{order.status || "Indefinido"}</TableCell>
                 <TableCell>
-                  <Button
-                    variant="outlined"
-                    onClick={() => handleOpenDetails(order)}
-                  >
-                    Ver Detalhes
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => handleConfirmReturn(order.id)}
-                  >
-                    Confirmar Devolução
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => handleExtendOrder(order.id)}
-                  >
-                    Prorrogar
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="warning"
-                    onClick={() => onAction(order, "early")}
-                  >
-                    Completar Antecipado
-                  </Button>
+                  <Chip
+                    label={order.status === "concluído" ? "Concluído" : "Ativo"}
+                    color={order.status === "concluído" ? "success" : "error"}
+                    sx={{
+                      backgroundColor:
+                        order.status === "concluído" ? "#d1f7d1" : "#ffebee",
+                      color:
+                        order.status === "concluído" ? "#388e3c" : "#d32f2f",
+                      fontWeight: "bold",
+                    }}
+                    icon={
+                      order.status === "concluído" ? (
+                        <Check />
+                      ) : (
+                        <WarningAmber />
+                      )
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <Tooltip title="Ver Detalhes">
+                    <IconButton
+                      color="info"
+                      onClick={() => handleOpenDetails(order)}
+                    >
+                      <Info />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Confirmar Devolução">
+                    <IconButton
+                      color="success"
+                      onClick={() => handleConfirmReturn(order.id)}
+                    >
+                      <Check />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Prorrogar">
+                    <IconButton
+                      color="primary"
+                      onClick={() => handleExtendOrder(order.id)}
+                    >
+                      <Event />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Completar Antecipado">
+                    <IconButton
+                      color="warning"
+                      onClick={() => onAction(order, "early")}
+                    >
+                      <Replay />
+                    </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
@@ -285,7 +327,11 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
           <Button onClick={() => setConfirmDialogOpen(false)} color="secondary">
             Cancelar
           </Button>
-          <Button onClick={confirmReturnAction} color="primary">
+          <Button
+            onClick={confirmReturnAction}
+            color="primary"
+            startIcon={<Check />}
+          >
             Confirmar
           </Button>
         </DialogActions>
@@ -297,6 +343,7 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
         autoHideDuration={4000}
         onClose={() => setSnackbarOpen(false)}
         message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       />
     </>
   );

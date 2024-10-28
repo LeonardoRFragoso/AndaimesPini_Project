@@ -16,8 +16,10 @@ import {
   DialogTitle,
   CircularProgress,
   TextField,
+  Box,
 } from "@mui/material";
-import OrdersTable from "../tables/OrdersTable"; // Caminho corrigido
+import { Check, Event, Refresh, Warning } from "@mui/icons-material";
+import OrdersTable from "../tables/OrdersTable";
 import {
   fetchOrders,
   updateOrderStatus,
@@ -101,7 +103,7 @@ const OrdersListView = () => {
     } finally {
       setSnackbarOpen(true);
       setAlertOpen(false);
-      loadOrders(); // Atualiza a tabela após a ação
+      loadOrders();
     }
   };
 
@@ -154,41 +156,80 @@ const OrdersListView = () => {
   };
 
   return (
-    <Paper elevation={3} sx={{ padding: 4 }}>
-      <Typography variant="h4" align="center" gutterBottom>
+    <Paper
+      elevation={4}
+      sx={{
+        padding: 4,
+        maxWidth: "90%",
+        margin: "20px auto",
+        backgroundColor: "#f5f5f5",
+        borderRadius: "8px",
+        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)", // Sombra para destacar o componente
+      }}
+    >
+      <Typography
+        variant="h4"
+        align="center"
+        gutterBottom
+        sx={{ color: "#2c552d", fontWeight: "bold" }}
+      >
         Pedidos
       </Typography>
+      <Typography
+        variant="body1"
+        align="center"
+        gutterBottom
+        sx={{ color: "#666", marginBottom: "20px" }}
+      >
+        Aqui você pode visualizar e gerenciar todos os pedidos realizados.
+      </Typography>
 
-      <Grid container spacing={2} justifyContent="space-between">
-        <Grid item>
+      <Grid container spacing={3} justifyContent="space-between">
+        <Grid item xs={12} sm={6} md={3}>
           <FormControl variant="outlined" fullWidth>
             <InputLabel>Filtrar Pedidos</InputLabel>
             <Select
               value={filter}
               onChange={handleFilterChange}
               label="Filtrar Pedidos"
+              sx={{ backgroundColor: "#fff" }} // Background branco no filtro para destaque
             >
               <MenuItem value="all">Todos</MenuItem>
               <MenuItem value="active">Ativos</MenuItem>
               <MenuItem value="expired">Expirados (não devolvidos)</MenuItem>
+              <MenuItem value="completed">Concluídos</MenuItem>
             </Select>
           </FormControl>
         </Grid>
-        <Grid item>
-          <Button variant="contained" color="primary" onClick={loadOrders}>
-            Atualizar
+        <Grid item xs={12} sm={6} md={2}>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={loading ? <CircularProgress size={20} /> : <Refresh />}
+            onClick={loadOrders}
+            sx={{
+              backgroundColor: "#45a049",
+              "&:hover": { backgroundColor: "#388e3c" },
+              width: "100%",
+              padding: "10px",
+              borderRadius: "8px",
+            }}
+          >
+            {loading ? "Carregando..." : "Atualizar"}
           </Button>
         </Grid>
       </Grid>
 
       {loading ? (
-        <CircularProgress sx={{ display: "block", margin: "20px auto" }} />
+        <CircularProgress sx={{ display: "block", margin: "30px auto" }} />
       ) : (
-        <OrdersTable
-          orders={filteredOrders}
-          onAction={handleOrderAction}
-          loadOrders={loadOrders} // Passa a função de recarregar pedidos para atualizar a tabela
-        />
+        <Box sx={{ marginTop: 3 }}>
+          <OrdersTable
+            orders={filteredOrders}
+            onAction={handleOrderAction}
+            loadOrders={loadOrders}
+          />
+        </Box>
       )}
 
       {/* Dialog para confirmar ações */}
@@ -197,14 +238,18 @@ const OrdersListView = () => {
         <DialogContent>
           <DialogContentText>
             {selectedOrder &&
-              `Deseja realmente ${selectedOrder.action} para o pedido #${selectedOrder.id}?`}
+              `Deseja realmente ${selectedOrder.action} o pedido #${selectedOrder.id}?`}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAlertOpen(false)} color="secondary">
             Cancelar
           </Button>
-          <Button onClick={handleConfirmAction} color="primary">
+          <Button
+            onClick={handleConfirmAction}
+            color="primary"
+            startIcon={<Check />}
+          >
             Confirmar
           </Button>
         </DialogActions>
@@ -234,7 +279,11 @@ const OrdersListView = () => {
           <Button onClick={() => setExtendDialogOpen(false)} color="secondary">
             Cancelar
           </Button>
-          <Button onClick={handleExtendConfirm} color="primary">
+          <Button
+            onClick={handleExtendConfirm}
+            color="primary"
+            startIcon={<Event />}
+          >
             Confirmar
           </Button>
         </DialogActions>
@@ -243,9 +292,17 @@ const OrdersListView = () => {
       {/* Snackbar para mensagens de feedback */}
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={4000}
+        autoHideDuration={5000} // Aumentando a duração para feedback mais visível
         onClose={handleSnackbarClose}
         message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        ContentProps={{
+          sx: {
+            backgroundColor: "#333", // Fundo escuro para contraste
+            color: "#fff", // Texto claro para melhor leitura
+            fontSize: "1rem",
+          },
+        }}
       />
     </Paper>
   );
