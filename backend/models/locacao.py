@@ -205,28 +205,60 @@ class Locacao:
             release_connection(conn)
 
     @staticmethod
-    def extend(locacao_id, dias_adicionais):
+    def extend(locacao_id, dias_adicionais, novo_valor_total, abatimento=0):
         """
-        Prorroga a data de término de uma locação específica em um determinado número de dias.
+        Prorroga a data de término de uma locação específica, atualiza o valor total e registra abatimento.
         """
         conn = get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('''
                 UPDATE locacoes 
-                SET data_fim = data_fim + INTERVAL '%s days'
+                SET data_fim = data_fim + INTERVAL '%s days',
+                    valor_total = %s,
+                    abatimento = %s
                 WHERE id = %s
-            ''', (dias_adicionais, locacao_id))
+            ''', (dias_adicionais, novo_valor_total, abatimento, locacao_id))
             conn.commit()
             sucesso = cursor.rowcount > 0
             if sucesso:
-                logging.info(f"Locação ID {locacao_id} prorrogada por {dias_adicionais} dias.")
+                logging.info(f"Locação ID {locacao_id} prorrogada, valor atualizado para {novo_valor_total}, com abatimento de {abatimento}.")
             else:
                 logging.warning(f"Locação ID {locacao_id} não encontrada para prorrogação.")
             return sucesso
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao prorrogar locação: {e}")
+            logging.error(f"Erro ao prorrogar locação e atualizar valor: {e}")
+            return False
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final):
+        """
+        Finaliza a locação antecipadamente, atualizando a data final e o valor total no banco de dados.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE locacoes
+                SET data_fim = %s,
+                    valor_total = %s,
+                    status = 'concluido'
+                WHERE id = %s
+            ''', (nova_data_fim, novo_valor_final, locacao_id))
+            conn.commit()
+            sucesso = cursor.rowcount > 0
+            if sucesso:
+                logging.info(f"Locação ID {locacao_id} finalizada antecipadamente. Nova data final: {nova_data_fim}, Novo valor final: {novo_valor_final}.")
+            else:
+                logging.warning(f"Locação ID {locacao_id} não encontrada para finalização antecipada.")
+            return sucesso
+        except psycopg2.Error as e:
+            conn.rollback()
+            logging.error(f"Erro ao finalizar antecipadamente a locação: {e}")
             return False
         finally:
             cursor.close()

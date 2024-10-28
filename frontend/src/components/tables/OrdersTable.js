@@ -13,19 +13,21 @@ import {
   DialogActions,
   Typography,
   Snackbar,
-  IconButton,
-  Tooltip,
   Chip,
   Button,
 } from "@mui/material";
 import {
   Check,
-  Event,
-  Info,
-  Replay,
   WarningAmber,
-  Refresh,
+  ArrowUpward,
+  ArrowDownward,
 } from "@mui/icons-material";
+
+// Importando os botões modularizados
+import CompleteButton from "../common/CompleteButton";
+import DetailsButton from "../common/DetailsButton";
+import ExtendButton from "../common/ExtendButton";
+import ReturnButton from "../common/ReturnButton";
 
 const OrdersTable = ({ orders, onAction, loadOrders }) => {
   const [openDetails, setOpenDetails] = useState(false);
@@ -35,7 +37,7 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [orderToReturn, setOrderToReturn] = useState(null);
   const isMounted = useRef(true);
-  const [loading, setLoading] = useState(false);
+  const [orderBy, setOrderBy] = useState({ field: null, direction: "asc" });
 
   useEffect(() => {
     isMounted.current = true;
@@ -43,6 +45,34 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
       isMounted.current = false;
     };
   }, []);
+
+  // Função para alternar a ordenação das colunas
+  const handleSort = (field) => {
+    const isAsc = orderBy.field === field && orderBy.direction === "asc";
+    setOrderBy({ field, direction: isAsc ? "desc" : "asc" });
+  };
+
+  // Função auxiliar para acessar valores de campos aninhados com segurança
+  const getNestedValue = (obj, path) => {
+    return path
+      .split(".")
+      .reduce(
+        (acc, part) => (acc && acc[part] !== undefined ? acc[part] : null),
+        obj
+      );
+  };
+
+  // Ordenação dos pedidos com base na coluna e direção
+  const sortedOrders = React.useMemo(() => {
+    return [...orders].sort((a, b) => {
+      if (!orderBy.field) return 0;
+      const aValue = getNestedValue(a, orderBy.field) ?? ""; // Valor padrão para comparação
+      const bValue = getNestedValue(b, orderBy.field) ?? ""; // Valor padrão para comparação
+      if (aValue < bValue) return orderBy.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return orderBy.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [orders, orderBy]);
 
   // Função para abrir o modal de detalhes da locação
   const handleOpenDetails = async (order) => {
@@ -72,14 +102,15 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
     setOpenDetails(false);
   };
 
-  // Função para abrir o modal de confirmação
+  // Função para abrir o modal de confirmação de devolução
   const handleConfirmReturn = (orderId) => {
     setOrderToReturn(orderId);
     setConfirmDialogOpen(true);
   };
 
-  // Função que realmente realiza a devolução após confirmação
+  // Função que realiza a devolução após confirmação
   const confirmReturnAction = async () => {
+    setConfirmDialogOpen(false);
     const controller = new AbortController();
     const signal = controller.signal;
 
@@ -92,73 +123,124 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
           signal,
         }
       );
-      if (!response.ok) {
-        throw new Error("Erro ao confirmar devolução.");
-      }
 
-      if (isMounted.current) {
+      if (response.ok && isMounted.current) {
         setSnackbarMessage("Devolução confirmada com sucesso!");
         loadOrders();
+      } else {
+        throw new Error("Erro ao confirmar devolução no backend.");
       }
     } catch (error) {
-      if (error.name === "AbortError") {
-        console.log("Fetch abortado");
-      } else {
-        console.error("Erro ao confirmar devolução:", error);
-        if (isMounted.current) {
-          setSnackbarMessage("Erro ao confirmar devolução.");
-        }
+      console.error("Erro ao confirmar devolução:", error);
+      if (isMounted.current) {
+        setSnackbarMessage("Erro ao confirmar devolução. Tente novamente.");
       }
     } finally {
       if (isMounted.current) {
         setSnackbarOpen(true);
       }
-      setConfirmDialogOpen(false);
       setOrderToReturn(null);
     }
   };
 
   // Função para prorrogar a locação
   const handleExtendOrder = async (orderId) => {
-    const days = prompt("Quantos dias deseja prorrogar?");
-    if (!days) return;
+    const diasAdicionais = parseInt(
+      prompt("Quantos dias deseja prorrogar?"),
+      10
+    );
+    if (!diasAdicionais || diasAdicionais <= 0) {
+      alert("Número de dias adicionais deve ser maior que zero.");
+      return;
+    }
 
-    const controller = new AbortController();
-    const signal = controller.signal;
+    const novoValorTotal = parseFloat(
+      prompt("Informe o novo valor total do pedido:")
+    );
+    if (!novoValorTotal || novoValorTotal <= 0) {
+      alert("O valor total deve ser maior que zero.");
+      return;
+    }
+
+    const abatimento =
+      parseFloat(
+        prompt("Informe o valor de abatimento, se houver (0 para nenhum):")
+      ) || 0;
 
     try {
       const response = await fetch(
-        `http://localhost:5000/locacoes/${orderId}/prorrogar`,
+        `http://localhost:5000/locacoes/${orderId}/prorrogacao`,
         {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dias: days }),
-          signal,
+          body: JSON.stringify({
+            dias_adicionais: diasAdicionais,
+            novo_valor_total: novoValorTotal,
+            abatimento: abatimento,
+          }),
         }
       );
+
       if (!response.ok) {
         throw new Error("Erro ao prorrogar locação.");
       }
-      if (isMounted.current) {
-        setSnackbarMessage("Locação prorrogada com sucesso!");
-        loadOrders();
-      }
+
+      setSnackbarMessage("Locação prorrogada com sucesso!");
+      loadOrders(); // Recarrega os pedidos
     } catch (error) {
-      if (error.name === "AbortError") {
-        console.log("Fetch abortado");
-      } else {
-        console.error("Erro ao prorrogar locação:", error);
-        if (isMounted.current) {
-          setSnackbarMessage("Erro ao prorrogar locação.");
-        }
-      }
+      console.error("Erro ao prorrogar locação:", error);
+      setSnackbarMessage("Erro ao prorrogar locação. Tente novamente.");
     } finally {
-      if (isMounted.current) {
-        setSnackbarOpen(true);
-      }
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Função para devolução antecipada
+  const handleEarlyReturn = async (orderId) => {
+    // Prompt para nova data de fim no formato dd-MM-yyyy
+    const newEndDate = prompt(
+      "Informe a nova data final do pedido (dd-MM-yyyy):"
+    );
+    if (!newEndDate) return;
+
+    const [day, month, year] = newEndDate.split("-");
+    const formattedEndDate = `${year}-${month}-${day}`;
+
+    const newTotalValue = parseFloat(
+      prompt("Informe o novo valor total do pedido:")
+    );
+    if (!newTotalValue || newTotalValue <= 0) {
+      alert("O valor total deve ser maior que zero.");
+      return;
     }
 
-    return () => controller.abort();
+    try {
+      const response = await fetch(
+        `http://localhost:5000/locacoes/${orderId}/finalizar_antecipadamente`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nova_data_fim: formattedEndDate,
+            novo_valor_final: newTotalValue,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao registrar devolução antecipada.");
+      }
+
+      setSnackbarMessage("Devolução antecipada registrada com sucesso!");
+      loadOrders(); // Recarrega a lista de pedidos
+    } catch (error) {
+      console.error("Erro ao registrar devolução antecipada:", error);
+      setSnackbarMessage(
+        "Erro ao registrar devolução antecipada. Tente novamente."
+      );
+    } finally {
+      setSnackbarOpen(true);
+    }
   };
 
   return (
@@ -167,17 +249,83 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
         <Table>
           <TableHead sx={{ backgroundColor: "#e0f2f1" }}>
             <TableRow>
-              <TableCell>ID do Pedido</TableCell>
-              <TableCell>Data de Início</TableCell>
-              <TableCell>Data de Término</TableCell>
-              <TableCell>Cliente</TableCell>
-              <TableCell>Valor Total</TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell
+                onClick={() => handleSort("id")}
+                style={{ cursor: "pointer" }}
+              >
+                ID do Pedido{" "}
+                {orderBy.field === "id" &&
+                  (orderBy.direction === "asc" ? (
+                    <ArrowUpward fontSize="small" />
+                  ) : (
+                    <ArrowDownward fontSize="small" />
+                  ))}
+              </TableCell>
+              <TableCell
+                onClick={() => handleSort("data_inicio")}
+                style={{ cursor: "pointer" }}
+              >
+                Data de Início{" "}
+                {orderBy.field === "data_inicio" &&
+                  (orderBy.direction === "asc" ? (
+                    <ArrowUpward fontSize="small" />
+                  ) : (
+                    <ArrowDownward fontSize="small" />
+                  ))}
+              </TableCell>
+              <TableCell
+                onClick={() => handleSort("data_fim")}
+                style={{ cursor: "pointer" }}
+              >
+                Data de Término{" "}
+                {orderBy.field === "data_fim" &&
+                  (orderBy.direction === "asc" ? (
+                    <ArrowUpward fontSize="small" />
+                  ) : (
+                    <ArrowDownward fontSize="small" />
+                  ))}
+              </TableCell>
+              <TableCell
+                onClick={() => handleSort("cliente.nome")}
+                style={{ cursor: "pointer" }}
+              >
+                Cliente{" "}
+                {orderBy.field === "cliente.nome" &&
+                  (orderBy.direction === "asc" ? (
+                    <ArrowUpward fontSize="small" />
+                  ) : (
+                    <ArrowDownward fontSize="small" />
+                  ))}
+              </TableCell>
+              <TableCell
+                onClick={() => handleSort("valor_total")}
+                style={{ cursor: "pointer" }}
+              >
+                Valor Total{" "}
+                {orderBy.field === "valor_total" &&
+                  (orderBy.direction === "asc" ? (
+                    <ArrowUpward fontSize="small" />
+                  ) : (
+                    <ArrowDownward fontSize="small" />
+                  ))}
+              </TableCell>
+              <TableCell
+                onClick={() => handleSort("status")}
+                style={{ cursor: "pointer" }}
+              >
+                Status{" "}
+                {orderBy.field === "status" &&
+                  (orderBy.direction === "asc" ? (
+                    <ArrowUpward fontSize="small" />
+                  ) : (
+                    <ArrowDownward fontSize="small" />
+                  ))}
+              </TableCell>
               <TableCell>Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {orders.map((order) => (
+            {sortedOrders.map((order) => (
               <TableRow
                 key={order.id}
                 sx={{
@@ -215,38 +363,10 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
                   />
                 </TableCell>
                 <TableCell>
-                  <Tooltip title="Ver Detalhes">
-                    <IconButton
-                      color="info"
-                      onClick={() => handleOpenDetails(order)}
-                    >
-                      <Info />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Confirmar Devolução">
-                    <IconButton
-                      color="success"
-                      onClick={() => handleConfirmReturn(order.id)}
-                    >
-                      <Check />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Prorrogar">
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleExtendOrder(order.id)}
-                    >
-                      <Event />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Completar Antecipado">
-                    <IconButton
-                      color="warning"
-                      onClick={() => onAction(order, "early")}
-                    >
-                      <Replay />
-                    </IconButton>
-                  </Tooltip>
+                  <DetailsButton onClick={() => handleOpenDetails(order)} />
+                  <ReturnButton onClick={() => handleConfirmReturn(order.id)} />
+                  <ExtendButton onClick={() => handleExtendOrder(order.id)} />
+                  <CompleteButton onClick={() => handleEarlyReturn(order.id)} />
                 </TableCell>
               </TableRow>
             ))}
@@ -272,7 +392,6 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               <Typography>
                 Endereço: {selectedOrder.cliente?.endereco || "Não informado"}
               </Typography>
-
               <Typography variant="h6" style={{ marginTop: "1em" }}>
                 Itens Locados
               </Typography>
@@ -288,7 +407,6 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               ) : (
                 <Typography>Nenhum item locado.</Typography>
               )}
-
               <Typography variant="h6" style={{ marginTop: "1em" }}>
                 Detalhes da Locação
               </Typography>

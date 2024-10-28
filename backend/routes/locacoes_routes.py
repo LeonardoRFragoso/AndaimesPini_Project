@@ -141,17 +141,21 @@ def add_locacao():
 def confirmar_devolucao(locacao_id):
     """Rota para confirmar a devolução e atualizar o status da locação para 'concluído'."""
     try:
-        dados = request.get_json(silent=True)  # `silent=True` permite uma requisição vazia sem erro
-        item_id = dados.get('item_id') if dados else None
+        dados = request.get_json(silent=True)  # Permite corpo vazio sem erro
+        nova_data_fim = dados.get('nova_data_fim') if dados else None
+        novo_valor_final = dados.get('novo_valor_final') if dados else None
 
-        if item_id:
-            logging.info(f"Tentando marcar o item ID {item_id} como devolvido para a locação ID {locacao_id}.")
-            resultado = ItensLocados.mark_as_returned(locacao_id, item_id=item_id)
-            if not resultado:
-                logging.warning(f"Item ID {item_id} não encontrado ou já devolvido para a locação ID {locacao_id}.")
-                return jsonify({"error": f"Item ID {item_id} não encontrado ou já devolvido."}), 404
-
-        if not item_id:
+        if nova_data_fim and novo_valor_final is not None:
+            # Caso devolução antecipada
+            resultado = Locacao.finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final)
+            if resultado:
+                logging.info(f"Locação ID {locacao_id} finalizada antecipadamente.")
+                return jsonify({"message": "Devolução antecipada confirmada com sucesso e status atualizado!"}), 200
+            else:
+                logging.warning(f"Locação ID {locacao_id} não encontrada para devolução antecipada.")
+                return jsonify({"error": "Erro ao finalizar antecipadamente a locação."}), 404
+        else:
+            # Caso devolução normal
             logging.info(f"Atualizando o status da locação ID {locacao_id} para 'concluído'.")
             status_atualizado = Locacao.update_status(locacao_id, "concluído")
             if not status_atualizado:
@@ -159,8 +163,7 @@ def confirmar_devolucao(locacao_id):
                 return jsonify({"error": "Locação não encontrada."}), 404
 
             logging.info(f"Status da locação ID {locacao_id} atualizado para 'concluído'.")
-
-        return jsonify({"message": "Devolução confirmada com sucesso e status atualizado!"}), 200
+            return jsonify({"message": "Devolução confirmada com sucesso e status atualizado!"}), 200
 
     except psycopg2.Error as e:
         logging.error(f"Erro no banco de dados ao confirmar devolução para locação ID {locacao_id}: {e}")
@@ -171,23 +174,61 @@ def confirmar_devolucao(locacao_id):
 
 @locacoes_routes.route('/<int:locacao_id>/prorrogacao', methods=['PUT'])
 def prorrogar_locacao(locacao_id):
-    """Rota para prorrogar uma locação existente."""
+    """Rota para prorrogar uma locação existente e atualizar o valor e abatimento, se necessário."""
     try:
         dados = request.get_json()
         dias_adicionais = dados.get('dias_adicionais')
+        novo_valor_total = dados.get('novo_valor_total')
+        abatimento = dados.get('abatimento', 0)  # Abatimento opcional, padrão é zero
 
         if dias_adicionais is None or dias_adicionais <= 0:
             logging.warning("Dias adicionais devem ser positivos!")
             return jsonify({"error": "Dias adicionais devem ser positivos!"}), 400
+        if novo_valor_total is None or novo_valor_total <= 0:
+            logging.warning("Novo valor total deve ser positivo!")
+            return jsonify({"error": "Novo valor total deve ser positivo!"}), 400
 
-        Locacao.extend(locacao_id, dias_adicionais)
-        logging.info(f"Locação ID {locacao_id} prorrogada por {dias_adicionais} dias.")
-        return jsonify({"message": "Locação prorrogada com sucesso!"}), 200
+        resultado = Locacao.extend(locacao_id, dias_adicionais, novo_valor_total, abatimento)
+        
+        if resultado:
+            logging.info(f"Locação ID {locacao_id} prorrogada e atualizada com sucesso.")
+            return jsonify({"message": "Locação prorrogada e atualizada com sucesso!"}), 200
+        else:
+            logging.warning(f"Locação ID {locacao_id} não encontrada ou erro ao atualizar.")
+            return jsonify({"error": "Erro ao prorrogar e atualizar a locação."}), 404
+
     except psycopg2.Error as e:
         return handle_database_error(e)
     except Exception as ex:
-        logging.error(f"Erro inesperado ao prorrogar locação: {ex}")
-        return jsonify({"error": "Erro inesperado ao prorrogar locação."}), 500
+        logging.error(f"Erro inesperado ao prorrogar e atualizar locação: {ex}")
+        return jsonify({"error": "Erro inesperado ao prorrogar e atualizar locação."}), 500
+
+@locacoes_routes.route('/<int:locacao_id>/finalizar_antecipadamente', methods=['PUT'])
+def finalizar_antecipadamente(locacao_id):
+    """Rota para finalizar uma locação antecipadamente e atualizar data de término e valor final."""
+    try:
+        dados = request.get_json()
+        nova_data_fim = dados.get('nova_data_fim')
+        novo_valor_final = dados.get('novo_valor_final')
+
+        if not nova_data_fim or novo_valor_final is None:
+            return jsonify({"error": "Nova data de término e novo valor final são obrigatórios!"}), 400
+
+        resultado = Locacao.finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final)
+
+        if resultado:
+            logging.info(f"Locação ID {locacao_id} finalizada antecipadamente com sucesso.")
+            return jsonify({"message": "Locação finalizada antecipadamente com sucesso!"}), 200
+        else:
+            logging.warning(f"Locação ID {locacao_id} não encontrada para finalização antecipada.")
+            return jsonify({"error": "Locação não encontrada."}), 404
+
+    except psycopg2.Error as e:
+        logging.error(f"Erro no banco de dados ao finalizar antecipadamente a locação ID {locacao_id}: {e}")
+        return handle_database_error(e)
+    except Exception as ex:
+        logging.error(f"Erro inesperado ao finalizar antecipadamente a locação ID {locacao_id}: {ex}")
+        return jsonify({"error": "Erro inesperado ao finalizar antecipadamente a locação."}), 500
 
 @locacoes_routes.route('/<int:locacao_id>/problema', methods=['POST'])
 def reportar_problema(locacao_id):
