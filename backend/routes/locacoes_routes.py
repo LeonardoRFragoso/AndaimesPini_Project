@@ -25,6 +25,20 @@ def get_locacoes():
         logging.error(f"Erro inesperado ao buscar locações: {ex}")
         return jsonify({"error": "Erro inesperado ao buscar locações."}), 500
 
+@locacoes_routes.route('/<int:locacao_id>', methods=['GET'])
+def get_locacao_detalhes(locacao_id):
+    """Rota para obter detalhes específicos de uma locação."""
+    try:
+        locacao = Locacao.get_detailed_by_id(locacao_id)
+        if not locacao:
+            return jsonify({"error": "Locação não encontrada"}), 404
+        return jsonify(locacao), 200
+    except psycopg2.Error as e:
+        return handle_database_error(e)
+    except Exception as ex:
+        logging.error(f"Erro ao obter detalhes da locação ID {locacao_id}: {ex}")
+        return jsonify({"error": "Erro ao buscar detalhes da locação."}), 500
+
 @locacoes_routes.route('/ativos', methods=['GET'])
 def get_locacoes_ativas():
     """Rota para listar todas as locações ativas (data_fim >= data atual)."""
@@ -93,7 +107,7 @@ def add_locacao():
             nova_locacao['data_inicio'], 
             nova_locacao['data_fim'], 
             nova_locacao['valor_total'],
-            status="ativo"  # Status padrão para nova locação
+            status="ativo"
         )
         if locacao_id is None:
             logging.error("Erro ao criar a locação!")
@@ -128,9 +142,9 @@ def add_locacao():
         logging.error(f"Erro inesperado ao adicionar locação: {ex}")
         return jsonify({"error": "Erro inesperado ao adicionar locação."}), 500
 
-@locacoes_routes.route('/<int:locacao_id>/devolucao', methods=['POST'])
-def devolver_locacao(locacao_id):
-    """Rota para registrar a devolução de um ou todos os itens em uma locação."""
+@locacoes_routes.route('/<int:locacao_id>/confirmar-devolucao', methods=['PATCH'])
+def confirmar_devolucao(locacao_id):
+    """Rota para confirmar a devolução e atualizar o status da locação para 'concluído'."""
     try:
         dados = request.get_json()
         item_id = dados.get('item_id')
@@ -139,23 +153,16 @@ def devolver_locacao(locacao_id):
         ItensLocados.mark_as_returned(locacao_id, item_id=item_id)
         
         # Atualizar o status da locação para "concluído" se todos os itens foram devolvidos
-        if item_id:
-            quantidade = ItensLocados.get_quantidade_by_item(locacao_id, item_id)
-            restaurar_estoque(item_id, quantidade)
-            logging.info(f"Devolução registrada para item ID {item_id} na locação ID {locacao_id}.")
-        else:
-            itens = ItensLocados.get_by_locacao(locacao_id)
-            for item in itens:
-                restaurar_estoque(item['item_id'], item['quantidade'])
+        if not item_id:
             Locacao.update_status(locacao_id, "concluído")
-            logging.info(f"Devolução registrada para todos os itens na locação ID {locacao_id}.")
+            logging.info(f"Devolução registrada e status atualizado para 'concluído' para a locação ID {locacao_id}.")
 
-        return jsonify({"message": "Devolução registrada com sucesso!"}), 200
+        return jsonify({"message": "Devolução confirmada com sucesso e status atualizado!"}), 200
     except psycopg2.Error as e:
         return handle_database_error(e)
     except Exception as ex:
-        logging.error(f"Erro inesperado ao registrar devolução: {ex}")
-        return jsonify({"error": "Erro inesperado ao registrar devolução."}), 500
+        logging.error(f"Erro inesperado ao confirmar devolução para locação ID {locacao_id}: {ex}")
+        return jsonify({"error": "Erro ao confirmar devolução."}), 500
 
 @locacoes_routes.route('/<int:locacao_id>/prorrogacao', methods=['PUT'])
 def prorrogar_locacao(locacao_id):

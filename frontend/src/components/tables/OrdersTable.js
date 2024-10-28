@@ -1,4 +1,3 @@
-// OrdersTable.js
 import React, { useState } from "react";
 import {
   Table,
@@ -14,20 +13,72 @@ import {
   DialogContent,
   DialogActions,
   Typography,
+  Snackbar,
 } from "@mui/material";
 
-const OrdersTable = ({ orders, onAction }) => {
+const OrdersTable = ({ orders, onAction, loadOrders }) => {
   const [openDetails, setOpenDetails] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  const handleOpenDetails = (order) => {
-    setSelectedOrder(order);
-    setOpenDetails(true);
+  // Função para buscar detalhes específicos de uma locação
+  const handleOpenDetails = async (order) => {
+    try {
+      const response = await fetch(`/locacoes/${order.id}`);
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setSelectedOrder(data);
+      setOpenDetails(true);
+    } catch (error) {
+      console.error("Erro ao buscar detalhes da locação:", error);
+      setSnackbarMessage("Erro ao carregar detalhes do pedido.");
+      setSnackbarOpen(true);
+    }
   };
 
   const handleCloseDetails = () => {
     setSelectedOrder(null);
     setOpenDetails(false);
+  };
+
+  // Função para confirmar devolução e atualizar o status para "concluído"
+  const handleConfirmReturn = async (orderId) => {
+    try {
+      await fetch(`/locacoes/${orderId}/confirmar-devolucao`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      });
+      setSnackbarMessage("Devolução confirmada com sucesso!");
+      loadOrders(); // Recarrega a lista de pedidos para atualizar o status
+    } catch (error) {
+      console.error("Erro ao confirmar devolução:", error);
+      setSnackbarMessage("Erro ao confirmar devolução.");
+    } finally {
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Função para prorrogar a locação
+  const handleExtendOrder = async (orderId) => {
+    const days = prompt("Quantos dias deseja prorrogar?");
+    if (!days) return;
+    try {
+      await fetch(`/locacoes/${orderId}/prorrogar`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dias: days }),
+      });
+      setSnackbarMessage("Locação prorrogada com sucesso!");
+      loadOrders(); // Recarrega para atualizar a data de término
+    } catch (error) {
+      console.error("Erro ao prorrogar locação:", error);
+      setSnackbarMessage("Erro ao prorrogar locação.");
+    } finally {
+      setSnackbarOpen(true);
+    }
   };
 
   return (
@@ -68,14 +119,14 @@ const OrdersTable = ({ orders, onAction }) => {
                   <Button
                     variant="outlined"
                     color="secondary"
-                    onClick={() => onAction(order, "return")}
+                    onClick={() => handleConfirmReturn(order.id)}
                   >
                     Confirmar Devolução
                   </Button>
                   <Button
                     variant="outlined"
                     color="primary"
-                    onClick={() => onAction(order, "extend")}
+                    onClick={() => handleExtendOrder(order.id)}
                   >
                     Prorrogar
                   </Button>
@@ -115,10 +166,9 @@ const OrdersTable = ({ orders, onAction }) => {
               <Typography variant="h6" style={{ marginTop: "1em" }}>
                 Itens Locados
               </Typography>
-              {selectedOrder.itens_locados &&
-              selectedOrder.itens_locados.length > 0 ? (
+              {selectedOrder.itens && selectedOrder.itens.length > 0 ? (
                 <ul>
-                  {selectedOrder.itens_locados.map((item, index) => (
+                  {selectedOrder.itens.map((item, index) => (
                     <li key={index}>
                       {item.descricao} - Quantidade: {item.quantidade}
                     </li>
@@ -150,6 +200,14 @@ const OrdersTable = ({ orders, onAction }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar para feedback */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
     </>
   );
 };

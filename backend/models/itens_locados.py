@@ -11,7 +11,7 @@ class ItensLocados:
     @staticmethod
     def add_item(locacao_id, item_id, quantidade):
         """
-        Adiciona um item à locação especificada com a quantidade fornecida.
+        Adiciona um item à locação especificada com a quantidade fornecida e define data_alocacao como a data atual.
         """
         conn = get_connection()
         cursor = conn.cursor()
@@ -21,7 +21,7 @@ class ItensLocados:
                 VALUES (%s, %s, %s, %s)
             ''', (locacao_id, item_id, quantidade, date.today()))
             conn.commit()
-            logger.info(f"Item ID {item_id} adicionado à locação ID {locacao_id}.")
+            logger.info(f"Item ID {item_id} adicionado à locação ID {locacao_id} com data de alocação {date.today()}.")
         except psycopg2.Error as e:
             conn.rollback()
             logger.error(f"Erro ao adicionar item locado: {e}")
@@ -39,7 +39,6 @@ class ItensLocados:
         cursor = conn.cursor()
         try:
             if item_id:
-                # Marca apenas o item específico como devolvido
                 cursor.execute('''
                     UPDATE itens_locados
                     SET data_devolucao = %s
@@ -47,7 +46,6 @@ class ItensLocados:
                 ''', (date.today(), locacao_id, item_id))
                 logger.info(f"Item ID {item_id} marcado como devolvido na locação ID {locacao_id}.")
             else:
-                # Marca todos os itens da locação como devolvidos
                 cursor.execute('''
                     UPDATE itens_locados
                     SET data_devolucao = %s
@@ -65,13 +63,15 @@ class ItensLocados:
     @staticmethod
     def get_by_locacao(locacao_id):
         """
-        Retorna todos os itens associados a uma locação específica.
+        Retorna todos os itens associados a uma locação específica com detalhes, incluindo o tipo_item.
         """
         conn = get_connection()
         cursor = conn.cursor()
         try:
             query = '''
-                SELECT inventario.nome_item, itens_locados.quantidade, itens_locados.data_alocacao, itens_locados.data_devolucao
+                SELECT inventario.nome_item, itens_locados.quantidade, 
+                       itens_locados.data_alocacao, itens_locados.data_devolucao,
+                       inventario.tipo_item
                 FROM itens_locados
                 JOIN inventario ON itens_locados.item_id = inventario.id
                 WHERE itens_locados.locacao_id = %s
@@ -79,7 +79,7 @@ class ItensLocados:
             cursor.execute(query, (locacao_id,))
             items = cursor.fetchall()
             logger.info(f"Itens obtidos para locação ID {locacao_id}.")
-            return [{"nome_item": row[0], "quantidade": row[1], "data_alocacao": row[2], "data_devolucao": row[3]} for row in items]
+            return [{"nome_item": row[0], "quantidade": row[1], "data_alocacao": row[2], "data_devolucao": row[3], "tipo_item": row[4]} for row in items]
         except psycopg2.Error as e:
             logger.error(f"Erro ao buscar itens locados: {e}")
             return []
@@ -111,7 +111,7 @@ class ItensLocados:
     @staticmethod
     def extend_rental(locacao_id, dias_adicionais):
         """
-        Prorroga a data de devolução dos itens locados de uma locação em um número específico de dias.
+        Prorroga a data de alocação dos itens locados de uma locação em um número específico de dias.
         """
         conn = get_connection()
         cursor = conn.cursor()
@@ -122,10 +122,32 @@ class ItensLocados:
                 WHERE locacao_id = %s AND data_devolucao IS NULL
             ''', (dias_adicionais, locacao_id))
             conn.commit()
-            logger.info(f"Data de devolução prorrogada em {dias_adicionais} dias para itens da locação ID {locacao_id}.")
+            logger.info(f"Data de alocação prorrogada em {dias_adicionais} dias para itens da locação ID {locacao_id}.")
         except psycopg2.Error as e:
             conn.rollback()
-            logger.error(f"Erro ao prorrogar data de devolução dos itens: {e}")
+            logger.error(f"Erro ao prorrogar data de alocação dos itens: {e}")
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def update_null_data_alocacao():
+        """
+        Define a data_alocacao para registros onde está NULL como a data atual.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE itens_locados
+                SET data_alocacao = %s
+                WHERE data_alocacao IS NULL
+            ''', (date.today(),))
+            conn.commit()
+            logger.info("data_alocacao atualizada para registros com valor NULL.")
+        except psycopg2.Error as e:
+            conn.rollback()
+            logger.error(f"Erro ao atualizar data_alocacao para registros NULL: {e}")
         finally:
             cursor.close()
             release_connection(conn)

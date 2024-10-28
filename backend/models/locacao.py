@@ -51,19 +51,19 @@ class Locacao:
             locacoes_completas = []
             for locacao in locacoes:
                 locacao_id = locacao[0]
-                itens_locados = ItensLocados.get_by_locacao(locacao_id)  # Busca itens locados para esta locação
+                itens_locados = ItensLocados.get_by_locacao(locacao_id)
                 locacoes_completas.append({
                     "id": locacao_id,
                     "data_inicio": locacao[1].strftime("%d/%m/%Y"),
                     "data_fim": locacao[2].strftime("%d/%m/%Y"),
                     "valor_total": float(locacao[3]),
-                    "status": locacao[4],  # Inclui o status da locação
+                    "status": locacao[4],
                     "cliente": {
                         "nome": locacao[5],
                         "endereco": locacao[6],
                         "telefone": locacao[7]
                     },
-                    "itens": itens_locados  # Lista de itens locados com descrição e quantidade
+                    "itens": itens_locados
                 })
 
             logging.info("Locações detalhadas obtidas com sucesso.")
@@ -71,6 +71,49 @@ class Locacao:
         except psycopg2.Error as e:
             logging.error(f"Erro ao buscar locações detalhadas: {e}")
             return []
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def get_detailed_by_id(locacao_id):
+        """
+        Retorna os detalhes de uma locação específica pelo ID.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            query = '''
+                SELECT locacoes.id, locacoes.data_inicio, locacoes.data_fim, locacoes.valor_total,
+                       locacoes.status, clientes.nome, clientes.endereco, clientes.telefone
+                FROM locacoes
+                JOIN clientes ON locacoes.cliente_id = clientes.id
+                WHERE locacoes.id = %s
+            '''
+            cursor.execute(query, (locacao_id,))
+            locacao = cursor.fetchone()
+            if locacao:
+                itens_locados = ItensLocados.get_by_locacao(locacao_id)
+                locacao_detalhada = {
+                    "id": locacao[0],
+                    "data_inicio": locacao[1].strftime("%d/%m/%Y"),
+                    "data_fim": locacao[2].strftime("%d/%m/%Y"),
+                    "valor_total": float(locacao[3]),
+                    "status": locacao[4],
+                    "cliente": {
+                        "nome": locacao[5],
+                        "endereco": locacao[6],
+                        "telefone": locacao[7]
+                    },
+                    "itens": itens_locados
+                }
+                return locacao_detalhada
+            else:
+                logging.warning(f"Locação ID {locacao_id} não encontrada.")
+                return None
+        except psycopg2.Error as e:
+            logging.error(f"Erro ao buscar detalhes da locação ID {locacao_id}: {e}")
+            return None
         finally:
             cursor.close()
             release_connection(conn)
@@ -184,6 +227,34 @@ class Locacao:
         except psycopg2.Error as e:
             conn.rollback()
             logging.error(f"Erro ao prorrogar locação: {e}")
+            return False
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def update_status(locacao_id, status):
+        """
+        Atualiza o status de uma locação específica.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE locacoes
+                SET status = %s
+                WHERE id = %s
+            ''', (status, locacao_id))
+            conn.commit()
+            sucesso = cursor.rowcount > 0
+            if sucesso:
+                logging.info(f"Status da locação ID {locacao_id} atualizado para {status}.")
+            else:
+                logging.warning(f"Locação ID {locacao_id} não encontrada para atualização de status.")
+            return sucesso
+        except psycopg2.Error as e:
+            conn.rollback()
+            logging.error(f"Erro ao atualizar status da locação: {e}")
             return False
         finally:
             cursor.close()
