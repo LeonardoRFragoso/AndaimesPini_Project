@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from routes import main_routes  # Importa o blueprint principal com todas as rotas
+from routes.locacoes_routes import locacoes_routes  # Importa o blueprint de locacoes
+from routes.clientes_routes import clientes_routes  # Importa o blueprint de clientes (se houver)
+from routes.inventario_routes import inventario_routes  # Importa o blueprint de inventário (se houver)
 from database import create_tables
 import logging
 
@@ -10,7 +13,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuração do logger
-logging.basicConfig(level=logging.WARNING,  # Mude para WARNING para menos verbosidade
+logging.basicConfig(level=logging.INFO,  # Altere para WARNING em produção
                     format='%(asctime)s %(levelname)s: %(message)s')
 logger = logging.getLogger()
 
@@ -37,8 +40,11 @@ def after_request(response):
     response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
     return response
 
-# Registrar as rotas do blueprint principal
-app.register_blueprint(main_routes)  # Registra o blueprint com todas as rotas modularizadas
+# Registrar os blueprints para rotas modularizadas
+app.register_blueprint(main_routes)           # Rotas principais
+app.register_blueprint(locacoes_routes)       # Rotas de locações
+app.register_blueprint(clientes_routes)       # Rotas de clientes (se houver)
+app.register_blueprint(inventario_routes)     # Rotas de inventário (se houver)
 
 # Middleware para tratar erros de requisição
 @app.errorhandler(Exception)

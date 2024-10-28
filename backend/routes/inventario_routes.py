@@ -1,7 +1,12 @@
 from flask import Blueprint, request, jsonify
-from models import Inventario
+from models.inventario import Inventario  # Import específico para modularidade
 from helpers import atualizar_estoque, restaurar_estoque, handle_database_error
-import psycopg2
+import logging
+from psycopg2 import Error as DatabaseError  # Nome mais claro para erro de banco de dados
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Criação do blueprint para as rotas de inventário
 inventario_routes = Blueprint('inventario_routes', __name__)
@@ -13,11 +18,12 @@ def get_inventario():
     """
     try:
         inventario = Inventario.get_all()
+        logger.info("Itens do inventário listados com sucesso.")
         return jsonify(inventario), 200
-    except psycopg2.Error as e:
+    except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
-        print(f"Erro inesperado ao buscar inventário: {ex}")
+        logger.error(f"Erro inesperado ao buscar inventário: {ex}")
         return jsonify({"error": "Erro inesperado ao buscar inventário."}), 500
 
 @inventario_routes.route('/', methods=['POST'])
@@ -36,14 +42,15 @@ def add_inventario():
 
         item_existente = Inventario.get_item_id_by_modelo(nome_item)
         if item_existente:
-            return jsonify({"error": f"Item {nome_item} já existe no inventário!"}), 400
+            return jsonify({"error": f"Item '{nome_item}' já existe no inventário!"}), 400
 
         Inventario.create(nome_item, quantidade, tipo_item)
+        logger.info(f"Item '{nome_item}' adicionado ao inventário com sucesso.")
         return jsonify({"message": "Item adicionado ao inventário com sucesso!"}), 201
-    except psycopg2.Error as e:
+    except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
-        print(f"Erro inesperado ao adicionar item ao inventário: {ex}")
+        logger.error(f"Erro inesperado ao adicionar item ao inventário: {ex}")
         return jsonify({"error": "Erro inesperado ao adicionar item ao inventário."}), 500
 
 @inventario_routes.route('/<int:item_id>', methods=['PUT'])
@@ -59,11 +66,12 @@ def update_item(item_id):
             return jsonify({"error": "Quantidade é obrigatória!"}), 400
 
         Inventario.update_quantidade(item_id, nova_quantidade)
+        logger.info(f"Quantidade do item ID {item_id} atualizada para {nova_quantidade}.")
         return jsonify({"message": "Quantidade do item atualizada com sucesso!"}), 200
-    except psycopg2.Error as e:
+    except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
-        print(f"Erro inesperado ao atualizar item: {ex}")
+        logger.error(f"Erro inesperado ao atualizar item: {ex}")
         return jsonify({"error": "Erro inesperado ao atualizar item."}), 500
 
 @inventario_routes.route('/<int:item_id>', methods=['DELETE'])
@@ -77,11 +85,12 @@ def delete_item(item_id):
             return jsonify({"error": "Item não encontrado no inventário."}), 404
 
         Inventario.delete_item(item_id)
+        logger.info(f"Item ID {item_id} excluído com sucesso.")
         return jsonify({"message": "Item excluído com sucesso!"}), 200
-    except psycopg2.Error as e:
+    except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
-        print(f"Erro inesperado ao excluir item: {ex}")
+        logger.error(f"Erro inesperado ao excluir item: {ex}")
         return jsonify({"error": "Erro inesperado ao excluir item."}), 500
 
 @inventario_routes.route('/disponiveis', methods=['GET'])
@@ -91,11 +100,12 @@ def get_inventario_disponiveis():
     """
     try:
         inventario_disponivel = Inventario.get_available()
+        logger.info("Itens disponíveis no inventário listados com sucesso.")
         return jsonify(inventario_disponivel), 200
-    except psycopg2.Error as e:
+    except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
-        print(f"Erro inesperado ao buscar inventário disponível: {ex}")
+        logger.error(f"Erro inesperado ao buscar inventário disponível: {ex}")
         return jsonify({"error": "Erro inesperado ao buscar inventário disponível."}), 500
 
 @inventario_routes.route('/<int:item_id>/atualizar-estoque', methods=['PUT'])
@@ -111,11 +121,12 @@ def retirar_estoque(item_id):
             return jsonify({"error": "Quantidade de retirada é obrigatória e deve ser positiva!"}), 400
 
         atualizar_estoque(item_id, quantidade_retirada)
+        logger.info(f"Quantidade retirada do estoque para item ID {item_id}: {quantidade_retirada}")
         return jsonify({"message": "Quantidade retirada do estoque com sucesso!"}), 200
-    except psycopg2.Error as e:
+    except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
-        print(f"Erro inesperado ao retirar do estoque: {ex}")
+        logger.error(f"Erro inesperado ao retirar do estoque: {ex}")
         return jsonify({"error": "Erro inesperado ao retirar do estoque."}), 500
 
 @inventario_routes.route('/<int:item_id>/restaurar-estoque', methods=['PUT'])
@@ -131,9 +142,10 @@ def restaurar_estoque_route(item_id):
             return jsonify({"error": "Quantidade para restauração é obrigatória e deve ser positiva!"}), 400
 
         restaurar_estoque(item_id, quantidade)
+        logger.info(f"Quantidade restaurada ao estoque para item ID {item_id}: {quantidade}")
         return jsonify({"message": "Quantidade restaurada ao estoque com sucesso!"}), 200
-    except psycopg2.Error as e:
+    except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
-        print(f"Erro inesperado ao restaurar o estoque: {ex}")
+        logger.error(f"Erro inesperado ao restaurar o estoque: {ex}")
         return jsonify({"error": "Erro inesperado ao restaurar o estoque."}), 500

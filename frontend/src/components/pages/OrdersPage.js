@@ -4,7 +4,7 @@ import React from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { Link } from "react-router-dom";
 import PageLayout from "../layouts/PageLayout";
-import OrdersListView from "../Orders/OrdersListView"; // Caminho correto para o componente OrdersListView
+import OrdersListView from "../Orders/OrdersListView";
 
 const OrdersPage = () => {
   return (

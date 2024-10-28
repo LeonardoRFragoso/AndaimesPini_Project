@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
-from models import Cliente, Inventario, Locacao, ItensLocados
+from models import Cliente, Inventario, Locacao, ItensLocados, RegistroDanos
 from helpers import atualizar_estoque, restaurar_estoque, handle_database_error
+from datetime import date
 import psycopg2
 import logging
 
@@ -13,16 +14,42 @@ locacoes_routes = Blueprint('locacoes_routes', __name__, url_prefix='/locacoes')
 @locacoes_routes.route('', methods=['GET'])
 @locacoes_routes.route('/', methods=['GET'])
 def get_locacoes():
-    """Rota para listar todas as locações (pedidos)."""
+    """Rota para listar todas as locações com detalhes do cliente e itens locados."""
     try:
-        locacoes = Locacao.get_all()
-        logging.info(f"Locações encontradas: {locacoes}")
+        locacoes = Locacao.get_all_detailed()  # Utiliza o método detalhado atualizado
+        logging.info(f"Locações encontradas: {len(locacoes)}")
         return jsonify(locacoes), 200
     except psycopg2.Error as e:
         return handle_database_error(e)
     except Exception as ex:
         logging.error(f"Erro inesperado ao buscar locações: {ex}")
         return jsonify({"error": "Erro inesperado ao buscar locações."}), 500
+
+@locacoes_routes.route('/ativos', methods=['GET'])
+def get_locacoes_ativas():
+    """Rota para listar todas as locações ativas (data_fim >= data atual)."""
+    try:
+        locacoes_ativas = Locacao.get_active_locacoes()
+        logging.info(f"Locações ativas encontradas: {len(locacoes_ativas)}")
+        return jsonify(locacoes_ativas), 200
+    except psycopg2.Error as e:
+        return handle_database_error(e)
+    except Exception as ex:
+        logging.error(f"Erro ao buscar locações ativas: {ex}")
+        return jsonify({"error": "Erro ao buscar locações ativas."}), 500
+
+@locacoes_routes.route('/alertas', methods=['GET'])
+def get_locacoes_com_alertas():
+    """Rota para listar locações finalizadas sem devolução registrada."""
+    try:
+        locacoes_com_alertas = Locacao.get_locacoes_sem_devolucao()
+        logging.info(f"Locações com alertas encontradas: {len(locacoes_com_alertas)}")
+        return jsonify(locacoes_com_alertas), 200
+    except psycopg2.Error as e:
+        return handle_database_error(e)
+    except Exception as ex:
+        logging.error(f"Erro ao buscar locações com alertas: {ex}")
+        return jsonify({"error": "Erro ao buscar locações com alertas."}), 500
 
 @locacoes_routes.route('', methods=['POST'])
 @locacoes_routes.route('/', methods=['POST'])
@@ -60,12 +87,13 @@ def add_locacao():
             logging.warning("Todos os campos da locação e itens são obrigatórios!")
             return jsonify({"error": "Todos os campos da locação e itens são obrigatórios!"}), 400
 
-        # Criação da locação
+        # Criação da locação com status "ativo" por padrão
         locacao_id = Locacao.create(
             cliente_id, 
             nova_locacao['data_inicio'], 
             nova_locacao['data_fim'], 
-            nova_locacao['valor_total']
+            nova_locacao['valor_total'],
+            status="ativo"  # Status padrão para nova locação
         )
         if locacao_id is None:
             logging.error("Erro ao criar a locação!")
@@ -102,18 +130,26 @@ def add_locacao():
 
 @locacoes_routes.route('/<int:locacao_id>/devolucao', methods=['POST'])
 def devolver_locacao(locacao_id):
-    """Rota para registrar a devolução de um item em uma locação."""
+    """Rota para registrar a devolução de um ou todos os itens em uma locação."""
     try:
         dados = request.get_json()
         item_id = dados.get('item_id')
 
-        if not item_id:
-            logging.warning("Item ID é obrigatório!")
-            return jsonify({"error": "Item ID é obrigatório!"}), 400
+        # Marcar devolução para um item específico ou para todos os itens
+        ItensLocados.mark_as_returned(locacao_id, item_id=item_id)
+        
+        # Atualizar o status da locação para "concluído" se todos os itens foram devolvidos
+        if item_id:
+            quantidade = ItensLocados.get_quantidade_by_item(locacao_id, item_id)
+            restaurar_estoque(item_id, quantidade)
+            logging.info(f"Devolução registrada para item ID {item_id} na locação ID {locacao_id}.")
+        else:
+            itens = ItensLocados.get_by_locacao(locacao_id)
+            for item in itens:
+                restaurar_estoque(item['item_id'], item['quantidade'])
+            Locacao.update_status(locacao_id, "concluído")
+            logging.info(f"Devolução registrada para todos os itens na locação ID {locacao_id}.")
 
-        ItensLocados.return_item(locacao_id, item_id)
-        restaurar_estoque(item_id, 1)
-        logging.info(f"Devolução registrada com sucesso para item ID {item_id} na locação ID {locacao_id}.")
         return jsonify({"message": "Devolução registrada com sucesso!"}), 200
     except psycopg2.Error as e:
         return handle_database_error(e)
@@ -133,10 +169,31 @@ def prorrogar_locacao(locacao_id):
             return jsonify({"error": "Dias adicionais devem ser positivos!"}), 400
 
         Locacao.extend(locacao_id, dias_adicionais)
-        logging.info(f"Locação ID {locacao_id} prorrogada com sucesso por {dias_adicionais} dias.")
+        logging.info(f"Locação ID {locacao_id} prorrogada por {dias_adicionais} dias.")
         return jsonify({"message": "Locação prorrogada com sucesso!"}), 200
     except psycopg2.Error as e:
         return handle_database_error(e)
     except Exception as ex:
         logging.error(f"Erro inesperado ao prorrogar locação: {ex}")
         return jsonify({"error": "Erro inesperado ao prorrogar locação."}), 500
+
+@locacoes_routes.route('/<int:locacao_id>/problema', methods=['POST'])
+def reportar_problema(locacao_id):
+    """Rota para registrar um problema em um item locado."""
+    try:
+        dados = request.get_json()
+        item_id = dados.get('item_id')
+        descricao_problema = dados.get('descricao_problema')
+
+        if not item_id or not descricao_problema:
+            logging.warning("Item ID e descrição do problema são obrigatórios!")
+            return jsonify({"error": "Item ID e descrição do problema são obrigatórios!"}), 400
+
+        RegistroDanos.add_problem(locacao_id, item_id, descricao_problema)
+        logging.info(f"Problema registrado para item ID {item_id} na locação ID {locacao_id}.")
+        return jsonify({"message": "Problema registrado com sucesso!"}), 200
+    except psycopg2.Error as e:
+        return handle_database_error(e)
+    except Exception as ex:
+        logging.error(f"Erro ao registrar problema: {ex}")
+        return jsonify({"error": "Erro ao registrar problema."}), 500
