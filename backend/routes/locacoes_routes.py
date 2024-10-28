@@ -16,7 +16,7 @@ locacoes_routes = Blueprint('locacoes_routes', __name__, url_prefix='/locacoes')
 def get_locacoes():
     """Rota para listar todas as locações com detalhes do cliente e itens locados."""
     try:
-        locacoes = Locacao.get_all_detailed()  # Utiliza o método detalhado atualizado
+        locacoes = Locacao.get_all_detailed()
         logging.info(f"Locações encontradas: {len(locacoes)}")
         return jsonify(locacoes), 200
     except psycopg2.Error as e:
@@ -73,7 +73,6 @@ def add_locacao():
         nova_locacao = request.get_json()
         logging.info(f"Dados da nova locação recebidos: {nova_locacao}")
 
-        # Validação de campos obrigatórios para cliente
         cliente_info = nova_locacao.get('cliente_info', {})
         nome_cliente = cliente_info.get('nome')
         telefone_cliente = cliente_info.get('telefone')
@@ -82,7 +81,6 @@ def add_locacao():
             logging.warning("Nome e telefone do cliente são obrigatórios!")
             return jsonify({"error": "Nome e telefone do cliente são obrigatórios!"}), 400
 
-        # Criação do cliente
         cliente_id = Cliente.create(
             nome_cliente, 
             cliente_info.get('endereco'), 
@@ -95,13 +93,11 @@ def add_locacao():
 
         logging.info(f"Cliente criado com sucesso: ID {cliente_id}")
 
-        # Validação de campos obrigatórios para locação
         itens_locados = nova_locacao.get('itens', [])
         if not nova_locacao.get('data_inicio') or not nova_locacao.get('data_fim') or nova_locacao.get('valor_total') is None or not itens_locados:
             logging.warning("Todos os campos da locação e itens são obrigatórios!")
             return jsonify({"error": "Todos os campos da locação e itens são obrigatórios!"}), 400
 
-        # Criação da locação com status "ativo" por padrão
         locacao_id = Locacao.create(
             cliente_id, 
             nova_locacao['data_inicio'], 
@@ -115,7 +111,6 @@ def add_locacao():
 
         logging.info(f"Locação criada com sucesso: ID {locacao_id}")
 
-        # Processamento de itens locados e atualização de estoque
         for item in itens_locados:
             modelo_item = item.get('modelo')
             quantidade = item.get('quantidade')
@@ -146,23 +141,33 @@ def add_locacao():
 def confirmar_devolucao(locacao_id):
     """Rota para confirmar a devolução e atualizar o status da locação para 'concluído'."""
     try:
-        dados = request.get_json()
-        item_id = dados.get('item_id')
+        dados = request.get_json(silent=True)  # `silent=True` permite uma requisição vazia sem erro
+        item_id = dados.get('item_id') if dados else None
 
-        # Marcar devolução para um item específico ou para todos os itens
-        ItensLocados.mark_as_returned(locacao_id, item_id=item_id)
-        
-        # Atualizar o status da locação para "concluído" se todos os itens foram devolvidos
+        if item_id:
+            logging.info(f"Tentando marcar o item ID {item_id} como devolvido para a locação ID {locacao_id}.")
+            resultado = ItensLocados.mark_as_returned(locacao_id, item_id=item_id)
+            if not resultado:
+                logging.warning(f"Item ID {item_id} não encontrado ou já devolvido para a locação ID {locacao_id}.")
+                return jsonify({"error": f"Item ID {item_id} não encontrado ou já devolvido."}), 404
+
         if not item_id:
-            Locacao.update_status(locacao_id, "concluído")
-            logging.info(f"Devolução registrada e status atualizado para 'concluído' para a locação ID {locacao_id}.")
+            logging.info(f"Atualizando o status da locação ID {locacao_id} para 'concluído'.")
+            status_atualizado = Locacao.update_status(locacao_id, "concluído")
+            if not status_atualizado:
+                logging.warning(f"Locação ID {locacao_id} não encontrada.")
+                return jsonify({"error": "Locação não encontrada."}), 404
+
+            logging.info(f"Status da locação ID {locacao_id} atualizado para 'concluído'.")
 
         return jsonify({"message": "Devolução confirmada com sucesso e status atualizado!"}), 200
+
     except psycopg2.Error as e:
+        logging.error(f"Erro no banco de dados ao confirmar devolução para locação ID {locacao_id}: {e}")
         return handle_database_error(e)
     except Exception as ex:
         logging.error(f"Erro inesperado ao confirmar devolução para locação ID {locacao_id}: {ex}")
-        return jsonify({"error": "Erro ao confirmar devolução."}), 500
+        return jsonify({"error": "Erro ao confirmar devolução.", "detalhe": str(ex)}), 500
 
 @locacoes_routes.route('/<int:locacao_id>/prorrogacao', methods=['PUT'])
 def prorrogar_locacao(locacao_id):

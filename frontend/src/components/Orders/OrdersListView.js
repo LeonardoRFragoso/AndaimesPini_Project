@@ -70,7 +70,8 @@ const OrdersListView = () => {
       filtered = ordersList.filter((order) => new Date(order.data_fim) >= now);
     } else if (filterValue === "expired") {
       filtered = ordersList.filter(
-        (order) => new Date(order.data_fim) < now && order.status !== "returned"
+        (order) =>
+          new Date(order.data_fim) < now && order.status !== "concluído"
       );
     }
 
@@ -89,9 +90,9 @@ const OrdersListView = () => {
   const handleConfirmAction = async () => {
     try {
       if (selectedOrder.action === "return") {
-        await completeOrder(selectedOrder);
+        await handleConfirmReturn(selectedOrder.id);
       } else if (selectedOrder.action === "early") {
-        await handleCompleteOrderEarly();
+        await handleCompleteOrderEarly(selectedOrder.id);
       }
       setSnackbarMessage("Ação realizada com sucesso!");
     } catch (error) {
@@ -104,33 +105,47 @@ const OrdersListView = () => {
     }
   };
 
-  const completeOrder = async (order) => {
-    await updateOrderStatus(order.id, "returned");
-    loadOrders();
+  const handleConfirmReturn = async (orderId) => {
+    try {
+      await updateOrderStatus(orderId, "concluído");
+      loadOrders();
+    } catch (error) {
+      console.error("Erro ao confirmar devolução:", error);
+      throw error;
+    }
   };
 
   const handleExtendOrder = async (days) => {
-    await extendOrder(selectedOrder.id, days);
-    loadOrders();
-  };
-
-  const handleCompleteOrderEarly = async () => {
-    await completeOrderEarly(selectedOrder.id);
-    loadOrders();
-  };
-
-  const handleExtendConfirm = async () => {
     try {
-      await handleExtendOrder(extendDays);
+      await extendOrder(selectedOrder.id, days);
       setSnackbarMessage("Pedido prorrogado com sucesso!");
+      loadOrders();
     } catch (error) {
-      setSnackbarMessage("Erro ao prorrogar pedido.");
       console.error("Erro ao prorrogar pedido:", error);
+      throw error;
     } finally {
-      setSnackbarOpen(true);
       setExtendDialogOpen(false);
       setExtendDays("");
     }
+  };
+
+  const handleCompleteOrderEarly = async (orderId) => {
+    try {
+      await completeOrderEarly(orderId);
+      loadOrders();
+    } catch (error) {
+      console.error("Erro ao completar pedido antecipadamente:", error);
+      throw error;
+    }
+  };
+
+  const handleExtendConfirm = async () => {
+    if (extendDays <= 0) {
+      setSnackbarMessage("Por favor, insira um número de dias válido.");
+      setSnackbarOpen(true);
+      return;
+    }
+    await handleExtendOrder(extendDays);
   };
 
   const handleSnackbarClose = () => {
@@ -141,7 +156,7 @@ const OrdersListView = () => {
   return (
     <Paper elevation={3} sx={{ padding: 4 }}>
       <Typography variant="h4" align="center" gutterBottom>
-        Visualizar Pedidos
+        Pedidos
       </Typography>
 
       <Grid container spacing={2} justifyContent="space-between">
@@ -169,7 +184,11 @@ const OrdersListView = () => {
       {loading ? (
         <CircularProgress sx={{ display: "block", margin: "20px auto" }} />
       ) : (
-        <OrdersTable orders={filteredOrders} onAction={handleOrderAction} />
+        <OrdersTable
+          orders={filteredOrders}
+          onAction={handleOrderAction}
+          loadOrders={loadOrders} // Passa a função de recarregar pedidos para atualizar a tabela
+        />
       )}
 
       {/* Dialog para confirmar ações */}

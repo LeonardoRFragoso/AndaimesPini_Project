@@ -1,12 +1,21 @@
 // frontend/src/components/pages/OrdersPage.js
 
-import React from "react";
-import { Box, Typography, Button } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Typography, Button, Snackbar } from "@mui/material";
 import { Link } from "react-router-dom";
 import PageLayout from "../layouts/PageLayout";
 import OrdersListView from "../Orders/OrdersListView";
 
 const OrdersPage = () => {
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+
+  // Função para exibir mensagem de feedback
+  const showSnackbar = (message) => {
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
+  };
+
   return (
     <PageLayout>
       {/* Cabeçalho da página */}
@@ -17,9 +26,9 @@ const OrdersPage = () => {
         Aqui você pode visualizar todos os pedidos realizados.
       </Typography>
 
-      {/* Conteúdo do OrdersListView */}
+      {/* Conteúdo do OrdersListView com passagem da função de feedback */}
       <Box sx={{ mt: 4 }}>
-        <OrdersListView />
+        <OrdersListView showSnackbar={showSnackbar} />
       </Box>
 
       {/* Botão para voltar à HomePage */}
@@ -37,6 +46,14 @@ const OrdersPage = () => {
           Voltar para Início
         </Button>
       </Box>
+
+      {/* Snackbar para exibir mensagens de feedback */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
     </PageLayout>
   );
 };

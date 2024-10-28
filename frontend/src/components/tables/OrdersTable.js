@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -21,21 +21,37 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false); // Estado para controlar o modal de confirmação
+  const [orderToReturn, setOrderToReturn] = useState(null); // Armazena o pedido para confirmação de devolução
+  const isMounted = useRef(true); // Ref para rastrear se o componente está montado
 
-  // Função para buscar detalhes específicos de uma locação
+  useEffect(() => {
+    isMounted.current = true; // Marca como montado
+    return () => {
+      isMounted.current = false; // Marca como desmontado ao sair
+    };
+  }, []);
+
+  // Função para abrir o modal de detalhes da locação
   const handleOpenDetails = async (order) => {
     try {
-      const response = await fetch(`/locacoes/${order.id}`);
+      const response = await fetch(
+        `http://localhost:5000/locacoes/${order.id}`
+      );
       if (!response.ok) {
         throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
       const data = await response.json();
-      setSelectedOrder(data);
-      setOpenDetails(true);
+      if (isMounted.current) {
+        setSelectedOrder(data);
+        setOpenDetails(true);
+      }
     } catch (error) {
       console.error("Erro ao buscar detalhes da locação:", error);
-      setSnackbarMessage("Erro ao carregar detalhes do pedido.");
-      setSnackbarOpen(true);
+      if (isMounted.current) {
+        setSnackbarMessage("Erro ao carregar detalhes do pedido.");
+        setSnackbarOpen(true);
+      }
     }
   };
 
@@ -44,20 +60,49 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
     setOpenDetails(false);
   };
 
-  // Função para confirmar devolução e atualizar o status para "concluído"
-  const handleConfirmReturn = async (orderId) => {
+  // Função para abrir o modal de confirmação
+  const handleConfirmReturn = (orderId) => {
+    setOrderToReturn(orderId); // Define o pedido para devolução
+    setConfirmDialogOpen(true); // Abre o modal de confirmação
+  };
+
+  // Função que realmente realiza a devolução após confirmação
+  const confirmReturnAction = async () => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     try {
-      await fetch(`/locacoes/${orderId}/confirmar-devolucao`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-      });
-      setSnackbarMessage("Devolução confirmada com sucesso!");
-      loadOrders(); // Recarrega a lista de pedidos para atualizar o status
+      const response = await fetch(
+        `http://localhost:5000/locacoes/${orderToReturn}/confirmar-devolucao`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          signal,
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Erro ao confirmar devolução.");
+      }
+
+      if (isMounted.current) {
+        setSnackbarMessage("Devolução confirmada com sucesso!");
+        loadOrders(); // Recarrega a lista de pedidos para atualizar o status
+      }
     } catch (error) {
-      console.error("Erro ao confirmar devolução:", error);
-      setSnackbarMessage("Erro ao confirmar devolução.");
+      if (error.name === "AbortError") {
+        console.log("Fetch abortado");
+      } else {
+        console.error("Erro ao confirmar devolução:", error);
+        if (isMounted.current) {
+          setSnackbarMessage("Erro ao confirmar devolução.");
+        }
+      }
     } finally {
-      setSnackbarOpen(true);
+      if (isMounted.current) {
+        setSnackbarOpen(true);
+      }
+      setConfirmDialogOpen(false); // Fecha o modal de confirmação
+      setOrderToReturn(null); // Reseta o pedido para devolução
     }
   };
 
@@ -65,20 +110,43 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
   const handleExtendOrder = async (orderId) => {
     const days = prompt("Quantos dias deseja prorrogar?");
     if (!days) return;
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     try {
-      await fetch(`/locacoes/${orderId}/prorrogar`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dias: days }),
-      });
-      setSnackbarMessage("Locação prorrogada com sucesso!");
-      loadOrders(); // Recarrega para atualizar a data de término
+      const response = await fetch(
+        `http://localhost:5000/locacoes/${orderId}/prorrogar`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dias: days }),
+          signal,
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Erro ao prorrogar locação.");
+      }
+      if (isMounted.current) {
+        setSnackbarMessage("Locação prorrogada com sucesso!");
+        loadOrders();
+      }
     } catch (error) {
-      console.error("Erro ao prorrogar locação:", error);
-      setSnackbarMessage("Erro ao prorrogar locação.");
+      if (error.name === "AbortError") {
+        console.log("Fetch abortado");
+      } else {
+        console.error("Erro ao prorrogar locação:", error);
+        if (isMounted.current) {
+          setSnackbarMessage("Erro ao prorrogar locação.");
+        }
+      }
     } finally {
-      setSnackbarOpen(true);
+      if (isMounted.current) {
+        setSnackbarOpen(true);
+      }
     }
+
+    return () => controller.abort();
   };
 
   return (
@@ -170,7 +238,8 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
                 <ul>
                   {selectedOrder.itens.map((item, index) => (
                     <li key={index}>
-                      {item.descricao} - Quantidade: {item.quantidade}
+                      {item.nome_item} - Quantidade: {item.quantidade} (
+                      {item.tipo_item})
                     </li>
                   ))}
                 </ul>
@@ -179,7 +248,7 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               )}
 
               <Typography variant="h6" style={{ marginTop: "1em" }}>
-                Detalhes da Locaçao
+                Detalhes da Locação
               </Typography>
               <Typography>
                 Data de Início: {selectedOrder.data_inicio}
@@ -197,6 +266,27 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
         <DialogActions>
           <Button onClick={handleCloseDetails} color="primary">
             Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Confirmação de Devolução */}
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+      >
+        <DialogTitle>Confirmar Devolução</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza de que deseja confirmar a devolução deste pedido?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialogOpen(false)} color="secondary">
+            Cancelar
+          </Button>
+          <Button onClick={confirmReturnAction} color="primary">
+            Confirmar
           </Button>
         </DialogActions>
       </Dialog>
