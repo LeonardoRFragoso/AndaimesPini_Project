@@ -16,8 +16,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   TextField,
 } from "@mui/material";
+import { Add, Edit, Delete, Visibility } from "@mui/icons-material"; // Ícones para ações
 
 const ClientsPage = () => {
   const [clients, setClients] = useState([]);
@@ -173,59 +175,80 @@ const ClientsPage = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom align="center">
         Clientes
       </Typography>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => handleDialogOpen("add")}
+      <Typography
+        variant="body1"
+        color="textSecondary"
+        align="center"
+        sx={{ mb: 3 }}
       >
-        Adicionar Novo Cliente
-      </Button>
-      <TableContainer component={Paper} sx={{ mt: 2 }}>
+        Aqui você pode gerenciar todos os clientes cadastrados.
+      </Typography>
+
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<Add />}
+          onClick={() => handleDialogOpen("add")}
+          sx={{ borderRadius: 2 }}
+        >
+          Adicionar Novo Cliente
+        </Button>
+      </Box>
+
+      <TableContainer component={Paper} sx={{ boxShadow: 3, borderRadius: 2 }}>
         <Table>
-          <TableHead>
+          <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
             <TableRow>
               <TableCell>Nome</TableCell>
               <TableCell>Endereço</TableCell>
               <TableCell>Telefone</TableCell>
               <TableCell>Referência</TableCell>
-              <TableCell>Ações</TableCell>
+              <TableCell align="center">Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {clients.map((client) => (
-              <TableRow key={client.id}>
+              <TableRow
+                key={client.id}
+                sx={{
+                  "&:nth-of-type(odd)": { backgroundColor: "#f9f9f9" },
+                  "&:hover": { backgroundColor: "#e0f7fa" }, // Efeito de hover
+                }}
+              >
                 <TableCell>{client.nome}</TableCell>
                 <TableCell>{client.endereco}</TableCell>
                 <TableCell>{client.telefone}</TableCell>
                 <TableCell>{client.referencia}</TableCell>
-                <TableCell>
-                  <Button
-                    onClick={() => handleDialogOpen("edit", client)}
+                <TableCell align="center">
+                  <IconButton
                     color="primary"
+                    onClick={() => handleDialogOpen("edit", client)}
                   >
-                    Editar
-                  </Button>
-                  <Button
+                    <Edit />
+                  </IconButton>
+                  <IconButton
+                    color="error"
                     onClick={() => handleDeleteClient(client.id)}
-                    color="secondary"
                   >
-                    Remover
-                  </Button>
-                  <Button
-                    onClick={() => handleOpenOrdersModal(client)}
+                    <Delete />
+                  </IconButton>
+                  <IconButton
                     color="info"
+                    onClick={() => handleOpenOrdersModal(client)}
                   >
-                    Visualizar Pedidos
-                  </Button>
+                    <Visibility />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}
@@ -236,7 +259,59 @@ const ClientsPage = () => {
         </Alert>
       </Snackbar>
 
-      {/* Modal para visualização dos pedidos */}
+      {/* Dialog para Adicionar/Editar Cliente */}
+      <Dialog open={openDialog} onClose={handleDialogClose}>
+        <DialogTitle>
+          {dialogType === "add" ? "Adicionar Cliente" : "Editar Cliente"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Nome"
+            fullWidth
+            value={currentClient.nome}
+            onChange={(e) =>
+              setCurrentClient({ ...currentClient, nome: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Endereço"
+            fullWidth
+            value={currentClient.endereco}
+            onChange={(e) =>
+              setCurrentClient({ ...currentClient, endereco: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Telefone"
+            fullWidth
+            value={currentClient.telefone}
+            onChange={(e) =>
+              setCurrentClient({ ...currentClient, telefone: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Referência"
+            fullWidth
+            value={currentClient.referencia}
+            onChange={(e) =>
+              setCurrentClient({ ...currentClient, referencia: e.target.value })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDialogClose} color="secondary">
+            Cancelar
+          </Button>
+          <Button onClick={handleDialogSave} color="primary">
+            {dialogType === "add" ? "Adicionar" : "Salvar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog
         open={openOrdersModal}
         onClose={handleCloseOrdersModal}
@@ -267,12 +342,7 @@ const ClientsPage = () => {
                       <TableCell>
                         {new Date(order.data_fim).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>
-                        {new Intl.NumberFormat("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        }).format(order.valor_total)}
-                      </TableCell>
+                      <TableCell>R$ {order.valor_total.toFixed(2)}</TableCell>
                       <TableCell>{order.status}</TableCell>
                       <TableCell>{order.nome_item}</TableCell>
                       <TableCell>{order.tipo_item}</TableCell>

@@ -9,6 +9,7 @@ import OrdersPage from "./components/pages/OrdersPage"; // Página para visualiz
 import InventoryPage from "./components/pages/inventory/InventoryPage"; // Página para controle de estoque
 import ClientsPage from "./components/pages/ClientsPage"; // Página para gerenciar clientes
 import ClientOrdersView from "./components/Orders/ClientOrdersView"; // Página para pedidos específicos de um cliente
+import ReportsPage from "./components/pages/ReportsPage"; // Página de relatórios
 import "./App.css";
 
 function App() {
@@ -39,8 +40,10 @@ function App() {
             <Route
               path="/clientes/:clientId/pedidos"
               element={<ClientOrdersView />}
-            />
+            />{" "}
             {/* Pedidos específicos de um cliente */}
+            <Route path="/reports" element={<ReportsPage />} />{" "}
+            {/* Página de relatórios */}
           </Routes>
         </Box>
       </Box>

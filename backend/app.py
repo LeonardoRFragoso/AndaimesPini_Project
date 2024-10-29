@@ -4,6 +4,7 @@ from routes import main_routes
 from routes.locacoes_routes import locacoes_routes
 from routes.clientes_routes import clientes_routes
 from routes.inventario_routes import inventario_routes
+from routes.reports_routes import reports_routes  # Importando as rotas de relatórios
 from database import create_tables, close_all_connections
 import logging
 import atexit  # Para garantir o fechamento do pool de conexões ao sair
@@ -50,6 +51,7 @@ app.register_blueprint(main_routes)
 app.register_blueprint(locacoes_routes)
 app.register_blueprint(clientes_routes)
 app.register_blueprint(inventario_routes)
+app.register_blueprint(reports_routes, url_prefix='/reports')  # Registrando o blueprint de relatórios com um prefixo
 
 # Middleware para tratar erros de requisição
 @app.errorhandler(Exception)
