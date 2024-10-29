@@ -1,4 +1,3 @@
-// ClientsPage.js
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -13,13 +12,29 @@ import {
   Paper,
   Snackbar,
   Alert,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
 } from "@mui/material";
 
 const ClientsPage = () => {
   const [clients, setClients] = useState([]);
+  const [orders, setOrders] = useState([]); // Armazena os pedidos do cliente selecionado
+  const [openOrdersModal, setOpenOrdersModal] = useState(false); // Controle do modal de pedidos
+  const [selectedClient, setSelectedClient] = useState(null); // Cliente atualmente selecionado
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogType, setDialogType] = useState("add"); // "add" ou "edit"
+  const [currentClient, setCurrentClient] = useState({
+    nome: "",
+    endereco: "",
+    telefone: "",
+    referencia: "",
+  });
 
   useEffect(() => {
     fetchClients();
@@ -28,99 +43,117 @@ const ClientsPage = () => {
   const fetchClients = async () => {
     try {
       const response = await fetch("http://localhost:5000/clientes");
-      if (!response.ok) {
-        throw new Error("Erro ao buscar clientes");
-      }
+      if (!response.ok) throw new Error("Erro ao buscar clientes");
       const data = await response.json();
       setClients(data);
     } catch (error) {
-      console.error("Erro ao buscar clientes:", error);
-      setSnackbarMessage("Erro ao buscar clientes.");
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
+      console.error(error);
+      showSnackbar("Erro ao buscar clientes.", "error");
     }
   };
 
+  const fetchClientOrders = async (clientId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/clientes/${clientId}/pedidos`
+      );
+      if (!response.ok) throw new Error("Erro ao buscar pedidos do cliente");
+      const data = await response.json();
+      setOrders(data);
+      setOpenOrdersModal(true);
+    } catch (error) {
+      console.error(error);
+      showSnackbar("Erro ao buscar pedidos do cliente.", "error");
+    }
+  };
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
+
+  const handleDialogOpen = (type, client = null) => {
+    setDialogType(type);
+    if (client) {
+      setCurrentClient(client);
+    } else {
+      setCurrentClient({
+        nome: "",
+        endereco: "",
+        telefone: "",
+        referencia: "",
+      });
+    }
+    setOpenDialog(true);
+  };
+
+  const handleDialogClose = () => {
+    setOpenDialog(false);
+  };
+
+  const handleDialogSave = async () => {
+    if (dialogType === "add") {
+      await handleAddClient();
+    } else {
+      await handleEditClient(currentClient.id);
+    }
+    handleDialogClose();
+  };
+
   const handleAddClient = async () => {
-    const newClient = {
-      nome: "Novo Cliente",
-      endereco: "Endereço do Novo Cliente",
-      telefone: "123456789",
-      referencia: "Referência do Cliente",
-    };
     try {
       const response = await fetch("http://localhost:5000/clientes", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newClient),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(currentClient),
       });
-
       if (response.ok) {
         fetchClients();
-        setSnackbarMessage("Cliente adicionado com sucesso!");
-        setOpenSnackbar(true);
+        showSnackbar("Cliente adicionado com sucesso!");
       } else {
         throw new Error("Erro ao adicionar cliente");
       }
     } catch (error) {
-      console.error("Erro ao adicionar cliente:", error);
-      setSnackbarMessage("Erro ao adicionar cliente.");
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
+      console.error(error);
+      showSnackbar("Erro ao adicionar cliente.", "error");
     }
   };
 
   const handleEditClient = async (id) => {
-    const updatedClient = {
-      nome: "Cliente Editado",
-      endereco: "Novo Endereço",
-      telefone: "987654321",
-      referencia: "Nova Referência",
-    };
     try {
       const response = await fetch(`http://localhost:5000/clientes/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedClient),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(currentClient),
       });
-
       if (response.ok) {
         fetchClients();
-        setSnackbarMessage("Cliente editado com sucesso!");
-        setOpenSnackbar(true);
+        showSnackbar("Cliente editado com sucesso!");
       } else {
         throw new Error("Erro ao editar cliente");
       }
     } catch (error) {
-      console.error("Erro ao editar cliente:", error);
-      setSnackbarMessage("Erro ao editar cliente.");
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
+      console.error(error);
+      showSnackbar("Erro ao editar cliente.", "error");
     }
   };
 
   const handleDeleteClient = async (id) => {
+    if (!window.confirm("Tem certeza que deseja remover este cliente?")) return;
     try {
       const response = await fetch(`http://localhost:5000/clientes/${id}`, {
         method: "DELETE",
       });
-
       if (response.ok) {
         fetchClients();
-        setSnackbarMessage("Cliente removido com sucesso!");
-        setOpenSnackbar(true);
+        showSnackbar("Cliente removido com sucesso!");
       } else {
         throw new Error("Erro ao remover cliente");
       }
     } catch (error) {
-      console.error("Erro ao remover cliente:", error);
-      setSnackbarMessage("Erro ao remover cliente.");
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
+      console.error(error);
+      showSnackbar("Erro ao remover cliente.", "error");
     }
   };
 
@@ -128,12 +161,26 @@ const ClientsPage = () => {
     setOpenSnackbar(false);
   };
 
+  const handleOpenOrdersModal = (client) => {
+    setSelectedClient(client);
+    fetchClientOrders(client.id);
+  };
+
+  const handleCloseOrdersModal = () => {
+    setOpenOrdersModal(false);
+    setOrders([]);
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Clientes
       </Typography>
-      <Button variant="contained" color="primary" onClick={handleAddClient}>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => handleDialogOpen("add")}
+      >
         Adicionar Novo Cliente
       </Button>
       <TableContainer component={Paper} sx={{ mt: 2 }}>
@@ -143,6 +190,7 @@ const ClientsPage = () => {
               <TableCell>Nome</TableCell>
               <TableCell>Endereço</TableCell>
               <TableCell>Telefone</TableCell>
+              <TableCell>Referência</TableCell>
               <TableCell>Ações</TableCell>
             </TableRow>
           </TableHead>
@@ -152,12 +200,25 @@ const ClientsPage = () => {
                 <TableCell>{client.nome}</TableCell>
                 <TableCell>{client.endereco}</TableCell>
                 <TableCell>{client.telefone}</TableCell>
+                <TableCell>{client.referencia}</TableCell>
                 <TableCell>
-                  <Button onClick={() => handleEditClient(client.id)}>
+                  <Button
+                    onClick={() => handleDialogOpen("edit", client)}
+                    color="primary"
+                  >
                     Editar
                   </Button>
-                  <Button onClick={() => handleDeleteClient(client.id)}>
+                  <Button
+                    onClick={() => handleDeleteClient(client.id)}
+                    color="secondary"
+                  >
                     Remover
+                  </Button>
+                  <Button
+                    onClick={() => handleOpenOrdersModal(client)}
+                    color="info"
+                  >
+                    Visualizar Pedidos
                   </Button>
                 </TableCell>
               </TableRow>
@@ -174,6 +235,59 @@ const ClientsPage = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      {/* Modal para visualização dos pedidos */}
+      <Dialog
+        open={openOrdersModal}
+        onClose={handleCloseOrdersModal}
+        maxWidth="md"
+      >
+        <DialogTitle>Pedidos de {selectedClient?.nome}</DialogTitle>
+        <DialogContent>
+          {orders.length > 0 ? (
+            <TableContainer component={Paper} sx={{ mt: 2 }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Data de Início</TableCell>
+                    <TableCell>Data de Término</TableCell>
+                    <TableCell>Valor Total</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell>
+                        {new Date(order.data_inicio).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(order.data_fim).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(order.valor_total)}
+                      </TableCell>
+                      <TableCell>{order.status}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography variant="body2" color="textSecondary">
+              Nenhum pedido encontrado para este cliente.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseOrdersModal} color="primary">
+            Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

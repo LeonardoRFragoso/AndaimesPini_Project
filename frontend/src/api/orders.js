@@ -1,4 +1,3 @@
-// frontend/src/api/orders.js
 import axios from "axios";
 
 // Definição do URL base da API; ajuste conforme necessário.
@@ -15,6 +14,25 @@ export const fetchOrders = async () => {
   } catch (error) {
     console.error("Erro ao buscar pedidos:", error.response || error.message);
     throw new Error("Erro ao buscar pedidos. Tente novamente.");
+  }
+};
+
+/**
+ * Busca os pedidos (locações) associados a um cliente específico.
+ * @param {Number} clientId - ID do cliente
+ * @returns {Array} Lista de pedidos do cliente
+ */
+export const fetchOrdersByClient = async (clientId) => {
+  try {
+    // Endpoint atualizado para obter os pedidos de um cliente específico
+    const response = await axios.get(`${API_URL}/clientes/${clientId}/pedidos`);
+    return response.data; // Verifique se a estrutura de dados é a esperada
+  } catch (error) {
+    console.error(
+      `Erro ao buscar pedidos do cliente ${clientId}:`,
+      error.response || error.message
+    );
+    throw new Error("Erro ao buscar pedidos do cliente. Tente novamente.");
   }
 };
 

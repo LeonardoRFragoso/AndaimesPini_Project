@@ -1,43 +1,70 @@
 import psycopg2
 from psycopg2 import pool, Error
 import traceback
+import logging
 
-# Configuração do pool de conexões
-try:
-    connection_pool = pool.SimpleConnectionPool(
-        1, 20,  # mínimo e máximo de conexões
-        dbname="projetopai",
-        user="usuarioprojeto",
-        password="senhaforte",
-        host="localhost",
-        port="5432"
-    )
-    if connection_pool:
-        print("Pool de conexões criado com sucesso.")
-except Exception as e:
-    print(f"Erro ao criar o pool de conexões: {e}")
-    traceback.print_exc()
+# Configuração do logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Configuração global do pool de conexões
+connection_pool = None
+
+def initialize_connection_pool():
+    global connection_pool
+    try:
+        if connection_pool is None:
+            connection_pool = pool.SimpleConnectionPool(
+                1, 20,  # mínimo e máximo de conexões
+                dbname="projetopai",
+                user="usuarioprojeto",
+                password="senhaforte",
+                host="localhost",
+                port="5432"
+            )
+            if connection_pool:
+                logger.info("Pool de conexões criado com sucesso.")
+    except Exception as e:
+        logger.error("Erro ao criar o pool de conexões.", exc_info=True)
+
+# Inicialize o pool ao carregar o módulo
+initialize_connection_pool()
 
 # Função para obter uma conexão do pool
 def get_connection():
+    global connection_pool
     try:
-        conn = connection_pool.getconn()
-        if conn:
-            print("Conexão obtida do pool com sucesso.")
-        return conn
+        if connection_pool:
+            conn = connection_pool.getconn()
+            if conn:
+                logger.info("Conexão obtida do pool com sucesso.")
+            return conn
+        else:
+            logger.error("O pool de conexões foi fechado ou não foi inicializado.")
+            return None
     except Error as e:
-        print(f"Erro ao obter conexão do pool: {e}")
-        traceback.print_exc()
+        logger.error("Erro ao obter conexão do pool.", exc_info=True)
+        return None
 
 # Função para liberar a conexão de volta para o pool
 def release_connection(conn):
     try:
-        if conn:
+        if conn and connection_pool:
             connection_pool.putconn(conn)
-            print("Conexão retornada ao pool.")
+            logger.info("Conexão retornada ao pool.")
     except Error as e:
-        print(f"Erro ao retornar conexão ao pool: {e}")
-        traceback.print_exc()
+        logger.error("Erro ao retornar conexão ao pool.", exc_info=True)
+
+# Função para fechar todo o pool de conexões (para uso em encerramento de aplicação)
+def close_all_connections():
+    global connection_pool
+    try:
+        if connection_pool:
+            connection_pool.closeall()
+            logger.info("Todas as conexões do pool foram fechadas.")
+            connection_pool = None
+    except Error as e:
+        logger.error("Erro ao fechar todas as conexões do pool.", exc_info=True)
 
 # Função para criar as tabelas necessárias
 def create_tables():
@@ -63,8 +90,8 @@ def create_tables():
                 CREATE TABLE IF NOT EXISTS inventario (
                     id SERIAL PRIMARY KEY,
                     nome_item VARCHAR(255) NOT NULL,
-                    quantidade INTEGER NOT NULL CHECK (quantidade >= 0),  -- Quantidade não pode ser negativa
-                    tipo_item VARCHAR(50) NOT NULL -- Ex: andaimes, escoras, etc.
+                    quantidade INTEGER NOT NULL CHECK (quantidade >= 0),
+                    tipo_item VARCHAR(50) NOT NULL
                 )
             ''')
 
@@ -76,13 +103,14 @@ def create_tables():
                     data_inicio DATE NOT NULL,
                     data_fim DATE NOT NULL,
                     valor_total NUMERIC(10, 2) NOT NULL CHECK (valor_total >= 0),
-                    valor_pago_entrega NUMERIC(10, 2) CHECK (valor_pago_entrega >= 0),  -- Valor pago na entrega
-                    valor_receber_final NUMERIC(10, 2) CHECK (valor_receber_final >= 0),  -- Valor a receber ao final
+                    valor_pago_entrega NUMERIC(10, 2) CHECK (valor_pago_entrega >= 0),
+                    valor_receber_final NUMERIC(10, 2) CHECK (valor_receber_final >= 0),
+                    status VARCHAR(20) DEFAULT 'ativo',
                     FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
                 )
             ''')
 
-            # Tabela de Itens Locados (relacionando itens com locações)
+            # Tabela de Itens Locados
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS itens_locados (
                     id SERIAL PRIMARY KEY,
@@ -107,17 +135,57 @@ def create_tables():
             ''')
 
             conn.commit()
-            print("Tabelas criadas com sucesso!")
+            logger.info("Tabelas criadas com sucesso!")
         except Error as e:
-            print(f"Erro ao criar as tabelas: {e}")
-            traceback.print_exc()
-            conn.rollback()  # Rollback para garantir que não fiquem dados inconsistentes
+            logger.error("Erro ao criar as tabelas.", exc_info=True)
+            conn.rollback()
         finally:
             if 'cursor' in locals() and cursor is not None:
                 cursor.close()
-            release_connection(conn)  # Retorna a conexão ao pool
+            release_connection(conn)
     else:
-        print("Erro! Não foi possível estabelecer a conexão com o banco de dados.")
+        logger.error("Erro! Não foi possível estabelecer a conexão com o banco de dados.")
+
+# Função para executar uma consulta (fetch)
+def execute_query(query, params=None):
+    """Executa uma consulta de fetch no banco de dados e retorna os resultados."""
+    conn = get_connection()
+    if conn is None:
+        logger.error("Conexão não estabelecida para executar a consulta.")
+        return None
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        results = cursor.fetchall()
+        return results
+    except Error as e:
+        logger.error("Erro ao executar a consulta de fetch.", exc_info=True)
+        return None
+    finally:
+        if 'cursor' in locals() and cursor is not None:
+            cursor.close()
+        release_connection(conn)
+
+# Função para executar um comando (commit)
+def execute_command(query, params=None):
+    """Executa um comando no banco de dados e aplica commit."""
+    conn = get_connection()
+    if conn is None:
+        logger.error("Conexão não estabelecida para executar o comando.")
+        return False
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        conn.commit()
+        return True
+    except Error as e:
+        logger.error("Erro ao executar o comando no banco de dados.", exc_info=True)
+        conn.rollback()
+        return False
+    finally:
+        if 'cursor' in locals() and cursor is not None:
+            cursor.close()
+        release_connection(conn)
 
 # Executa a função de criação das tabelas apenas se este arquivo for executado diretamente
 if __name__ == "__main__":

@@ -39,8 +39,6 @@ class Cliente:
             logging.info("Executando consulta para buscar todos os clientes.")
             cursor.execute('SELECT id, nome, endereco, telefone, referencia FROM clientes')
             clientes = cursor.fetchall()
-            logging.info(f"Clientes retornados da consulta: {clientes}")
-            # Converte para lista de dicionários
             clientes_list = [
                 {
                     "id": cliente[0],
@@ -59,7 +57,6 @@ class Cliente:
         finally:
             cursor.close()
             release_connection(conn)
-            logging.info("Conexão com o banco de dados encerrada.")
 
     @staticmethod
     def get_by_id(cliente_id):
@@ -71,7 +68,6 @@ class Cliente:
         try:
             cursor.execute('SELECT id, nome, endereco, telefone, referencia FROM clientes WHERE id = %s', (cliente_id,))
             cliente = cursor.fetchone()
-            # Verifica se cliente existe e retorna como dicionário
             if cliente:
                 return {
                     "id": cliente[0],
@@ -136,6 +132,58 @@ class Cliente:
             conn.rollback()
             logging.error(f"Erro ao excluir cliente: {e}")
             return False
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def get_pedidos(cliente_id):
+        """
+        Retorna todos os pedidos associados a um cliente específico, incluindo detalhes dos itens locados.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            logging.info(f"Buscando pedidos detalhados para o cliente ID {cliente_id}.")
+            cursor.execute('''
+                SELECT 
+                    c.id AS cliente_id,
+                    c.nome AS cliente_nome,
+                    l.id AS locacao_id,
+                    l.data_inicio,
+                    l.data_fim,
+                    l.valor_total,
+                    l.status,
+                    i.nome_item,
+                    i.tipo_item,
+                    il.quantidade AS quantidade_locada
+                FROM clientes AS c
+                JOIN locacoes AS l ON c.id = l.cliente_id
+                LEFT JOIN itens_locados AS il ON l.id = il.locacao_id
+                LEFT JOIN inventario AS i ON il.item_id = i.id
+                WHERE c.id = %s
+            ''', (cliente_id,))
+            pedidos = cursor.fetchall()
+            pedidos_list = [
+                {
+                    "cliente_id": pedido[0],
+                    "cliente_nome": pedido[1],
+                    "locacao_id": pedido[2],
+                    "data_inicio": pedido[3],
+                    "data_fim": pedido[4],
+                    "valor_total": float(pedido[5]),
+                    "status": pedido[6],
+                    "nome_item": pedido[7],
+                    "tipo_item": pedido[8],
+                    "quantidade_locada": pedido[9]
+                }
+                for pedido in pedidos
+            ]
+            logging.info(f"Pedidos detalhados para o cliente ID {cliente_id}: {pedidos_list}")
+            return pedidos_list
+        except psycopg2.Error as e:
+            logging.error(f"Erro ao buscar pedidos do cliente {cliente_id}: {e}")
+            return []
         finally:
             cursor.close()
             release_connection(conn)

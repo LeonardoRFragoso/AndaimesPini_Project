@@ -8,6 +8,7 @@ import RegisterFormContainer from "./components/Forms/RegisterFormContainer"; //
 import OrdersPage from "./components/pages/OrdersPage"; // Página para visualizar pedidos
 import InventoryPage from "./components/pages/inventory/InventoryPage"; // Página para controle de estoque
 import ClientsPage from "./components/pages/ClientsPage"; // Página para gerenciar clientes
+import ClientOrdersView from "./components/Orders/ClientOrdersView"; // Página para pedidos específicos de um cliente
 import "./App.css";
 
 function App() {
@@ -33,8 +34,13 @@ function App() {
             {/* Visualização de pedidos */}
             <Route path="/inventory" element={<InventoryPage />} />{" "}
             {/* Controle de estoque */}
-            <Route path="/clients" element={<ClientsPage />} />{" "}
+            <Route path="/clientes" element={<ClientsPage />} />{" "}
             {/* Gerenciamento de clientes */}
+            <Route
+              path="/clientes/:clientId/pedidos"
+              element={<ClientOrdersView />}
+            />
+            {/* Pedidos específicos de um cliente */}
           </Routes>
         </Box>
       </Box>

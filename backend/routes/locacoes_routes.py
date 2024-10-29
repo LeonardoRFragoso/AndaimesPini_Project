@@ -25,6 +25,24 @@ def get_locacoes():
         logging.error(f"Erro inesperado ao buscar locações: {ex}")
         return jsonify({"error": "Erro inesperado ao buscar locações."}), 500
 
+@locacoes_routes.route('/cliente/<int:client_id>', methods=['GET'])
+def get_locacoes_por_cliente(client_id):
+    """Rota para listar todas as locações de um cliente específico."""
+    try:
+        locacoes_cliente = Locacao.get_by_client_id(client_id)
+        if locacoes_cliente:
+            logging.info(f"Locações encontradas para o cliente ID {client_id}: {len(locacoes_cliente)}")
+            return jsonify(locacoes_cliente), 200
+        else:
+            logging.warning(f"Nenhuma locação encontrada para o cliente ID {client_id}.")
+            return jsonify([]), 404
+
+    except psycopg2.Error as e:
+        return handle_database_error(e)
+    except Exception as ex:
+        logging.error(f"Erro ao buscar locações para o cliente ID {client_id}: {ex}")
+        return jsonify({"error": "Erro ao buscar locações para o cliente."}), 500
+
 @locacoes_routes.route('/<int:locacao_id>', methods=['GET'])
 def get_locacao_detalhes(locacao_id):
     """Rota para obter detalhes específicos de uma locação."""
@@ -141,12 +159,11 @@ def add_locacao():
 def confirmar_devolucao(locacao_id):
     """Rota para confirmar a devolução e atualizar o status da locação para 'concluído'."""
     try:
-        dados = request.get_json(silent=True)  # Permite corpo vazio sem erro
+        dados = request.get_json(silent=True)
         nova_data_fim = dados.get('nova_data_fim') if dados else None
         novo_valor_final = dados.get('novo_valor_final') if dados else None
 
         if nova_data_fim and novo_valor_final is not None:
-            # Caso devolução antecipada
             resultado = Locacao.finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final)
             if resultado:
                 logging.info(f"Locação ID {locacao_id} finalizada antecipadamente.")
@@ -155,7 +172,6 @@ def confirmar_devolucao(locacao_id):
                 logging.warning(f"Locação ID {locacao_id} não encontrada para devolução antecipada.")
                 return jsonify({"error": "Erro ao finalizar antecipadamente a locação."}), 404
         else:
-            # Caso devolução normal
             logging.info(f"Atualizando o status da locação ID {locacao_id} para 'concluído'.")
             status_atualizado = Locacao.update_status(locacao_id, "concluído")
             if not status_atualizado:
@@ -179,7 +195,7 @@ def prorrogar_locacao(locacao_id):
         dados = request.get_json()
         dias_adicionais = dados.get('dias_adicionais')
         novo_valor_total = dados.get('novo_valor_total')
-        abatimento = dados.get('abatimento', 0)  # Abatimento opcional, padrão é zero
+        abatimento = dados.get('abatimento', 0)
 
         if dias_adicionais is None or dias_adicionais <= 0:
             logging.warning("Dias adicionais devem ser positivos!")
