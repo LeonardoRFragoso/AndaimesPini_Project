@@ -183,8 +183,9 @@ const ClientsTable = ({ onEdit, onDelete }) => {
             Object.values(groupedPedidos).map((pedido, index) => (
               <div key={index} style={{ marginBottom: "1rem" }}>
                 <Typography variant="subtitle1">
-                  Pedido ID: {pedido.locacao_id} | Início: {pedido.data_inicio}{" "}
-                  | Fim: {pedido.data_fim} | Valor: R$
+                  Pedido ID: {pedido.locacao_id} | Início:{" "}
+                  {new Date(pedido.data_inicio).toLocaleDateString()} | Fim:{" "}
+                  {new Date(pedido.data_fim).toLocaleDateString()} | Valor: R$
                   {pedido.valor_total.toFixed(2)} | Status: {pedido.status}
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 1 }}>

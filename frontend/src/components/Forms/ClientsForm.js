@@ -42,10 +42,7 @@ const ClientsForm = ({ onSave }) => {
       if (response.ok) {
         // Limpa os campos e notifica o sucesso
         onSave(); // Atualiza a lista de clientes
-        setNome("");
-        setEndereco("");
-        setTelefone("");
-        setReferencia("");
+        resetForm();
         showSnackbar("Cliente adicionado com sucesso!", "success");
       } else {
         const errorData = await response.json();
@@ -65,8 +62,17 @@ const ClientsForm = ({ onSave }) => {
     setOpenSnackbar(true);
   };
 
+  // Função para fechar o snackbar
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
+  };
+
+  // Função para resetar o formulário após salvar com sucesso
+  const resetForm = () => {
+    setNome("");
+    setEndereco("");
+    setTelefone("");
+    setReferencia("");
   };
 
   return (

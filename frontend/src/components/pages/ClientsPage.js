@@ -253,6 +253,9 @@ const ClientsPage = () => {
                     <TableCell>Data de Término</TableCell>
                     <TableCell>Valor Total</TableCell>
                     <TableCell>Status</TableCell>
+                    <TableCell>Nome do Item</TableCell>
+                    <TableCell>Tipo do Item</TableCell>
+                    <TableCell>Quantidade Locada</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -271,6 +274,9 @@ const ClientsPage = () => {
                         }).format(order.valor_total)}
                       </TableCell>
                       <TableCell>{order.status}</TableCell>
+                      <TableCell>{order.nome_item}</TableCell>
+                      <TableCell>{order.tipo_item}</TableCell>
+                      <TableCell>{order.quantidade_locada}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

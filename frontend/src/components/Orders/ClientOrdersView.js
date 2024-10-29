@@ -1,4 +1,3 @@
-// frontend/src/components/Orders/ClientOrdersView.js
 import React, { useEffect, useState } from "react";
 import OrdersTable from "../tables/OrdersTable"; // Supondo que OrdersTable já existe
 import { fetchOrdersByClient } from "../../api/orders"; // Importa a função para buscar pedidos pelo ID do cliente
@@ -114,10 +113,12 @@ const ClientOrdersView = () => {
           {selectedOrder ? (
             <>
               <Typography variant="subtitle1">
-                Data de Início: {selectedOrder.data_inicio}
+                Data de Início:{" "}
+                {new Date(selectedOrder.data_inicio).toLocaleDateString()}
               </Typography>
               <Typography variant="subtitle1">
-                Data de Término: {selectedOrder.data_fim}
+                Data de Término:{" "}
+                {new Date(selectedOrder.data_fim).toLocaleDateString()}
               </Typography>
               <Typography variant="subtitle1">
                 Valor Total: R$ {selectedOrder.valor_total.toFixed(2)}

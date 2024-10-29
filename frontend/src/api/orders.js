@@ -19,12 +19,13 @@ export const fetchOrders = async () => {
 
 /**
  * Busca os pedidos (locações) associados a um cliente específico.
+ * Inclui detalhes de itens locados.
  * @param {Number} clientId - ID do cliente
- * @returns {Array} Lista de pedidos do cliente
+ * @returns {Array} Lista de pedidos do cliente, incluindo detalhes dos itens locados
  */
 export const fetchOrdersByClient = async (clientId) => {
   try {
-    // Endpoint atualizado para obter os pedidos de um cliente específico
+    // Endpoint atualizado para obter os pedidos de um cliente específico com detalhes dos itens
     const response = await axios.get(`${API_URL}/clientes/${clientId}/pedidos`);
     return response.data; // Verifique se a estrutura de dados é a esperada
   } catch (error) {
@@ -40,7 +41,7 @@ export const fetchOrdersByClient = async (clientId) => {
  * Atualiza o status de um pedido.
  * @param {Number} orderId - ID do pedido
  * @param {String} status - Novo status do pedido
- * @returns {Object} Resposta da API
+ * @returns {Object} Resposta da API com detalhes do pedido atualizado
  */
 export const updateOrderStatus = async (orderId, status) => {
   try {
@@ -61,7 +62,7 @@ export const updateOrderStatus = async (orderId, status) => {
  * Prorroga um pedido por um número específico de dias.
  * @param {Number} orderId - ID do pedido
  * @param {Number} days - Número de dias adicionais para a prorrogação
- * @returns {Object} Resposta da API
+ * @returns {Object} Resposta da API com os novos detalhes do pedido prorrogado
  */
 export const extendOrder = async (orderId, days) => {
   try {
@@ -82,7 +83,7 @@ export const extendOrder = async (orderId, days) => {
 /**
  * Marca um pedido como concluído antecipadamente.
  * @param {Number} orderId - ID do pedido
- * @returns {Object} Resposta da API
+ * @returns {Object} Resposta da API confirmando a conclusão antecipada
  */
 export const completeOrderEarly = async (orderId) => {
   try {
