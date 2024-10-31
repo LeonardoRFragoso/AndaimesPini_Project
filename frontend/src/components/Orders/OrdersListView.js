@@ -18,13 +18,14 @@ import {
   TextField,
   Box,
 } from "@mui/material";
-import { Check, Event, Refresh, Warning } from "@mui/icons-material";
+import { Check, Event, Refresh, Warning, Restore } from "@mui/icons-material";
 import OrdersTable from "../tables/OrdersTable";
 import {
   fetchOrders,
   updateOrderStatus,
   extendOrder,
   completeOrderEarly,
+  reactivateOrder, // Importa função de reativação do pedido
 } from "../../api/orders";
 
 const OrdersListView = () => {
@@ -75,6 +76,8 @@ const OrdersListView = () => {
         (order) =>
           new Date(order.data_fim) < now && order.status !== "concluído"
       );
+    } else if (filterValue === "completed") {
+      filtered = ordersList.filter((order) => order.status === "concluído");
     }
 
     setFilteredOrders(filtered);
@@ -95,6 +98,8 @@ const OrdersListView = () => {
         await handleConfirmReturn(selectedOrder.id);
       } else if (selectedOrder.action === "early") {
         await handleCompleteOrderEarly(selectedOrder.id);
+      } else if (selectedOrder.action === "reactivate") {
+        await handleReactivateOrder(selectedOrder.id);
       }
       setSnackbarMessage("Ação realizada com sucesso!");
     } catch (error) {
@@ -141,6 +146,17 @@ const OrdersListView = () => {
     }
   };
 
+  const handleReactivateOrder = async (orderId) => {
+    try {
+      await reactivateOrder(orderId);
+      setSnackbarMessage("Pedido reativado com sucesso!");
+      loadOrders();
+    } catch (error) {
+      console.error("Erro ao reativar pedido:", error);
+      throw error;
+    }
+  };
+
   const handleExtendConfirm = async () => {
     if (extendDays <= 0) {
       setSnackbarMessage("Por favor, insira um número de dias válido.");
@@ -164,7 +180,7 @@ const OrdersListView = () => {
         margin: "20px auto",
         backgroundColor: "#f5f5f5",
         borderRadius: "8px",
-        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)", // Sombra para destacar o componente
+        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
       }}
     >
       <Typography
@@ -192,7 +208,7 @@ const OrdersListView = () => {
               value={filter}
               onChange={handleFilterChange}
               label="Filtrar Pedidos"
-              sx={{ backgroundColor: "#fff" }} // Background branco no filtro para destaque
+              sx={{ backgroundColor: "#fff" }}
             >
               <MenuItem value="all">Todos</MenuItem>
               <MenuItem value="active">Ativos</MenuItem>
@@ -292,14 +308,14 @@ const OrdersListView = () => {
       {/* Snackbar para mensagens de feedback */}
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={5000} // Aumentando a duração para feedback mais visível
+        autoHideDuration={5000}
         onClose={handleSnackbarClose}
         message={snackbarMessage}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         ContentProps={{
           sx: {
-            backgroundColor: "#333", // Fundo escuro para contraste
-            color: "#fff", // Texto claro para melhor leitura
+            backgroundColor: "#333",
+            color: "#fff",
             fontSize: "1rem",
           },
         }}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import axios from "axios"; // Importando Axios
 import {
   Table,
   TableBody,
@@ -21,13 +22,17 @@ import {
   WarningAmber,
   ArrowUpward,
   ArrowDownward,
+  Restore,
 } from "@mui/icons-material";
 
-// Importando os botões modularizados
+// Importando botões modularizados
 import CompleteButton from "../common/CompleteButton";
 import DetailsButton from "../common/DetailsButton";
 import ExtendButton from "../common/ExtendButton";
 import ReturnButton from "../common/ReturnButton";
+
+// URL base da API centralizada
+const API_BASE_URL = "http://localhost:5000";
 
 const OrdersTable = ({ orders, onAction, loadOrders }) => {
   const [openDetails, setOpenDetails] = useState(false);
@@ -46,13 +51,11 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
     };
   }, []);
 
-  // Função para alternar a ordenação das colunas
   const handleSort = (field) => {
     const isAsc = orderBy.field === field && orderBy.direction === "asc";
     setOrderBy({ field, direction: isAsc ? "desc" : "asc" });
   };
 
-  // Função auxiliar para acessar valores de campos aninhados com segurança
   const getNestedValue = (obj, path) => {
     return path
       .split(".")
@@ -62,28 +65,20 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
       );
   };
 
-  // Ordenação dos pedidos com base na coluna e direção
   const sortedOrders = React.useMemo(() => {
     return [...orders].sort((a, b) => {
       if (!orderBy.field) return 0;
-      const aValue = getNestedValue(a, orderBy.field) ?? ""; // Valor padrão para comparação
-      const bValue = getNestedValue(b, orderBy.field) ?? ""; // Valor padrão para comparação
+      const aValue = getNestedValue(a, orderBy.field) ?? "";
+      const bValue = getNestedValue(b, orderBy.field) ?? "";
       if (aValue < bValue) return orderBy.direction === "asc" ? -1 : 1;
       if (aValue > bValue) return orderBy.direction === "asc" ? 1 : -1;
       return 0;
     });
   }, [orders, orderBy]);
 
-  // Função para abrir o modal de detalhes da locação
   const handleOpenDetails = async (order) => {
     try {
-      const response = await fetch(
-        `http://localhost:5000/locacoes/${order.id}`
-      );
-      if (!response.ok) {
-        throw new Error(`Erro ${response.status}: ${response.statusText}`);
-      }
-      const data = await response.json();
+      const { data } = await axios.get(`${API_BASE_URL}/locacoes/${order.id}`);
       if (isMounted.current) {
         setSelectedOrder(data);
         setOpenDetails(true);
@@ -102,65 +97,43 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
     setOpenDetails(false);
   };
 
-  // Função para abrir o modal de confirmação de devolução
   const handleConfirmReturn = (orderId) => {
     setOrderToReturn(orderId);
     setConfirmDialogOpen(true);
   };
 
-  // Função que realiza a devolução após confirmação
   const confirmReturnAction = async () => {
     setConfirmDialogOpen(false);
-    const controller = new AbortController();
-    const signal = controller.signal;
-
     try {
-      const response = await fetch(
-        `http://localhost:5000/locacoes/${orderToReturn}/confirmar-devolucao`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          signal,
-        }
+      const response = await axios.patch(
+        `${API_BASE_URL}/locacoes/${orderToReturn}/confirmar-devolucao`
       );
-
-      if (response.ok && isMounted.current) {
+      if (response.status === 200 && isMounted.current) {
         setSnackbarMessage("Devolução confirmada com sucesso!");
         loadOrders();
-      } else {
-        throw new Error("Erro ao confirmar devolução no backend.");
       }
     } catch (error) {
       console.error("Erro ao confirmar devolução:", error);
       if (isMounted.current) {
         setSnackbarMessage("Erro ao confirmar devolução. Tente novamente.");
-      }
-    } finally {
-      if (isMounted.current) {
         setSnackbarOpen(true);
       }
+    } finally {
       setOrderToReturn(null);
     }
   };
 
-  // Função para prorrogar a locação
   const handleExtendOrder = async (orderId) => {
     const diasAdicionais = parseInt(
       prompt("Quantos dias deseja prorrogar?"),
       10
     );
-    if (!diasAdicionais || diasAdicionais <= 0) {
-      alert("Número de dias adicionais deve ser maior que zero.");
-      return;
-    }
+    if (!diasAdicionais || diasAdicionais <= 0) return;
 
     const novoValorTotal = parseFloat(
       prompt("Informe o novo valor total do pedido:")
     );
-    if (!novoValorTotal || novoValorTotal <= 0) {
-      alert("O valor total deve ser maior que zero.");
-      return;
-    }
+    if (!novoValorTotal || novoValorTotal <= 0) return;
 
     const abatimento =
       parseFloat(
@@ -168,36 +141,21 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
       ) || 0;
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/locacoes/${orderId}/prorrogacao`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dias_adicionais: diasAdicionais,
-            novo_valor_total: novoValorTotal,
-            abatimento: abatimento,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Erro ao prorrogar locação.");
-      }
-
+      await axios.put(`${API_BASE_URL}/locacoes/${orderId}/prorrogacao`, {
+        dias_adicionais: diasAdicionais,
+        novo_valor_total: novoValorTotal,
+        abatimento: abatimento,
+      });
       setSnackbarMessage("Locação prorrogada com sucesso!");
-      loadOrders(); // Recarrega os pedidos
+      loadOrders();
     } catch (error) {
       console.error("Erro ao prorrogar locação:", error);
       setSnackbarMessage("Erro ao prorrogar locação. Tente novamente.");
-    } finally {
       setSnackbarOpen(true);
     }
   };
 
-  // Função para devolução antecipada
   const handleEarlyReturn = async (orderId) => {
-    // Prompt para nova data de fim no formato dd-MM-yyyy
     const newEndDate = prompt(
       "Informe a nova data final do pedido (dd-MM-yyyy):"
     );
@@ -209,36 +167,35 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
     const newTotalValue = parseFloat(
       prompt("Informe o novo valor total do pedido:")
     );
-    if (!newTotalValue || newTotalValue <= 0) {
-      alert("O valor total deve ser maior que zero.");
-      return;
-    }
+    if (!newTotalValue || newTotalValue <= 0) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/locacoes/${orderId}/finalizar_antecipadamente`,
+      await axios.put(
+        `${API_BASE_URL}/locacoes/${orderId}/finalizar_antecipadamente`,
         {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nova_data_fim: formattedEndDate,
-            novo_valor_final: newTotalValue,
-          }),
+          nova_data_fim: formattedEndDate,
+          novo_valor_final: newTotalValue,
         }
       );
-
-      if (!response.ok) {
-        throw new Error("Erro ao registrar devolução antecipada.");
-      }
-
       setSnackbarMessage("Devolução antecipada registrada com sucesso!");
-      loadOrders(); // Recarrega a lista de pedidos
+      loadOrders();
     } catch (error) {
       console.error("Erro ao registrar devolução antecipada:", error);
       setSnackbarMessage(
         "Erro ao registrar devolução antecipada. Tente novamente."
       );
-    } finally {
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleReactivateOrder = async (orderId) => {
+    try {
+      await axios.patch(`${API_BASE_URL}/locacoes/${orderId}/reativar`);
+      setSnackbarMessage("Pedido reativado com sucesso!");
+      loadOrders();
+    } catch (error) {
+      console.error("Erro ao reativar pedido:", error);
+      setSnackbarMessage("Erro ao reativar pedido. Tente novamente.");
       setSnackbarOpen(true);
     }
   };
@@ -364,9 +321,27 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
                 </TableCell>
                 <TableCell>
                   <DetailsButton onClick={() => handleOpenDetails(order)} />
-                  <ReturnButton onClick={() => handleConfirmReturn(order.id)} />
-                  <ExtendButton onClick={() => handleExtendOrder(order.id)} />
-                  <CompleteButton onClick={() => handleEarlyReturn(order.id)} />
+                  {order.status === "concluído" ? (
+                    <Button
+                      onClick={() => handleReactivateOrder(order.id)}
+                      color="warning"
+                      startIcon={<Restore />}
+                    >
+                      Reativar
+                    </Button>
+                  ) : (
+                    <>
+                      <ReturnButton
+                        onClick={() => handleConfirmReturn(order.id)}
+                      />
+                      <ExtendButton
+                        onClick={() => handleExtendOrder(order.id)}
+                      />
+                      <CompleteButton
+                        onClick={() => handleEarlyReturn(order.id)}
+                      />
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -392,6 +367,7 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               <Typography>
                 Endereço: {selectedOrder.cliente?.endereco || "Não informado"}
               </Typography>
+
               <Typography variant="h6" style={{ marginTop: "1em" }}>
                 Itens Locados
               </Typography>
@@ -407,6 +383,7 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               ) : (
                 <Typography>Nenhum item locado.</Typography>
               )}
+
               <Typography variant="h6" style={{ marginTop: "1em" }}>
                 Detalhes da Locação
               </Typography>
@@ -416,6 +393,14 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               <Typography>Data de Término: {selectedOrder.data_fim}</Typography>
               <Typography>
                 Valor Total: R$ {selectedOrder.valor_total.toFixed(2)}
+              </Typography>
+              <Typography>
+                Valor Pago na Entrega: R${" "}
+                {selectedOrder.valor_pago_entrega.toFixed(2)}
+              </Typography>
+              <Typography>
+                Valor a Receber no Final: R${" "}
+                {selectedOrder.valor_receber_final.toFixed(2)}
               </Typography>
               <Typography>
                 Status: {selectedOrder.status || "Indefinido"}

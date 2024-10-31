@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { Box, Typography, CircularProgress } from "@mui/material";
-import ReportsFilterForm from "../../components/reports/ReportsFilterForm";
-import ReportsSummaryPanel from "../../components/reports/ReportsSummaryPanel";
-import ReportsDataTable from "../../components/reports/ReportsDataTable";
-import ReportsExportButton from "../../components/reports/ReportsExportButton";
-import ReportsChart from "../../components/reports/ReportsChart";
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, CircularProgress } from '@mui/material';
+import ReportsFilterForm from '../../components/reports/ReportsFilterForm';
+import ReportsSummaryPanel from '../../components/reports/ReportsSummaryPanel';
+import ReportsDataTable from '../../components/reports/ReportsDataTable';
+import ReportsExportButton from '../../components/reports/ReportsExportButton';
+import ReportsChart from '../../components/reports/ReportsChart';
 import {
   fetchOverviewReport,
   fetchClientReport,
   fetchItemReport,
   fetchStatusReport,
-} from "../../api/reports";
+} from '../../api/reports';
 
 const ReportsPage = () => {
-  const [overviewData, setOverviewData] = useState({});
+  const [overviewData, setOverviewData] = useState(null);
   const [clientData, setClientData] = useState([]);
   const [statusData, setStatusData] = useState([]);
   const [itemData, setItemData] = useState([]);
@@ -23,9 +23,6 @@ const ReportsPage = () => {
   const [itemId, setItemId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [exportFormat, setExportFormat] = useState("csv"); // Novo estado para formato de exportação
-  const [chartType, setChartType] = useState("bar"); // Novo estado para tipo de gráfico
-  const [error, setError] = useState(null);
 
   const handleFilterChange = (newFilter) => setFilter(newFilter);
   const handleClientIdChange = (id) => setClientId(id);
@@ -34,67 +31,37 @@ const ReportsPage = () => {
     setStartDate(start);
     setEndDate(end);
   };
-  const handleExportFormatChange = (format) => setExportFormat(format); // Manipulador para formato de exportação
-  const handleChartTypeChange = (type) => setChartType(type); // Manipulador para tipo de gráfico
 
   const loadData = async () => {
     setLoading(true);
-    setError(null);
     try {
       let data;
       switch (filter) {
         case "overview":
           data = await fetchOverviewReport({ startDate, endDate });
-          if (data.error) {
-            throw new Error(data.error);
-          }
-          console.log("Overview data:", data);
-          setOverviewData(data || {});
+          setOverviewData(data.data);
           break;
-
         case "by-client":
           if (clientId) {
             data = await fetchClientReport(clientId, { startDate, endDate });
-            if (data.error) {
-              throw new Error(data.error);
-            }
-            console.log("Client data:", data);
-            setClientData(data || []);
-          } else {
-            setClientData([]);
+            setClientData(data.data);
           }
           break;
-
         case "by-item":
           if (itemId) {
             data = await fetchItemReport(itemId, { startDate, endDate });
-            if (data.error) {
-              throw new Error(data.error);
-            }
-            console.log("Item data:", data);
-            setItemData(data || []);
-          } else {
-            setItemData([]);
+            setItemData(data.data);
           }
           break;
-
         case "by-status":
           data = await fetchStatusReport({ startDate, endDate });
-          if (data.error) {
-            throw new Error(data.error);
-          }
-          console.log("Status data:", data);
-          setStatusData(data || []);
+          setStatusData(data.data);
           break;
-
         default:
           break;
       }
     } catch (error) {
       console.error(`Erro ao carregar dados para o filtro ${filter}:`, error);
-      setError(
-        `Erro ao carregar dados para o filtro ${filter}: ${error.message}`
-      );
     } finally {
       setLoading(false);
     }
@@ -123,7 +90,6 @@ const ReportsPage = () => {
         onClientIdChange={handleClientIdChange}
         onItemIdChange={handleItemIdChange}
         onDateChange={handleDateChange}
-        onExportFormatChange={handleExportFormatChange} // Passa o manipulador para formato de exportação
       />
 
       <ReportsSummaryPanel overviewData={overviewData} />
@@ -132,10 +98,6 @@ const ReportsPage = () => {
         <Box display="flex" justifyContent="center" mt={4}>
           <CircularProgress />
         </Box>
-      ) : error ? (
-        <Typography color="error" align="center" mt={4}>
-          {error}
-        </Typography>
       ) : (
         <>
           <ReportsDataTable
@@ -146,7 +108,7 @@ const ReportsPage = () => {
                 ? itemData
                 : filter === "by-status"
                 ? statusData
-                : []
+                : overviewData || []
             }
             filter={filter}
           />
@@ -158,11 +120,9 @@ const ReportsPage = () => {
                 ? itemData
                 : filter === "by-status"
                 ? statusData
-                : []
+                : overviewData || []
             }
             filename={`relatorio_${filter}`}
-            exportFormat={exportFormat} // Adiciona o formato de exportação
-            filter={filter} // Passa o filtro para exportação condicional
           />
           <ReportsChart
             data={
@@ -172,10 +132,9 @@ const ReportsPage = () => {
                 ? itemData
                 : filter === "by-status"
                 ? statusData
-                : []
+                : overviewData || []
             }
             filter={filter}
-            chartType={chartType} // Adiciona o tipo de gráfico
           />
         </>
       )}

@@ -4,10 +4,11 @@ from models.itens_locados import ItensLocados
 from models.cliente import Cliente
 import logging
 from datetime import date
+from helpers import atualizar_estoque, restaurar_estoque  # Importações para manipulação do estoque
 
 class Locacao:
     @staticmethod
-    def create(cliente_id, data_inicio, data_fim, valor_total, status="ativo"):
+    def create(cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status="ativo"):
         """
         Cria uma nova locação no banco de dados com um status inicial.
         """
@@ -15,10 +16,10 @@ class Locacao:
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT INTO locacoes (cliente_id, data_inicio, data_fim, valor_total, status)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO locacoes (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            ''', (cliente_id, data_inicio, data_fim, valor_total, status))
+            ''', (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status))
             locacao_id = cursor.fetchone()[0]
             conn.commit()
             logging.info(f"Locação criada com sucesso: ID {locacao_id}")
@@ -41,7 +42,8 @@ class Locacao:
         try:
             query = '''
                 SELECT locacoes.id, locacoes.data_inicio, locacoes.data_fim, locacoes.valor_total,
-                       locacoes.status, clientes.nome, clientes.endereco, clientes.telefone
+                    locacoes.valor_pago_entrega, locacoes.valor_receber_final, locacoes.status,
+                    clientes.nome, clientes.endereco, clientes.telefone
                 FROM locacoes
                 JOIN clientes ON locacoes.cliente_id = clientes.id
             '''
@@ -57,11 +59,13 @@ class Locacao:
                     "data_inicio": locacao[1].strftime("%d/%m/%Y"),
                     "data_fim": locacao[2].strftime("%d/%m/%Y"),
                     "valor_total": float(locacao[3]),
-                    "status": locacao[4],
+                    "valor_pago_entrega": float(locacao[4]) if locacao[4] else 0.0,
+                    "valor_receber_final": float(locacao[5]) if locacao[5] else 0.0,
+                    "status": locacao[6],
                     "cliente": {
-                        "nome": locacao[5],
-                        "endereco": locacao[6],
-                        "telefone": locacao[7]
+                        "nome": locacao[7],
+                        "endereco": locacao[8],
+                        "telefone": locacao[9]
                     },
                     "itens": itens_locados
                 })
@@ -85,7 +89,8 @@ class Locacao:
         try:
             query = '''
                 SELECT locacoes.id, locacoes.data_inicio, locacoes.data_fim, locacoes.valor_total,
-                       locacoes.status, clientes.nome, clientes.endereco, clientes.telefone
+                    locacoes.valor_pago_entrega, locacoes.valor_receber_final, locacoes.status,
+                    clientes.nome, clientes.endereco, clientes.telefone
                 FROM locacoes
                 JOIN clientes ON locacoes.cliente_id = clientes.id
                 WHERE locacoes.id = %s
@@ -99,11 +104,13 @@ class Locacao:
                     "data_inicio": locacao[1].strftime("%d/%m/%Y"),
                     "data_fim": locacao[2].strftime("%d/%m/%Y"),
                     "valor_total": float(locacao[3]),
-                    "status": locacao[4],
+                    "valor_pago_entrega": float(locacao[4]) if locacao[4] else 0.0,
+                    "valor_receber_final": float(locacao[5]) if locacao[5] else 0.0,
+                    "status": locacao[6],
                     "cliente": {
-                        "nome": locacao[5],
-                        "endereco": locacao[6],
-                        "telefone": locacao[7]
+                        "nome": locacao[7],
+                        "endereco": locacao[8],
+                        "telefone": locacao[9]
                     },
                     "itens": itens_locados
                 }
@@ -267,7 +274,7 @@ class Locacao:
     @staticmethod
     def update_status(locacao_id, status):
         """
-        Atualiza o status de uma locação específica.
+        Atualiza o status de uma locação específica no banco de dados.
         """
         conn = get_connection()
         cursor = conn.cursor()
@@ -277,16 +284,86 @@ class Locacao:
                 SET status = %s
                 WHERE id = %s
             ''', (status, locacao_id))
+            
             conn.commit()
             sucesso = cursor.rowcount > 0
             if sucesso:
                 logging.info(f"Status da locação ID {locacao_id} atualizado para {status}.")
             else:
                 logging.warning(f"Locação ID {locacao_id} não encontrada para atualização de status.")
+            
             return sucesso
         except psycopg2.Error as e:
             conn.rollback()
             logging.error(f"Erro ao atualizar status da locação: {e}")
+            return False
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def atualizar_estoque_devolucao(locacao_id):
+        """
+        Restaura o estoque dos itens locados de uma locação específica ao confirmar a devolução.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            itens_locados = ItensLocados.get_by_locacao(locacao_id)
+            itens_ignorados = 0
+
+            for item in itens_locados:
+                item_id = item.get('item_id')
+                quantidade = item.get('quantidade')
+
+                if item_id is None or quantidade is None:
+                    itens_ignorados += 1
+                    logging.warning(f"Item com dados incompletos ao confirmar devolução para locação ID {locacao_id}: {item}")
+                    continue
+
+                restaurar_estoque(item_id, quantidade)
+
+                cursor.execute('''
+                    UPDATE itens_locados
+                    SET data_devolucao = %s
+                    WHERE locacao_id = %s AND item_id = %s
+                ''', (date.today(), locacao_id, item_id))
+
+                logging.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
+
+            conn.commit()
+
+            if itens_ignorados > 0:
+                logging.warning(f"{itens_ignorados} itens com dados incompletos foram ignorados ao confirmar devolução para locação ID {locacao_id}.")
+
+            logging.info(f"Devolução confirmada e estoque atualizado para a locação ID {locacao_id}.")
+            return True
+        except psycopg2.Error as e:
+            conn.rollback()
+            logging.error(f"Erro ao restaurar estoque para locação ID {locacao_id}: {e}")
+            return False
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def atualizar_estoque_reducao(locacao_id):
+        """
+        Reduz o estoque dos itens locados de uma locação específica ao reativar a locação.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            itens_locados = ItensLocados.get_by_locacao(locacao_id)
+            for item in itens_locados:
+                item_id = item['item_id']
+                quantidade = item['quantidade']
+                atualizar_estoque(item_id, quantidade)
+                logging.info(f"Estoque atualizado para o item ID {item_id}, quantidade: -{quantidade}")
+            return True
+        except psycopg2.Error as e:
+            conn.rollback()
+            logging.error(f"Erro ao reduzir estoque para locação ID {locacao_id}: {e}")
             return False
         finally:
             cursor.close()

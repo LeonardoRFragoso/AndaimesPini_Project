@@ -43,7 +43,8 @@ const OrdersPage = () => {
 
       {/* Conteúdo do OrdersListView com passagem da função de feedback */}
       <Box sx={{ mt: 4 }}>
-        <OrdersListView showSnackbar={showSnackbar} />
+        <OrdersListView showSnackbar={showSnackbar} />{" "}
+        {/* Passa showSnackbar como prop */}
       </Box>
 
       {/* Botão para voltar à HomePage */}
@@ -74,8 +75,8 @@ const OrdersPage = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         ContentProps={{
           sx: {
-            backgroundColor: "#333", // Fundo escuro para contraste
-            color: "#fff", // Texto claro para melhor leitura
+            backgroundColor: "#333",
+            color: "#fff",
             fontSize: "1rem",
           },
         }}

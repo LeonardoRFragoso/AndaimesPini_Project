@@ -31,14 +31,6 @@ const HomePage = () => {
       >
         Bem-vindo ao Sistema de Gestão de Locações
       </Typography>
-      <Typography
-        variant="body1"
-        paragraph
-        align="center"
-        sx={{ fontSize: "1.1rem", color: "#555", mb: 5 }}
-      >
-        Selecione uma opção no menu para começar.
-      </Typography>
 
       <Grid container spacing={4} justifyContent="center">
         {/* Card Template */}

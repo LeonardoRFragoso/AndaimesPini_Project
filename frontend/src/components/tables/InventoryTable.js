@@ -9,8 +9,7 @@ import {
   TableRow,
   IconButton,
 } from "@mui/material";
-import { Edit, Delete } from "@mui/icons-material";
-import { ArrowUpward, ArrowDownward } from "@mui/icons-material";
+import { Edit, Delete, ArrowUpward, ArrowDownward } from "@mui/icons-material";
 
 const InventoryTable = ({ items, onEdit, onDelete, sortItems, sortConfig }) => {
   // Função para exibir o ícone de ordenação baseado na coluna selecionada
@@ -56,7 +55,13 @@ const InventoryTable = ({ items, onEdit, onDelete, sortItems, sortConfig }) => {
         <TableBody>
           {items.length > 0 ? (
             items.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow
+                key={item.id}
+                sx={{
+                  "&:nth-of-type(odd)": { backgroundColor: "#f9f9f9" },
+                  "&:hover": { backgroundColor: "#e0f7fa" }, // Efeito de hover
+                }}
+              >
                 <TableCell>
                   {item.nome_item || "Nome não especificado"}
                 </TableCell>

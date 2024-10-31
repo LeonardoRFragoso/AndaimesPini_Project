@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from models import Cliente, Inventario, Locacao, ItensLocados, RegistroDanos
 from helpers import atualizar_estoque, restaurar_estoque, handle_database_error
-from datetime import date
 import psycopg2
 import logging
 
@@ -36,7 +35,6 @@ def get_locacoes_por_cliente(client_id):
         else:
             logging.warning(f"Nenhuma locação encontrada para o cliente ID {client_id}.")
             return jsonify([]), 404
-
     except psycopg2.Error as e:
         return handle_database_error(e)
     except Exception as ex:
@@ -117,10 +115,12 @@ def add_locacao():
             return jsonify({"error": "Todos os campos da locação e itens são obrigatórios!"}), 400
 
         locacao_id = Locacao.create(
-            cliente_id, 
-            nova_locacao['data_inicio'], 
-            nova_locacao['data_fim'], 
-            nova_locacao['valor_total'],
+            cliente_id=cliente_id,
+            data_inicio=nova_locacao.get('data_inicio'),  # Aqui data_inicio
+            data_fim=nova_locacao.get('data_fim'),  # Aqui data_fim
+            valor_total=nova_locacao.get('valor_total'),  # Aqui valor_total
+            valor_pago_entrega=nova_locacao.get('valor_pago_entrega'),  # Aqui valor_pago_entrega
+            valor_receber_final=nova_locacao.get('valor_receber_final'),  # Aqui valor_receber_final
             status="ativo"
         )
         if locacao_id is None:
@@ -157,36 +157,97 @@ def add_locacao():
 
 @locacoes_routes.route('/<int:locacao_id>/confirmar-devolucao', methods=['PATCH'])
 def confirmar_devolucao(locacao_id):
-    """Rota para confirmar a devolução e atualizar o status da locação para 'concluído'."""
+    """Confirma a devolução e atualiza o status da locação para 'concluído'."""
     try:
-        dados = request.get_json(silent=True)
-        nova_data_fim = dados.get('nova_data_fim') if dados else None
-        novo_valor_final = dados.get('novo_valor_final') if dados else None
+        # Obter detalhes da locação
+        locacao = Locacao.get_detailed_by_id(locacao_id)
+        if not locacao:
+            return jsonify({"error": "Locação não encontrada"}), 404
 
-        if nova_data_fim and novo_valor_final is not None:
-            resultado = Locacao.finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final)
-            if resultado:
-                logging.info(f"Locação ID {locacao_id} finalizada antecipadamente.")
-                return jsonify({"message": "Devolução antecipada confirmada com sucesso e status atualizado!"}), 200
+        # Atualizar o status da locação para "Concluído"
+        status_atualizado = Locacao.update_status(locacao_id, "concluído")
+        if not status_atualizado:
+            return jsonify({"error": "Erro ao atualizar status da locação."}), 500
+
+        # Restaurar o estoque para cada item locado e registrar data_devolucao
+        missing_item_ids = 0  # Contador de itens com dados incompletos
+        for item in locacao.get('itens', []):
+            item_id = item.get('item_id')
+            quantidade = item.get('quantidade')
+
+            if item_id is None or quantidade is None:
+                missing_item_ids += 1
+                logging.warning(f"Item com dados incompletos ao confirmar devolução para locação ID {locacao_id}: {item}")
+                continue  # Ignora itens sem dados suficientes
+
+            # Atualizar data_devolucao para o item devolvido
+            devolvido = ItensLocados.marcar_devolucao(item_id, locacao_id, datetime.now().date())
+            if devolvido:
+                restaurar_estoque(item_id, quantidade)
+                logging.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
             else:
-                logging.warning(f"Locação ID {locacao_id} não encontrada para devolução antecipada.")
-                return jsonify({"error": "Erro ao finalizar antecipadamente a locação."}), 404
-        else:
-            logging.info(f"Atualizando o status da locação ID {locacao_id} para 'concluído'.")
-            status_atualizado = Locacao.update_status(locacao_id, "concluído")
-            if not status_atualizado:
-                logging.warning(f"Locação ID {locacao_id} não encontrada.")
-                return jsonify({"error": "Locação não encontrada."}), 404
+                logging.error(f"Erro ao registrar a devolução para o item ID {item_id} na locação {locacao_id}")
 
-            logging.info(f"Status da locação ID {locacao_id} atualizado para 'concluído'.")
-            return jsonify({"message": "Devolução confirmada com sucesso e status atualizado!"}), 200
+        if missing_item_ids > 0:
+            logging.warning(f"{missing_item_ids} itens com dados incompletos foram ignorados ao confirmar devolução para locação ID {locacao_id}.")
+
+        logging.info(f"Devolução confirmada e estoque atualizado para a locação ID {locacao_id}.")
+        return jsonify({"message": "Devolução confirmada e estoque atualizado!"}), 200
 
     except psycopg2.Error as e:
         logging.error(f"Erro no banco de dados ao confirmar devolução para locação ID {locacao_id}: {e}")
         return handle_database_error(e)
     except Exception as ex:
         logging.error(f"Erro inesperado ao confirmar devolução para locação ID {locacao_id}: {ex}")
-        return jsonify({"error": "Erro ao confirmar devolução.", "detalhe": str(ex)}), 500
+        return jsonify({"error": "Erro ao confirmar devolução."}), 500
+
+
+@locacoes_routes.route('/<int:locacao_id>/reativar', methods=['PATCH'])
+def reativar_locacao(locacao_id):
+    """Reativa uma locação, altera o status para 'ativo' e remove os itens do estoque novamente."""
+    try:
+        # Obter detalhes da locação
+        locacao = Locacao.get_detailed_by_id(locacao_id)
+        
+        # Verificar se a locação existe e está concluída
+        if not locacao or locacao['status'] != 'concluído':
+            return jsonify({"error": "Locação não encontrada ou não está concluída"}), 404
+
+        # Atualizar o status da locação para "ativo"
+        status_atualizado = Locacao.update_status(locacao_id, "ativo")
+        if not status_atualizado:
+            return jsonify({"error": "Erro ao atualizar status da locação."}), 500
+
+        # Processar cada item na locação para atualizar o estoque
+        itens_com_dados_incompletos = 0  # Contador de itens com dados incompletos
+        for item in locacao.get('itens', []):  # Usa .get para evitar KeyError
+            item_id = item.get('item_id')
+            quantidade = item.get('quantidade')
+            
+            # Verificar se os dados essenciais estão presentes
+            if item_id is None or quantidade is None:
+                itens_com_dados_incompletos += 1
+                logging.warning(f"Item com dados incompletos ao reativar locação ID {locacao_id}: {item}")
+                continue  # Ignorar itens sem dados suficientes
+
+            # Atualizar o estoque para o item
+            atualizar_estoque(item_id, quantidade)
+            logging.info(f"Estoque atualizado para o item ID {item_id}, quantidade: -{quantidade}")
+
+        # Registrar um aviso se houver itens ignorados devido a dados incompletos
+        if itens_com_dados_incompletos > 0:
+            logging.warning(f"{itens_com_dados_incompletos} itens com dados incompletos foram ignorados ao reativar locação ID {locacao_id}.")
+
+        logging.info(f"Locação ID {locacao_id} reativada e estoque ajustado.")
+        return jsonify({"message": "Locação reativada e estoque ajustado!"}), 200
+
+    except psycopg2.Error as e:
+        logging.error(f"Erro no banco de dados ao reativar locação ID {locacao_id}: {e}")
+        return handle_database_error(e)
+    except Exception as ex:
+        logging.error(f"Erro inesperado ao reativar locação ID {locacao_id}: {ex}")
+        return jsonify({"error": "Erro ao reativar locação."}), 500
+
 
 @locacoes_routes.route('/<int:locacao_id>/prorrogacao', methods=['PUT'])
 def prorrogar_locacao(locacao_id):
@@ -212,7 +273,6 @@ def prorrogar_locacao(locacao_id):
         else:
             logging.warning(f"Locação ID {locacao_id} não encontrada ou erro ao atualizar.")
             return jsonify({"error": "Erro ao prorrogar e atualizar a locação."}), 404
-
     except psycopg2.Error as e:
         return handle_database_error(e)
     except Exception as ex:
@@ -238,7 +298,6 @@ def finalizar_antecipadamente(locacao_id):
         else:
             logging.warning(f"Locação ID {locacao_id} não encontrada para finalização antecipada.")
             return jsonify({"error": "Locação não encontrada."}), 404
-
     except psycopg2.Error as e:
         logging.error(f"Erro no banco de dados ao finalizar antecipadamente a locação ID {locacao_id}: {e}")
         return handle_database_error(e)
