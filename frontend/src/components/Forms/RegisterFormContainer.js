@@ -1,5 +1,4 @@
-// src/components/Forms/RegisterFormContainer.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import RegisterFormView from "./RegisterFormView";
 
@@ -7,6 +6,7 @@ const RegisterFormContainer = () => {
   const [clientes, setClientes] = useState([]);
   const [estoqueDisponivel, setEstoqueDisponivel] = useState({});
   const [categorias, setCategorias] = useState({});
+  const [isFetched, setIsFetched] = useState(false); // Cache simples para evitar múltiplas requisições
   const [novaLocacao, setNovaLocacao] = useState({
     numero_nota: "",
     cliente_info: {
@@ -26,22 +26,29 @@ const RegisterFormContainer = () => {
   });
 
   // Função para carregar clientes
-  const fetchClientes = async () => {
+  const fetchClientes = useCallback(async () => {
     try {
       const response = await axios.get("http://127.0.0.1:5000/clientes");
       setClientes(response.data);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
     }
-  };
+  }, []);
 
   // Função para carregar o inventário e configurar categorias dinamicamente
-  const fetchInventario = async () => {
+  const fetchInventario = useCallback(async () => {
+    if (isFetched) return; // Se já foi buscado, evita nova requisição
+    setIsFetched(true); // Marca como já buscado
+
     try {
-      const response = await axios.get("http://127.0.0.1:5000/inventario");
+      const response = await axios.get(
+        "http://127.0.0.1:5000/inventario/disponiveis"
+      );
       if (response.data) {
+        console.log("Dados de inventário recebidos do backend:", response.data);
+
         const estoqueMap = response.data.reduce((acc, item) => {
-          acc[item.nome_item] = item.quantidade;
+          acc[item.nome_item] = item.quantidade || 0;
           return acc;
         }, {});
         setEstoqueDisponivel(estoqueMap);
@@ -58,13 +65,15 @@ const RegisterFormContainer = () => {
     } catch (error) {
       console.error("Erro ao buscar inventário:", error);
     }
-  };
+  }, [isFetched]);
 
+  // useEffect para carregar clientes e inventário apenas uma vez
   useEffect(() => {
     fetchClientes();
     fetchInventario();
-  }, []);
+  }, [fetchClientes, fetchInventario]); // Assegura que `fetchClientes` e `fetchInventario` sejam chamadas apenas uma vez
 
+  // Atualiza o valor a receber automaticamente ao alterar valor_total ou valor_pago_entrega
   useEffect(() => {
     setNovaLocacao((prev) => ({
       ...prev,
@@ -158,6 +167,12 @@ const RegisterFormContainer = () => {
       );
       if (response.status === 201) {
         alert("Locação registrada com sucesso!");
+
+        // Recarregar inventário para atualizar quantidades após o registro
+        setIsFetched(false); // Redefine para permitir uma nova requisição de inventário
+        await fetchInventario();
+
+        // Resetar o formulário
         setNovaLocacao({
           numero_nota: "",
           cliente_info: {
@@ -175,7 +190,6 @@ const RegisterFormContainer = () => {
           valor_receber_final: 0,
           itens: [],
         });
-        fetchInventario();
       }
     } catch (error) {
       console.error("Erro ao registrar locação:", error.response || error);
@@ -221,7 +235,7 @@ const RegisterFormContainer = () => {
       CATEGORIES={categorias}
       estoqueDisponivel={estoqueDisponivel}
       handleDiasCombinadosChange={handleDiasCombinadosChange}
-      fetchEstoque={fetchInventario}
+      fetchInventario={fetchInventario}
     />
   );
 };

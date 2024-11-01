@@ -63,15 +63,14 @@ class ItensLocados:
     @staticmethod
     def get_by_locacao(locacao_id):
         """
-        Retorna todos os itens associados a uma locação específica com detalhes, incluindo o tipo_item.
+        Retorna todos os itens associados a uma locação específica com detalhes completos.
         """
         conn = get_connection()
         cursor = conn.cursor()
         try:
             query = '''
-                SELECT inventario.nome_item, itens_locados.quantidade, 
-                       itens_locados.data_alocacao, itens_locados.data_devolucao,
-                       inventario.tipo_item
+                SELECT itens_locados.item_id, inventario.nome_item, itens_locados.quantidade, 
+                       itens_locados.data_alocacao, itens_locados.data_devolucao, inventario.tipo_item
                 FROM itens_locados
                 JOIN inventario ON itens_locados.item_id = inventario.id
                 WHERE itens_locados.locacao_id = %s
@@ -79,7 +78,17 @@ class ItensLocados:
             cursor.execute(query, (locacao_id,))
             items = cursor.fetchall()
             logger.info(f"Itens obtidos para locação ID {locacao_id}.")
-            return [{"nome_item": row[0], "quantidade": row[1], "data_alocacao": row[2], "data_devolucao": row[3], "tipo_item": row[4]} for row in items]
+            return [
+                {
+                    "item_id": row[0],
+                    "nome_item": row[1],
+                    "quantidade": row[2],
+                    "data_alocacao": row[3],
+                    "data_devolucao": row[4],
+                    "tipo_item": row[5]
+                }
+                for row in items
+            ]
         except psycopg2.Error as e:
             logger.error(f"Erro ao buscar itens locados: {e}")
             return []

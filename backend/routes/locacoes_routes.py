@@ -97,6 +97,7 @@ def add_locacao():
             logging.warning("Nome e telefone do cliente são obrigatórios!")
             return jsonify({"error": "Nome e telefone do cliente são obrigatórios!"}), 400
 
+        # Criação do cliente
         cliente_id = Cliente.create(
             nome_cliente, 
             cliente_info.get('endereco'), 
@@ -109,18 +110,20 @@ def add_locacao():
 
         logging.info(f"Cliente criado com sucesso: ID {cliente_id}")
 
+        # Verificação dos itens da locação
         itens_locados = nova_locacao.get('itens', [])
         if not nova_locacao.get('data_inicio') or not nova_locacao.get('data_fim') or nova_locacao.get('valor_total') is None or not itens_locados:
             logging.warning("Todos os campos da locação e itens são obrigatórios!")
             return jsonify({"error": "Todos os campos da locação e itens são obrigatórios!"}), 400
 
+        # Criação da locação
         locacao_id = Locacao.create(
             cliente_id=cliente_id,
-            data_inicio=nova_locacao.get('data_inicio'),  # Aqui data_inicio
-            data_fim=nova_locacao.get('data_fim'),  # Aqui data_fim
-            valor_total=nova_locacao.get('valor_total'),  # Aqui valor_total
-            valor_pago_entrega=nova_locacao.get('valor_pago_entrega'),  # Aqui valor_pago_entrega
-            valor_receber_final=nova_locacao.get('valor_receber_final'),  # Aqui valor_receber_final
+            data_inicio=nova_locacao.get('data_inicio'),
+            data_fim=nova_locacao.get('data_fim'),
+            valor_total=nova_locacao.get('valor_total'),
+            valor_pago_entrega=nova_locacao.get('valor_pago_entrega'),
+            valor_receber_final=nova_locacao.get('valor_receber_final'),
             status="ativo"
         )
         if locacao_id is None:
@@ -129,6 +132,7 @@ def add_locacao():
 
         logging.info(f"Locação criada com sucesso: ID {locacao_id}")
 
+        # Adicionando itens à locação e atualizando estoque
         for item in itens_locados:
             modelo_item = item.get('modelo')
             quantidade = item.get('quantidade')
@@ -137,13 +141,19 @@ def add_locacao():
                 logging.warning("Modelo e quantidade do item são obrigatórios e a quantidade deve ser positiva.")
                 return jsonify({"error": "Modelo e quantidade do item são obrigatórios!"}), 400
 
+            # Obter item do inventário
             item_id = Inventario.get_item_id_by_modelo(modelo_item)
             if item_id is None:
                 logging.warning(f"Item não encontrado no inventário: {modelo_item}")
                 return jsonify({"error": f"Item não encontrado no inventário: {modelo_item}"}), 400
 
+            # Adicionar item à locação e atualizar o estoque
             ItensLocados.add_item(locacao_id, item_id, quantidade)
-            atualizar_estoque(item_id, quantidade)
+            estoque_atualizado = atualizar_estoque(item_id, quantidade)
+            if not estoque_atualizado:
+                logging.error(f"Erro ao atualizar estoque para o item ID {item_id}.")
+                return jsonify({"error": f"Erro ao atualizar estoque para o item ID {item_id}"}), 500
+
             logging.info(f"Item {modelo_item} adicionado à locação ID {locacao_id} e estoque atualizado.")
 
         logging.info("Locação adicionada com sucesso!")
@@ -164,32 +174,15 @@ def confirmar_devolucao(locacao_id):
         if not locacao:
             return jsonify({"error": "Locação não encontrada"}), 404
 
-        # Atualizar o status da locação para "Concluído"
+        # Atualizar o status da locação para 'concluído'
         status_atualizado = Locacao.update_status(locacao_id, "concluído")
         if not status_atualizado:
             return jsonify({"error": "Erro ao atualizar status da locação."}), 500
 
-        # Restaurar o estoque para cada item locado e registrar data_devolucao
-        missing_item_ids = 0  # Contador de itens com dados incompletos
-        for item in locacao.get('itens', []):
-            item_id = item.get('item_id')
-            quantidade = item.get('quantidade')
-
-            if item_id is None or quantidade is None:
-                missing_item_ids += 1
-                logging.warning(f"Item com dados incompletos ao confirmar devolução para locação ID {locacao_id}: {item}")
-                continue  # Ignora itens sem dados suficientes
-
-            # Atualizar data_devolucao para o item devolvido
-            devolvido = ItensLocados.marcar_devolucao(item_id, locacao_id, datetime.now().date())
-            if devolvido:
-                restaurar_estoque(item_id, quantidade)
-                logging.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
-            else:
-                logging.error(f"Erro ao registrar a devolução para o item ID {item_id} na locação {locacao_id}")
-
-        if missing_item_ids > 0:
-            logging.warning(f"{missing_item_ids} itens com dados incompletos foram ignorados ao confirmar devolução para locação ID {locacao_id}.")
+        # Chamar método de atualização de devolução e estoque
+        devolucao_confirmada = Locacao.atualizar_estoque_devolucao(locacao_id)
+        if not devolucao_confirmada:
+            return jsonify({"error": "Erro ao confirmar devolução e atualizar estoque."}), 500
 
         logging.info(f"Devolução confirmada e estoque atualizado para a locação ID {locacao_id}.")
         return jsonify({"message": "Devolução confirmada e estoque atualizado!"}), 200
@@ -200,7 +193,6 @@ def confirmar_devolucao(locacao_id):
     except Exception as ex:
         logging.error(f"Erro inesperado ao confirmar devolução para locação ID {locacao_id}: {ex}")
         return jsonify({"error": "Erro ao confirmar devolução."}), 500
-
 
 @locacoes_routes.route('/<int:locacao_id>/reativar', methods=['PATCH'])
 def reativar_locacao(locacao_id):

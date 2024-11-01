@@ -23,6 +23,18 @@ class Locacao:
             locacao_id = cursor.fetchone()[0]
             conn.commit()
             logging.info(f"Locação criada com sucesso: ID {locacao_id}")
+
+            # Atualizar o estoque para cada item locado
+            for item in ItensLocados.get_by_locacao(locacao_id):
+                item_id = item['item_id']
+                quantidade = item['quantidade']
+                # Subtrai a quantidade locada do estoque
+                estoque_atualizado = atualizar_estoque(item_id, quantidade)
+                if estoque_atualizado:
+                    logging.info(f"Estoque atualizado para o item ID {item_id}, quantidade retirada: {quantidade}")
+                else:
+                    logging.error(f"Falha ao atualizar o estoque para o item ID {item_id}")
+
             return locacao_id
         except psycopg2.Error as e:
             conn.rollback()
@@ -309,34 +321,46 @@ class Locacao:
         conn = get_connection()
         cursor = conn.cursor()
         try:
+            # Obtenha todos os itens locados para a locação fornecida
             itens_locados = ItensLocados.get_by_locacao(locacao_id)
             itens_ignorados = 0
+            itens_atualizados = 0  # Contador para itens processados com sucesso
 
             for item in itens_locados:
+                # Validação completa dos dados de cada item
                 item_id = item.get('item_id')
                 quantidade = item.get('quantidade')
+                data_devolucao = item.get('data_devolucao')
 
-                if item_id is None or quantidade is None:
+                # Verificar se o item já foi devolvido ou se os dados estão incompletos
+                if item_id is None or quantidade is None or data_devolucao is not None:
                     itens_ignorados += 1
-                    logging.warning(f"Item com dados incompletos ao confirmar devolução para locação ID {locacao_id}: {item}")
+                    logging.warning(f"Item com dados incompletos ou já devolvido ao confirmar devolução para locação ID {locacao_id}: {item}")
                     continue
 
-                restaurar_estoque(item_id, quantidade)
+                # Restaurar o estoque para cada item locado
+                estoque_restaurado = restaurar_estoque(item_id, quantidade)
+                if estoque_restaurado:
+                    logging.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
+                else:
+                    logging.error(f"Falha ao restaurar o estoque para o item ID {item_id}")
 
+                # Atualizar a data de devolução no item locado
                 cursor.execute('''
                     UPDATE itens_locados
                     SET data_devolucao = %s
                     WHERE locacao_id = %s AND item_id = %s
                 ''', (date.today(), locacao_id, item_id))
+                itens_atualizados += 1
 
-                logging.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
-
+            # Commit das alterações de data_devolucao para os itens
             conn.commit()
 
+            # Log de resumo
+            logging.info(f"{itens_atualizados} itens atualizados e estoque restaurado para a locação ID {locacao_id}.")
             if itens_ignorados > 0:
-                logging.warning(f"{itens_ignorados} itens com dados incompletos foram ignorados ao confirmar devolução para locação ID {locacao_id}.")
+                logging.warning(f"{itens_ignorados} itens com dados incompletos ou já devolvidos foram ignorados ao confirmar devolução para locação ID {locacao_id}.")
 
-            logging.info(f"Devolução confirmada e estoque atualizado para a locação ID {locacao_id}.")
             return True
         except psycopg2.Error as e:
             conn.rollback()
@@ -345,6 +369,8 @@ class Locacao:
         finally:
             cursor.close()
             release_connection(conn)
+
+
 
     @staticmethod
     def atualizar_estoque_reducao(locacao_id):

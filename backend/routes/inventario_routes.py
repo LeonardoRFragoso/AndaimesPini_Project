@@ -80,7 +80,7 @@ def delete_item(item_id):
     Rota para excluir um item do inventário.
     """
     try:
-        item = Inventario.get_by_id(item_id)
+        item = Inventario.get_item_id_by_modelo(item_id)
         if not item:
             return jsonify({"error": "Item não encontrado no inventário."}), 404
 
