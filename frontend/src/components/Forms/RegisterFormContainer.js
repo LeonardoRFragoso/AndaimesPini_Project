@@ -6,7 +6,7 @@ const RegisterFormContainer = () => {
   const [clientes, setClientes] = useState([]);
   const [estoqueDisponivel, setEstoqueDisponivel] = useState({});
   const [categorias, setCategorias] = useState({});
-  const [isFetched, setIsFetched] = useState(false); // Cache simples para evitar múltiplas requisições
+  const [isFetched, setIsFetched] = useState(false);
   const [novaLocacao, setNovaLocacao] = useState({
     numero_nota: "",
     cliente_info: {
@@ -37,8 +37,8 @@ const RegisterFormContainer = () => {
 
   // Função para carregar o inventário e configurar categorias dinamicamente
   const fetchInventario = useCallback(async () => {
-    if (isFetched) return; // Se já foi buscado, evita nova requisição
-    setIsFetched(true); // Marca como já buscado
+    if (isFetched) return;
+    setIsFetched(true);
 
     try {
       const response = await axios.get(
@@ -47,8 +47,9 @@ const RegisterFormContainer = () => {
       if (response.data) {
         console.log("Dados de inventário recebidos do backend:", response.data);
 
+        // Usar `quantidade_disponivel` para refletir o estoque real disponível
         const estoqueMap = response.data.reduce((acc, item) => {
-          acc[item.nome_item] = item.quantidade || 0;
+          acc[item.nome_item] = item.quantidade_disponivel || 0;
           return acc;
         }, {});
         setEstoqueDisponivel(estoqueMap);
@@ -67,13 +68,11 @@ const RegisterFormContainer = () => {
     }
   }, [isFetched]);
 
-  // useEffect para carregar clientes e inventário apenas uma vez
   useEffect(() => {
     fetchClientes();
     fetchInventario();
-  }, [fetchClientes, fetchInventario]); // Assegura que `fetchClientes` e `fetchInventario` sejam chamadas apenas uma vez
+  }, [fetchClientes, fetchInventario]);
 
-  // Atualiza o valor a receber automaticamente ao alterar valor_total ou valor_pago_entrega
   useEffect(() => {
     setNovaLocacao((prev) => ({
       ...prev,
@@ -168,8 +167,8 @@ const RegisterFormContainer = () => {
       if (response.status === 201) {
         alert("Locação registrada com sucesso!");
 
-        // Recarregar inventário para atualizar quantidades após o registro
-        setIsFetched(false); // Redefine para permitir uma nova requisição de inventário
+        // Recarregar o inventário para atualizar as quantidades disponíveis
+        setIsFetched(false); // Permite que fetchInventario seja chamado novamente
         await fetchInventario();
 
         // Resetar o formulário
@@ -235,7 +234,6 @@ const RegisterFormContainer = () => {
       CATEGORIES={categorias}
       estoqueDisponivel={estoqueDisponivel}
       handleDiasCombinadosChange={handleDiasCombinadosChange}
-      fetchInventario={fetchInventario}
     />
   );
 };

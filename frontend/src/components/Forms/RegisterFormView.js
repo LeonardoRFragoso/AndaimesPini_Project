@@ -1,6 +1,6 @@
 // frontend/src/components/Forms/RegisterFormView.js
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Typography,
   Paper,
@@ -38,18 +38,12 @@ const RegisterFormView = ({
   addItem,
   CATEGORIES,
   estoqueDisponivel,
-  fetchInventario, // Certifique-se de que esta função atualiza o estoque do backend
   handleDiasCombinadosChange,
 }) => {
   const [itensAdicionados, setItensAdicionados] = useState([]);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    // Chama a função para atualizar o estoque sempre que o componente é montado
-    fetchInventario();
-  }, [fetchInventario]);
 
   const handleAddItem = (category, modelo, quantidade, unidade) => {
     addItem(category, modelo, quantidade, unidade);
@@ -70,7 +64,6 @@ const RegisterFormView = ({
     await handleSubmit(event);
     setConfirmDialogOpen(false);
     setItensAdicionados([]);
-    await fetchInventario(); // Atualiza o estoque após a submissão
     setIsLoading(false); // Fim do feedback de carregamento
   };
 
@@ -212,10 +205,10 @@ const RegisterFormView = ({
               fullWidth
               onClick={() => setConfirmDialogOpen(true)}
               sx={{ mt: 2, borderRadius: 3, padding: 1.5 }}
-              disabled={isLoading} // Desativa o botão durante o carregamento
+              disabled={isLoading}
             >
               {isLoading ? (
-                <CircularProgress size={24} color="inherit" /> // Indicador de carregamento
+                <CircularProgress size={24} color="inherit" />
               ) : (
                 "Registrar Locação"
               )}

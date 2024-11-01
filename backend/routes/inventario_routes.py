@@ -14,7 +14,7 @@ inventario_routes = Blueprint('inventario_routes', __name__)
 @inventario_routes.route('/', methods=['GET'])
 def get_inventario():
     """
-    Rota para listar todos os itens do inventário.
+    Rota para listar todos os itens do inventário com quantidades atualizadas.
     """
     try:
         inventario = Inventario.get_all()
@@ -46,7 +46,10 @@ def add_inventario():
 
         Inventario.create(nome_item, quantidade, tipo_item)
         logger.info(f"Item '{nome_item}' adicionado ao inventário com sucesso.")
-        return jsonify({"message": "Item adicionado ao inventário com sucesso!"}), 201
+        
+        # Retorne o inventário atualizado
+        inventario = Inventario.get_all()
+        return jsonify({"message": "Item adicionado ao inventário com sucesso!", "inventario": inventario}), 201
     except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
@@ -67,7 +70,10 @@ def update_item(item_id):
 
         Inventario.update_quantidade(item_id, nova_quantidade)
         logger.info(f"Quantidade do item ID {item_id} atualizada para {nova_quantidade}.")
-        return jsonify({"message": "Quantidade do item atualizada com sucesso!"}), 200
+        
+        # Retorne o inventário atualizado
+        inventario = Inventario.get_all()
+        return jsonify({"message": "Quantidade do item atualizada com sucesso!", "inventario": inventario}), 200
     except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
@@ -86,7 +92,10 @@ def delete_item(item_id):
 
         Inventario.delete_item(item_id)
         logger.info(f"Item ID {item_id} excluído com sucesso.")
-        return jsonify({"message": "Item excluído com sucesso!"}), 200
+        
+        # Retorne o inventário atualizado
+        inventario = Inventario.get_all()
+        return jsonify({"message": "Item excluído com sucesso!", "inventario": inventario}), 200
     except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
@@ -96,10 +105,10 @@ def delete_item(item_id):
 @inventario_routes.route('/disponiveis', methods=['GET'])
 def get_inventario_disponiveis():
     """
-    Rota para listar todos os itens disponíveis no inventário.
+    Rota para listar todos os itens disponíveis no inventário com quantidade atualizada.
     """
     try:
-        inventario_disponivel = Inventario.get_available()
+        inventario_disponivel = Inventario.get_available()  # Retorna `quantidade_disponivel`
         logger.info("Itens disponíveis no inventário listados com sucesso.")
         return jsonify(inventario_disponivel), 200
     except DatabaseError as e:
@@ -120,9 +129,21 @@ def retirar_estoque(item_id):
         if quantidade_retirada is None or quantidade_retirada <= 0:
             return jsonify({"error": "Quantidade de retirada é obrigatória e deve ser positiva!"}), 400
 
-        atualizar_estoque(item_id, quantidade_retirada)
-        logger.info(f"Quantidade retirada do estoque para item ID {item_id}: {quantidade_retirada}")
-        return jsonify({"message": "Quantidade retirada do estoque com sucesso!"}), 200
+        # Verifique a quantidade disponível antes de atualizar
+        item = Inventario.get_item_id_by_modelo(item_id)  # Certifique-se de que este método retorna o item correto
+        if item['quantidade_disponivel'] < quantidade_retirada:
+            return jsonify({"error": "Quantidade insuficiente para a retirada."}), 400
+
+        logger.info(f"Tentando retirar do estoque: Item ID {item_id}, Quantidade: {quantidade_retirada}")
+        sucesso = atualizar_estoque(item_id, quantidade_retirada)
+        if sucesso:
+            logger.info(f"Quantidade retirada do estoque para item ID {item_id}: {quantidade_retirada}")
+        else:
+            logger.error(f"Falha ao atualizar o estoque para o item ID {item_id}.")
+        
+        # Retorne o inventário atualizado
+        inventario = Inventario.get_all()
+        return jsonify({"message": "Quantidade retirada do estoque com sucesso!", "inventario": inventario}), 200
     except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:
@@ -143,7 +164,10 @@ def restaurar_estoque_route(item_id):
 
         restaurar_estoque(item_id, quantidade)
         logger.info(f"Quantidade restaurada ao estoque para item ID {item_id}: {quantidade}")
-        return jsonify({"message": "Quantidade restaurada ao estoque com sucesso!"}), 200
+        
+        # Retorne o inventário atualizado
+        inventario = Inventario.get_all()
+        return jsonify({"message": "Quantidade restaurada ao estoque com sucesso!", "inventario": inventario}), 200
     except DatabaseError as e:
         return handle_database_error(e)
     except Exception as ex:

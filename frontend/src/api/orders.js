@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Definição do URL base da API; ajuste conforme necessário.
-const API_URL = "http://127.0.0.1:5000"; // Substitua conforme necessário para produção
+const API_URL = "http://127.0.0.1:5000"; // Ajuste conforme necessário para produção
 
 /**
  * Busca todos os pedidos (locações) do backend.
@@ -46,9 +46,7 @@ export const updateOrderStatus = async (orderId, status) => {
   try {
     const response = await axios.patch(
       `${API_URL}/locacoes/${orderId}/status`,
-      {
-        status,
-      }
+      { status }
     );
     return response.data;
   } catch (error) {

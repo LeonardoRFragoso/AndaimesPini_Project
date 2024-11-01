@@ -11,6 +11,7 @@ import atexit  # Para garantir o fechamento do pool de conexões ao sair
 
 app = Flask(__name__)
 
+# Defina o ambiente: "development" ou "production"
 ENVIRONMENT = "development"  # Alterar para "production" em produção
 
 # Configuração do logger com base no ambiente
@@ -21,7 +22,11 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 # Configuração de CORS
-CORS(app, resources={r"/*": {"origins": "*"}})
+if ENVIRONMENT == "development":
+    CORS(app, resources={r"/*": {"origins": "*"}})
+else:
+    # Em produção, restrinja o CORS aos domínios necessários
+    CORS(app, resources={r"/*": {"origins": ["https://seu-dominio.com"]}})
 
 # Função para inicializar o banco de dados ao iniciar a aplicação
 def inicializar_banco():
@@ -39,7 +44,7 @@ def log_request_info():
         data = request.get_json(silent=True)
         logger.debug(f"Dados recebidos: {data}")
 
-# Configuração do after_request
+# Configuração do after_request para adicionar cabeçalhos de CORS
 @app.after_request
 def after_request(response):
     response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -72,6 +77,12 @@ if __name__ == "__main__":
     inicializar_banco()
     try:
         logger.info("Iniciando a aplicação Flask...")
-        app.run(debug=(ENVIRONMENT == "development"), host="0.0.0.0", port=5000)
+        # Iniciar o servidor com `use_reloader=False` para evitar reinicializações constantes
+        app.run(
+            debug=(ENVIRONMENT == "development"),
+            host="0.0.0.0",
+            port=5000,
+            use_reloader=False
+        )
     except Exception as e:
         logger.error(f"Erro ao iniciar a aplicação: {e}")

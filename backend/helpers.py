@@ -8,13 +8,21 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def atualizar_estoque(item_id, quantidade_retirada):
-    """
-    Atualiza a quantidade disponível de um item no estoque, subtraindo a quantidade retirada.
-    """
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        # Atualiza a quantidade disponível do item no estoque
+        # Log da quantidade disponível antes da atualização
+        cursor.execute('SELECT quantidade_disponivel FROM inventario WHERE id = %s', (item_id,))
+        quantidade_atual = cursor.fetchone()
+        
+        if quantidade_atual is None:
+            logger.error(f"Item ID {item_id} não encontrado.")
+            return False
+
+        quantidade_atual = quantidade_atual[0]
+        logger.info(f"Quantidade atual antes da atualização para o item ID {item_id}: {quantidade_atual}")
+
+        # Atualiza a quantidade disponível, garantindo que a coluna correta seja utilizada
         cursor.execute('''
             UPDATE inventario 
             SET quantidade_disponivel = quantidade_disponivel - %s 
@@ -22,21 +30,19 @@ def atualizar_estoque(item_id, quantidade_retirada):
         ''', (quantidade_retirada, item_id, quantidade_retirada))
         
         if cursor.rowcount == 0:
-            # Se nenhuma linha foi afetada, significa que a quantidade disponível era insuficiente
             raise ValueError("Quantidade insuficiente no estoque para o item solicitado.")
         
-        # Confirma a transação
         conn.commit()
         logger.info(f"Estoque atualizado para o item ID {item_id}, quantidade retirada: {quantidade_retirada}")
         return True
     except (psycopg2.Error, ValueError) as e:
-        # Rollback em caso de erro e log
         conn.rollback()
         logger.error(f"Erro ao atualizar o estoque: {e}")
         return False
     finally:
         cursor.close()
         release_connection(conn)
+
 
 def restaurar_estoque(item_id, quantidade):
     """

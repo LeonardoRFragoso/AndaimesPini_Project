@@ -2,16 +2,19 @@ import psycopg2
 from database import get_connection, release_connection
 from models.itens_locados import ItensLocados
 from models.cliente import Cliente
+from models.inventario import Inventario
 import logging
 from datetime import date
 from helpers import atualizar_estoque, restaurar_estoque  # Importações para manipulação do estoque
 
+# Configuração de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class Locacao:
     @staticmethod
     def create(cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status="ativo"):
-        """
-        Cria uma nova locação no banco de dados com um status inicial.
-        """
+        """Cria uma nova locação no banco de dados com um status inicial."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -22,23 +25,23 @@ class Locacao:
             ''', (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status))
             locacao_id = cursor.fetchone()[0]
             conn.commit()
-            logging.info(f"Locação criada com sucesso: ID {locacao_id}")
+            logger.info(f"Locação criada com sucesso: ID {locacao_id}")
 
             # Atualizar o estoque para cada item locado
             for item in ItensLocados.get_by_locacao(locacao_id):
                 item_id = item['item_id']
                 quantidade = item['quantidade']
                 # Subtrai a quantidade locada do estoque
-                estoque_atualizado = atualizar_estoque(item_id, quantidade)
-                if estoque_atualizado:
-                    logging.info(f"Estoque atualizado para o item ID {item_id}, quantidade retirada: {quantidade}")
-                else:
-                    logging.error(f"Falha ao atualizar o estoque para o item ID {item_id}")
+                try:
+                    Inventario.atualizar_estoque(item_id, quantidade)
+                    logger.info(f"Estoque atualizado para o item ID {item_id}, quantidade retirada: {quantidade}")
+                except ValueError as e:
+                    logger.error(f"Falha ao atualizar o estoque para o item ID {item_id}: {e}")
 
             return locacao_id
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao adicionar locação: {e}")
+            logger.error(f"Erro ao adicionar locação: {e}")
             return None
         finally:
             cursor.close()
@@ -46,9 +49,7 @@ class Locacao:
 
     @staticmethod
     def get_all_detailed():
-        """
-        Retorna todas as locações com detalhes do cliente e dos itens locados, incluindo o status.
-        """
+        """Retorna todas as locações com detalhes do cliente e dos itens locados, incluindo o status."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -82,10 +83,10 @@ class Locacao:
                     "itens": itens_locados
                 })
 
-            logging.info("Locações detalhadas obtidas com sucesso.")
+            logger.info("Locações detalhadas obtidas com sucesso.")
             return locacoes_completas
         except psycopg2.Error as e:
-            logging.error(f"Erro ao buscar locações detalhadas: {e}")
+            logger.error(f"Erro ao buscar locações detalhadas: {e}")
             return []
         finally:
             cursor.close()
@@ -93,9 +94,7 @@ class Locacao:
 
     @staticmethod
     def get_detailed_by_id(locacao_id):
-        """
-        Retorna os detalhes de uma locação específica pelo ID.
-        """
+        """Retorna os detalhes de uma locação específica pelo ID."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -128,10 +127,10 @@ class Locacao:
                 }
                 return locacao_detalhada
             else:
-                logging.warning(f"Locação ID {locacao_id} não encontrada.")
+                logger.warning(f"Locação ID {locacao_id} não encontrada.")
                 return None
         except psycopg2.Error as e:
-            logging.error(f"Erro ao buscar detalhes da locação ID {locacao_id}: {e}")
+            logger.error(f"Erro ao buscar detalhes da locação ID {locacao_id}: {e}")
             return None
         finally:
             cursor.close()
@@ -139,9 +138,7 @@ class Locacao:
 
     @staticmethod
     def get_active_locacoes():
-        """
-        Retorna todas as locações que ainda estão em vigor (data_fim >= data atual) e estão ativas.
-        """
+        """Retorna todas as locações que ainda estão em vigor (data_fim >= data atual) e estão ativas."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -171,10 +168,10 @@ class Locacao:
                     "itens": itens_locados
                 })
 
-            logging.info("Locações ativas obtidas com sucesso.")
+            logger.info("Locações ativas obtidas com sucesso.")
             return locacoes_ativas
         except psycopg2.Error as e:
-            logging.error(f"Erro ao buscar locações ativas: {e}")
+            logger.error(f"Erro ao buscar locações ativas: {e}")
             return []
         finally:
             cursor.close()
@@ -182,9 +179,7 @@ class Locacao:
 
     @staticmethod
     def get_locacoes_sem_devolucao():
-        """
-        Retorna todas as locações que já passaram da data de término, não possuem devolução registrada e estão pendentes.
-        """
+        """Retorna todas as locações que já passaram da data de término e estão pendentes."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -214,10 +209,10 @@ class Locacao:
                     "itens": itens_locados
                 })
 
-            logging.info("Locações com alertas obtidas com sucesso.")
+            logger.info("Locações com alertas obtidas com sucesso.")
             return locacoes_com_alertas
         except psycopg2.Error as e:
-            logging.error(f"Erro ao buscar locações com alertas: {e}")
+            logger.error(f"Erro ao buscar locações com alertas: {e}")
             return []
         finally:
             cursor.close()
@@ -225,9 +220,7 @@ class Locacao:
 
     @staticmethod
     def extend(locacao_id, dias_adicionais, novo_valor_total, abatimento=0):
-        """
-        Prorroga a data de término de uma locação específica, atualiza o valor total e registra abatimento.
-        """
+        """Prorroga a data de término de uma locação, atualiza o valor total e registra abatimento."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -241,13 +234,13 @@ class Locacao:
             conn.commit()
             sucesso = cursor.rowcount > 0
             if sucesso:
-                logging.info(f"Locação ID {locacao_id} prorrogada, valor atualizado para {novo_valor_total}, com abatimento de {abatimento}.")
+                logger.info(f"Locação ID {locacao_id} prorrogada, valor atualizado para {novo_valor_total}, com abatimento de {abatimento}.")
             else:
-                logging.warning(f"Locação ID {locacao_id} não encontrada para prorrogação.")
+                logger.warning(f"Locação ID {locacao_id} não encontrada para prorrogação.")
             return sucesso
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao prorrogar locação e atualizar valor: {e}")
+            logger.error(f"Erro ao prorrogar locação e atualizar valor: {e}")
             return False
         finally:
             cursor.close()
@@ -255,9 +248,7 @@ class Locacao:
 
     @staticmethod
     def finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final):
-        """
-        Finaliza a locação antecipadamente, atualizando a data final e o valor total no banco de dados.
-        """
+        """Finaliza a locação antecipadamente, atualizando a data final e o valor total no banco de dados."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -271,13 +262,13 @@ class Locacao:
             conn.commit()
             sucesso = cursor.rowcount > 0
             if sucesso:
-                logging.info(f"Locação ID {locacao_id} finalizada antecipadamente. Nova data final: {nova_data_fim}, Novo valor final: {novo_valor_final}.")
+                logger.info(f"Locação ID {locacao_id} finalizada antecipadamente. Nova data final: {nova_data_fim}, Novo valor final: {novo_valor_final}.")
             else:
-                logging.warning(f"Locação ID {locacao_id} não encontrada para finalização antecipada.")
+                logger.warning(f"Locação ID {locacao_id} não encontrada para finalização antecipada.")
             return sucesso
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao finalizar antecipadamente a locação: {e}")
+            logger.error(f"Erro ao finalizar antecipadamente a locação: {e}")
             return False
         finally:
             cursor.close()
@@ -285,9 +276,7 @@ class Locacao:
 
     @staticmethod
     def update_status(locacao_id, status):
-        """
-        Atualiza o status de uma locação específica no banco de dados.
-        """
+        """Atualiza o status de uma locação específica no banco de dados."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -300,14 +289,14 @@ class Locacao:
             conn.commit()
             sucesso = cursor.rowcount > 0
             if sucesso:
-                logging.info(f"Status da locação ID {locacao_id} atualizado para {status}.")
+                logger.info(f"Status da locação ID {locacao_id} atualizado para {status}.")
             else:
-                logging.warning(f"Locação ID {locacao_id} não encontrada para atualização de status.")
+                logger.warning(f"Locação ID {locacao_id} não encontrada para atualização de status.")
             
             return sucesso
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao atualizar status da locação: {e}")
+            logger.error(f"Erro ao atualizar status da locação: {e}")
             return False
         finally:
             cursor.close()
@@ -315,37 +304,30 @@ class Locacao:
 
     @staticmethod
     def atualizar_estoque_devolucao(locacao_id):
-        """
-        Restaura o estoque dos itens locados de uma locação específica ao confirmar a devolução.
-        """
+        """Restaura o estoque dos itens locados de uma locação específica ao confirmar a devolução."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            # Obtenha todos os itens locados para a locação fornecida
             itens_locados = ItensLocados.get_by_locacao(locacao_id)
             itens_ignorados = 0
-            itens_atualizados = 0  # Contador para itens processados com sucesso
+            itens_atualizados = 0
 
             for item in itens_locados:
-                # Validação completa dos dados de cada item
                 item_id = item.get('item_id')
                 quantidade = item.get('quantidade')
                 data_devolucao = item.get('data_devolucao')
 
-                # Verificar se o item já foi devolvido ou se os dados estão incompletos
                 if item_id is None or quantidade is None or data_devolucao is not None:
                     itens_ignorados += 1
-                    logging.warning(f"Item com dados incompletos ou já devolvido ao confirmar devolução para locação ID {locacao_id}: {item}")
+                    logger.warning(f"Item com dados incompletos ou já devolvido ao confirmar devolução para locação ID {locacao_id}: {item}")
                     continue
 
-                # Restaurar o estoque para cada item locado
                 estoque_restaurado = restaurar_estoque(item_id, quantidade)
                 if estoque_restaurado:
-                    logging.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
+                    logger.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
                 else:
-                    logging.error(f"Falha ao restaurar o estoque para o item ID {item_id}")
+                    logger.error(f"Falha ao restaurar o estoque para o item ID {item_id}")
 
-                # Atualizar a data de devolução no item locado
                 cursor.execute('''
                     UPDATE itens_locados
                     SET data_devolucao = %s
@@ -353,30 +335,23 @@ class Locacao:
                 ''', (date.today(), locacao_id, item_id))
                 itens_atualizados += 1
 
-            # Commit das alterações de data_devolucao para os itens
             conn.commit()
-
-            # Log de resumo
-            logging.info(f"{itens_atualizados} itens atualizados e estoque restaurado para a locação ID {locacao_id}.")
+            logger.info(f"{itens_atualizados} itens atualizados e estoque restaurado para a locação ID {locacao_id}.")
             if itens_ignorados > 0:
-                logging.warning(f"{itens_ignorados} itens com dados incompletos ou já devolvidos foram ignorados ao confirmar devolução para locação ID {locacao_id}.")
+                logger.warning(f"{itens_ignorados} itens com dados incompletos ou já devolvidos foram ignorados ao confirmar devolução para locação ID {locacao_id}.")
 
             return True
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao restaurar estoque para locação ID {locacao_id}: {e}")
+            logger.error(f"Erro ao restaurar estoque para locação ID {locacao_id}: {e}")
             return False
         finally:
             cursor.close()
             release_connection(conn)
 
-
-
     @staticmethod
     def atualizar_estoque_reducao(locacao_id):
-        """
-        Reduz o estoque dos itens locados de uma locação específica ao reativar a locação.
-        """
+        """Reduz o estoque dos itens locados de uma locação específica ao reativar a locação."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -385,11 +360,11 @@ class Locacao:
                 item_id = item['item_id']
                 quantidade = item['quantidade']
                 atualizar_estoque(item_id, quantidade)
-                logging.info(f"Estoque atualizado para o item ID {item_id}, quantidade: -{quantidade}")
+                logger.info(f"Estoque atualizado para o item ID {item_id}, quantidade: -{quantidade}")
             return True
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao reduzir estoque para locação ID {locacao_id}: {e}")
+            logger.error(f"Erro ao reduzir estoque para locação ID {locacao_id}: {e}")
             return False
         finally:
             cursor.close()

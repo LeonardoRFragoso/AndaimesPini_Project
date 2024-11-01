@@ -2,6 +2,10 @@ import psycopg2
 from database import get_connection, release_connection
 import logging
 
+# Configuração de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class Cliente:
     @staticmethod
     def create(nome, endereco, telefone, referencia):
@@ -18,11 +22,11 @@ class Cliente:
             ''', (nome, endereco, telefone, referencia))
             cliente_id = cursor.fetchone()[0]
             conn.commit()
-            logging.info(f"Cliente criado com sucesso: ID {cliente_id}")
+            logger.info(f"Cliente criado com sucesso: ID {cliente_id}")
             return cliente_id
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao adicionar cliente: {e}")
+            logger.error(f"Erro ao adicionar cliente: {e}")
             return None
         finally:
             cursor.close()
@@ -36,7 +40,7 @@ class Cliente:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            logging.info("Executando consulta para buscar todos os clientes.")
+            logger.info("Executando consulta para buscar todos os clientes.")
             cursor.execute('SELECT id, nome, endereco, telefone, referencia FROM clientes')
             clientes = cursor.fetchall()
             clientes_list = [
@@ -49,10 +53,10 @@ class Cliente:
                 }
                 for cliente in clientes
             ]
-            logging.info(f"Lista formatada de clientes: {clientes_list}")
+            logger.info(f"Lista formatada de clientes obtida com sucesso.")
             return clientes_list
         except psycopg2.Error as e:
-            logging.error(f"Erro ao buscar clientes no banco de dados: {e}")
+            logger.error(f"Erro ao buscar clientes no banco de dados: {e}")
             return []
         finally:
             cursor.close()
@@ -69,6 +73,7 @@ class Cliente:
             cursor.execute('SELECT id, nome, endereco, telefone, referencia FROM clientes WHERE id = %s', (cliente_id,))
             cliente = cursor.fetchone()
             if cliente:
+                logger.info(f"Cliente encontrado: ID {cliente_id}")
                 return {
                     "id": cliente[0],
                     "nome": cliente[1],
@@ -77,9 +82,10 @@ class Cliente:
                     "referencia": cliente[4]
                 }
             else:
+                logger.warning(f"Cliente ID {cliente_id} não encontrado.")
                 return None
         except psycopg2.Error as e:
-            logging.error(f"Erro ao buscar cliente por ID: {e}")
+            logger.error(f"Erro ao buscar cliente por ID: {e}")
             return None
         finally:
             cursor.close()
@@ -100,13 +106,13 @@ class Cliente:
             conn.commit()
             updated = cursor.rowcount > 0  # Retorna True se o cliente foi atualizado
             if updated:
-                logging.info(f"Cliente ID {cliente_id} atualizado com sucesso.")
+                logger.info(f"Cliente ID {cliente_id} atualizado com sucesso.")
             else:
-                logging.warning(f"Cliente ID {cliente_id} não encontrado para atualização.")
+                logger.warning(f"Cliente ID {cliente_id} não encontrado para atualização.")
             return updated
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao atualizar cliente: {e}")
+            logger.error(f"Erro ao atualizar cliente: {e}")
             return False
         finally:
             cursor.close()
@@ -124,13 +130,13 @@ class Cliente:
             conn.commit()
             deleted = cursor.rowcount > 0  # Retorna True se o cliente foi excluído
             if deleted:
-                logging.info(f"Cliente ID {cliente_id} excluído com sucesso.")
+                logger.info(f"Cliente ID {cliente_id} excluído com sucesso.")
             else:
-                logging.warning(f"Cliente ID {cliente_id} não encontrado para exclusão.")
+                logger.warning(f"Cliente ID {cliente_id} não encontrado para exclusão.")
             return deleted
         except psycopg2.Error as e:
             conn.rollback()
-            logging.error(f"Erro ao excluir cliente: {e}")
+            logger.error(f"Erro ao excluir cliente: {e}")
             return False
         finally:
             cursor.close()
@@ -144,7 +150,7 @@ class Cliente:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            logging.info(f"Buscando pedidos detalhados para o cliente ID {cliente_id}.")
+            logger.info(f"Buscando pedidos detalhados para o cliente ID {cliente_id}.")
             cursor.execute('''
                 SELECT 
                     c.id AS cliente_id,
@@ -179,10 +185,10 @@ class Cliente:
                 }
                 for pedido in pedidos
             ]
-            logging.info(f"Pedidos detalhados para o cliente ID {cliente_id}: {pedidos_list}")
+            logger.info(f"Pedidos detalhados obtidos para o cliente ID {cliente_id}.")
             return pedidos_list
         except psycopg2.Error as e:
-            logging.error(f"Erro ao buscar pedidos do cliente {cliente_id}: {e}")
+            logger.error(f"Erro ao buscar pedidos do cliente {cliente_id}: {e}")
             return []
         finally:
             cursor.close()

@@ -13,10 +13,10 @@ class Inventario:
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT INTO inventario (nome_item, quantidade, tipo_item)
-                VALUES (%s, %s, %s)
+                INSERT INTO inventario (nome_item, quantidade, quantidade_disponivel, tipo_item)
+                VALUES (%s, %s, %s, %s)
                 RETURNING id
-            ''', (nome_item, quantidade, tipo_item))
+            ''', (nome_item, quantidade, quantidade, tipo_item))
             item_id = cursor.fetchone()[0]
             conn.commit()
             logger.info(f"Item '{nome_item}' adicionado ao inventário com quantidade {quantidade} e tipo '{tipo_item}'.")
@@ -34,10 +34,10 @@ class Inventario:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute('SELECT id, nome_item, quantidade, tipo_item FROM inventario')
+            cursor.execute('SELECT id, nome_item, quantidade, quantidade_disponivel, tipo_item FROM inventario')
             inventario = cursor.fetchall()
             logger.info("Itens do inventário listados com sucesso.")
-            return [{"id": item[0], "nome_item": item[1], "quantidade": item[2], "tipo_item": item[3]} for item in inventario]
+            return [{"id": item[0], "nome_item": item[1], "quantidade": item[2], "quantidade_disponivel": item[3], "tipo_item": item[4]} for item in inventario]
         except psycopg2.Error as e:
             logger.error(f"Erro ao buscar inventário: {e}")
             return []
@@ -50,11 +50,11 @@ class Inventario:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            logger.info("Executando Inventario.get_available")  # Log para monitorar chamadas
-            cursor.execute('SELECT id, nome_item, quantidade, tipo_item FROM inventario WHERE quantidade > 0')
+            logger.info("Executando Inventario.get_available")
+            cursor.execute('SELECT id, nome_item, quantidade_disponivel, tipo_item FROM inventario WHERE quantidade_disponivel > 0')
             inventario_disponivel = cursor.fetchall()
             logger.info(f"Itens disponíveis no inventário listados com sucesso. Total de itens disponíveis: {len(inventario_disponivel)}")
-            return [{"id": item[0], "nome_item": item[1], "quantidade": item[2], "tipo_item": item[3]} for item in inventario_disponivel]
+            return [{"id": item[0], "nome_item": item[1], "quantidade_disponivel": item[2], "tipo_item": item[3]} for item in inventario_disponivel]
         except psycopg2.Error as e:
             logger.error(f"Erro ao buscar inventário disponível: {e}")
             return []
@@ -63,15 +63,67 @@ class Inventario:
             release_connection(conn)
 
     @staticmethod
-    def update_quantidade(item_id, nova_quantidade):
+    def atualizar_estoque(item_id, quantidade_retirada):
+        """Atualiza a quantidade disponível de um item no inventário, verificando o estoque suficiente."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                UPDATE inventario SET quantidade = %s WHERE id = %s
+                UPDATE inventario 
+                SET quantidade_disponivel = quantidade_disponivel - %s 
+                WHERE id = %s AND quantidade_disponivel >= %s
+            ''', (quantidade_retirada, item_id, quantidade_retirada))
+
+            if cursor.rowcount == 0:
+                logger.warning(f"Quantidade insuficiente no estoque para item ID {item_id}.")
+                raise ValueError("Estoque insuficiente")
+            
+            conn.commit()
+            logger.info(f"Estoque do item ID {item_id} atualizado, quantidade retirada: {quantidade_retirada}.")
+        except psycopg2.Error as e:
+            conn.rollback()
+            logger.error(f"Erro ao atualizar estoque: {e}")
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def restaurar_estoque(item_id, quantidade_reposta):
+        """Restaura a quantidade disponível de um item no inventário."""
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE inventario 
+                SET quantidade_disponivel = quantidade_disponivel + %s 
+                WHERE id = %s
+            ''', (quantidade_reposta, item_id))
+            
+            if cursor.rowcount == 0:
+                logger.warning(f"Item ID {item_id} não encontrado para restauração de estoque.")
+            
+            conn.commit()
+            logger.info(f"Estoque do item ID {item_id} restaurado, quantidade reposta: {quantidade_reposta}.")
+        except psycopg2.Error as e:
+            conn.rollback()
+            logger.error(f"Erro ao restaurar estoque: {e}")
+        finally:
+            cursor.close()
+            release_connection(conn)
+
+    @staticmethod
+    def update_quantidade(item_id, nova_quantidade):
+        """Atualiza a quantidade total de um item no inventário, sem alterar a quantidade disponível."""
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE inventario 
+                SET quantidade = %s 
+                WHERE id = %s
             ''', (nova_quantidade, item_id))
             conn.commit()
-            logger.info(f"Quantidade do item ID {item_id} atualizada para {nova_quantidade}.")
+            logger.info(f"Quantidade total do item ID {item_id} atualizada para {nova_quantidade}.")
         except psycopg2.Error as e:
             conn.rollback()
             logger.error(f"Erro ao atualizar quantidade do item no inventário: {e}")
@@ -80,7 +132,15 @@ class Inventario:
             release_connection(conn)
 
     @staticmethod
+    def reduce_quantity(item_id, quantidade_reduzida):
+        """Reduz a quantidade disponível de um item no inventário chamando a função atualizar_estoque."""
+        logger.info(f"Reduzindo a quantidade do item ID {item_id} em {quantidade_reduzida}.")
+        Inventario.atualizar_estoque(item_id, quantidade_reduzida)
+        logger.info(f"Quantidade do item ID {item_id} reduzida com sucesso.")
+
+    @staticmethod
     def get_item_id_by_modelo(modelo_item):
+        """Obtém o ID do item com base no nome/modelo do item."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -101,6 +161,7 @@ class Inventario:
 
     @staticmethod
     def delete_item(item_id):
+        """Exclui um item do inventário com base no ID."""
         conn = get_connection()
         cursor = conn.cursor()
         try:

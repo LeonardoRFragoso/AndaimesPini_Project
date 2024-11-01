@@ -147,17 +147,24 @@ def add_locacao():
                 logging.warning(f"Item não encontrado no inventário: {modelo_item}")
                 return jsonify({"error": f"Item não encontrado no inventário: {modelo_item}"}), 400
 
-            # Adicionar item à locação e atualizar o estoque
+            # Adicionar item à locação
             ItensLocados.add_item(locacao_id, item_id, quantidade)
-            estoque_atualizado = atualizar_estoque(item_id, quantidade)
-            if not estoque_atualizado:
-                logging.error(f"Erro ao atualizar estoque para o item ID {item_id}.")
-                return jsonify({"error": f"Erro ao atualizar estoque para o item ID {item_id}"}), 500
+            
+            # Atualizar o estoque usando a função correta
+            try:
+                Inventario.atualizar_estoque(item_id, quantidade)  # Altera para a função correta
+                logging.info(f"Estoque reduzido para o item {modelo_item}, quantidade: {quantidade}")
+            except ValueError as e:
+                logging.error(f"Estoque insuficiente para o item {modelo_item}. Quantidade solicitada: {quantidade}")
+                return jsonify({"error": f"Estoque insuficiente para o item {modelo_item}"}), 400
+            except Exception as ex:
+                logging.error(f"Erro ao atualizar estoque para o item {modelo_item}: {ex}")
+                return jsonify({"error": f"Erro ao atualizar estoque para o item {modelo_item}"}), 500
 
-            logging.info(f"Item {modelo_item} adicionado à locação ID {locacao_id} e estoque atualizado.")
-
+        # Retorne o inventário atualizado
+        inventario = Inventario.get_all()
         logging.info("Locação adicionada com sucesso!")
-        return jsonify({"message": "Locação adicionada com sucesso!"}), 201
+        return jsonify({"message": "Locação adicionada com sucesso!", "inventario": inventario}), 201
 
     except psycopg2.Error as e:
         return handle_database_error(e)
@@ -184,8 +191,10 @@ def confirmar_devolucao(locacao_id):
         if not devolucao_confirmada:
             return jsonify({"error": "Erro ao confirmar devolução e atualizar estoque."}), 500
 
+        # Retorne o inventário atualizado
+        inventario = Inventario.get_all()
         logging.info(f"Devolução confirmada e estoque atualizado para a locação ID {locacao_id}.")
-        return jsonify({"message": "Devolução confirmada e estoque atualizado!"}), 200
+        return jsonify({"message": "Devolução confirmada e estoque atualizado!", "inventario": inventario}), 200
 
     except psycopg2.Error as e:
         logging.error(f"Erro no banco de dados ao confirmar devolução para locação ID {locacao_id}: {e}")
@@ -230,8 +239,10 @@ def reativar_locacao(locacao_id):
         if itens_com_dados_incompletos > 0:
             logging.warning(f"{itens_com_dados_incompletos} itens com dados incompletos foram ignorados ao reativar locação ID {locacao_id}.")
 
+        # Retorne o inventário atualizado
+        inventario = Inventario.get_all()
         logging.info(f"Locação ID {locacao_id} reativada e estoque ajustado.")
-        return jsonify({"message": "Locação reativada e estoque ajustado!"}), 200
+        return jsonify({"message": "Locação reativada e estoque ajustado!", "inventario": inventario}), 200
 
     except psycopg2.Error as e:
         logging.error(f"Erro no banco de dados ao reativar locação ID {locacao_id}: {e}")
@@ -239,7 +250,6 @@ def reativar_locacao(locacao_id):
     except Exception as ex:
         logging.error(f"Erro inesperado ao reativar locação ID {locacao_id}: {ex}")
         return jsonify({"error": "Erro ao reativar locação."}), 500
-
 
 @locacoes_routes.route('/<int:locacao_id>/prorrogacao', methods=['PUT'])
 def prorrogar_locacao(locacao_id):
