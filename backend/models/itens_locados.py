@@ -30,28 +30,30 @@ class ItensLocados:
             release_connection(conn)
 
     @staticmethod
-    def mark_as_returned(locacao_id, item_id=None):
+    def mark_as_returned(locacao_id, item_id=None, data_devolucao=None):
         """
         Marca um ou todos os itens de uma locação como devolvidos.
         - Se item_id for None, marca todos os itens da locação como devolvidos.
+        - Se data_devolucao for None, usa a data atual.
         """
         conn = get_connection()
         cursor = conn.cursor()
+        data_devolucao = data_devolucao or date.today()  # Define data_devolucao como a data atual se não for fornecida
         try:
             if item_id:
                 cursor.execute('''
                     UPDATE itens_locados
                     SET data_devolucao = %s
                     WHERE locacao_id = %s AND item_id = %s AND data_devolucao IS NULL
-                ''', (date.today(), locacao_id, item_id))
-                logger.info(f"Item ID {item_id} marcado como devolvido na locação ID {locacao_id}.")
+                ''', (data_devolucao, locacao_id, item_id))
+                logger.info(f"Item ID {item_id} marcado como devolvido na locação ID {locacao_id}. Data de devolução: {data_devolucao}.")
             else:
                 cursor.execute('''
                     UPDATE itens_locados
                     SET data_devolucao = %s
                     WHERE locacao_id = %s AND data_devolucao IS NULL
-                ''', (date.today(), locacao_id))
-                logger.info(f"Todos os itens da locação ID {locacao_id} foram marcados como devolvidos.")
+                ''', (data_devolucao, locacao_id))
+                logger.info(f"Todos os itens da locação ID {locacao_id} foram marcados como devolvidos. Data de devolução: {data_devolucao}.")
             conn.commit()
         except psycopg2.Error as e:
             conn.rollback()

@@ -292,9 +292,27 @@ def finalizar_antecipadamente(locacao_id):
         if not nova_data_fim or novo_valor_final is None:
             return jsonify({"error": "Nova data de término e novo valor final são obrigatórios!"}), 400
 
+        # Atualizar a data de término e o valor final na tabela de locações
         resultado = Locacao.finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final)
 
+        # Se a locação foi atualizada com sucesso, prossiga com a devolução dos itens
         if resultado:
+            # Obter todos os itens associados à locação
+            itens_locados = ItensLocados.get_by_locacao(locacao_id)
+
+            for item in itens_locados:
+                item_id = item["item_id"]
+                quantidade = item["quantidade"]
+
+                # Restaurar o estoque no inventário
+                restaurar_estoque(item_id, quantidade)
+
+                # Marcar o item como devolvido na tabela itens_locados
+                ItensLocados.mark_as_returned(locacao_id, item_id)
+
+            # Atualizar o status da locação para 'concluído'
+            Locacao.update_status(locacao_id, "concluído")
+
             logging.info(f"Locação ID {locacao_id} finalizada antecipadamente com sucesso.")
             return jsonify({"message": "Locação finalizada antecipadamente com sucesso!"}), 200
         else:

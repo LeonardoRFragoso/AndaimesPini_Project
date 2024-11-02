@@ -78,10 +78,22 @@ def handle_database_error(error):
     logger.error(f"Erro no banco de dados: {error}")
     return jsonify({"error": "Erro no banco de dados"}), 500
 
+def validate_table_name(table_name):
+    """Valida o nome da tabela para prevenir injeção de SQL."""
+    valid_tables = ['inventario', 'locacoes', 'clientes', 'itens_locados', 'registro_danos']  # Exemplo de tabelas permitidas
+    if table_name in valid_tables:
+        return table_name
+
 def get_record_by_id(table, record_id):
     """
     Função auxiliar para buscar um registro específico em uma tabela pelo ID.
     """
+    try:
+        table = validate_table_name(table)  # Validação de nome de tabela
+    except ValueError as e:
+        logger.error(e)
+        return None
+
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -99,6 +111,12 @@ def delete_record(table, record_id):
     """
     Função auxiliar para excluir um registro em uma tabela pelo ID.
     """
+    try:
+        table = validate_table_name(table)  # Validação de nome de tabela
+    except ValueError as e:
+        logger.error(e)
+        return False
+
     conn = get_connection()
     cursor = conn.cursor()
     try:

@@ -87,6 +87,8 @@ const OrdersListView = () => {
     setSelectedOrder({ ...order, action });
     if (action === "extend") {
       setExtendDialogOpen(true);
+    } else if (action === "early") {
+      setAlertOpen(true); // Abre o diálogo de confirmação
     } else {
       setAlertOpen(true);
     }
@@ -97,7 +99,12 @@ const OrdersListView = () => {
       if (selectedOrder.action === "return") {
         await handleConfirmReturn(selectedOrder.id);
       } else if (selectedOrder.action === "early") {
-        await handleCompleteOrderEarly(selectedOrder.id);
+        // Passa nova data de fim e valor final como parâmetros
+        await handleCompleteOrderEarly(
+          selectedOrder.id,
+          selectedOrder.data_fim,
+          selectedOrder.valor_total
+        );
       } else if (selectedOrder.action === "reactivate") {
         await handleReactivateOrder(selectedOrder.id);
       }
@@ -136,10 +143,15 @@ const OrdersListView = () => {
     }
   };
 
-  const handleCompleteOrderEarly = async (orderId) => {
+  const handleCompleteOrderEarly = async (
+    orderId,
+    novaDataFim,
+    novoValorFinal
+  ) => {
     try {
-      await completeOrderEarly(orderId);
-      loadOrders();
+      await completeOrderEarly(orderId, novaDataFim, novoValorFinal);
+      setSnackbarMessage("Pedido concluído antecipadamente com sucesso!");
+      loadOrders(); // Recarrega os pedidos para atualizar o status
     } catch (error) {
       console.error("Erro ao completar pedido antecipadamente:", error);
       throw error;

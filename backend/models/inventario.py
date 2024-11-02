@@ -80,9 +80,11 @@ class Inventario:
             
             conn.commit()
             logger.info(f"Estoque do item ID {item_id} atualizado, quantidade retirada: {quantidade_retirada}.")
-        except psycopg2.Error as e:
+            return True
+        except (psycopg2.Error, ValueError) as e:
             conn.rollback()
             logger.error(f"Erro ao atualizar estoque: {e}")
+            return False
         finally:
             cursor.close()
             release_connection(conn)
@@ -101,12 +103,15 @@ class Inventario:
             
             if cursor.rowcount == 0:
                 logger.warning(f"Item ID {item_id} não encontrado para restauração de estoque.")
+                return False  # Retorna False se o item não foi encontrado
             
             conn.commit()
             logger.info(f"Estoque do item ID {item_id} restaurado, quantidade reposta: {quantidade_reposta}.")
+            return True
         except psycopg2.Error as e:
             conn.rollback()
             logger.error(f"Erro ao restaurar estoque: {e}")
+            return False
         finally:
             cursor.close()
             release_connection(conn)
@@ -124,9 +129,11 @@ class Inventario:
             ''', (nova_quantidade, item_id))
             conn.commit()
             logger.info(f"Quantidade total do item ID {item_id} atualizada para {nova_quantidade}.")
+            return True
         except psycopg2.Error as e:
             conn.rollback()
             logger.error(f"Erro ao atualizar quantidade do item no inventário: {e}")
+            return False
         finally:
             cursor.close()
             release_connection(conn)
@@ -135,8 +142,7 @@ class Inventario:
     def reduce_quantity(item_id, quantidade_reduzida):
         """Reduz a quantidade disponível de um item no inventário chamando a função atualizar_estoque."""
         logger.info(f"Reduzindo a quantidade do item ID {item_id} em {quantidade_reduzida}.")
-        Inventario.atualizar_estoque(item_id, quantidade_reduzida)
-        logger.info(f"Quantidade do item ID {item_id} reduzida com sucesso.")
+        return Inventario.atualizar_estoque(item_id, quantidade_reduzida)
 
     @staticmethod
     def get_item_id_by_modelo(modelo_item):
