@@ -91,10 +91,22 @@ class Inventario:
 
     @staticmethod
     def restaurar_estoque(item_id, quantidade_reposta):
-        """Restaura a quantidade disponível de um item no inventário."""
+        """Restaura a quantidade disponível de um item no inventário, evitando duplicações."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
+            # Verifica se o item já foi restaurado
+            cursor.execute('''
+                SELECT quantidade_disponivel FROM inventario 
+                WHERE id = %s AND quantidade_disponivel >= quantidade
+            ''', (item_id,))
+            
+            # Se o estoque já está restaurado (quantidade disponível >= quantidade original), não incrementa novamente
+            if cursor.fetchone() is not None:
+                logger.warning(f"Item ID {item_id} já está com estoque restaurado. Ação ignorada.")
+                return False  # Evita restauração duplicada
+
+            # Realiza a restauração do estoque
             cursor.execute('''
                 UPDATE inventario 
                 SET quantidade_disponivel = quantidade_disponivel + %s 

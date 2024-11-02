@@ -25,7 +25,7 @@ import {
   updateOrderStatus,
   extendOrder,
   completeOrderEarly,
-  reactivateOrder, // Importa função de reativação do pedido
+  reactivateOrder,
 } from "../../api/orders";
 
 const OrdersListView = () => {
@@ -99,7 +99,6 @@ const OrdersListView = () => {
       if (selectedOrder.action === "return") {
         await handleConfirmReturn(selectedOrder.id);
       } else if (selectedOrder.action === "early") {
-        // Passa nova data de fim e valor final como parâmetros
         await handleCompleteOrderEarly(
           selectedOrder.id,
           selectedOrder.data_fim,
@@ -115,7 +114,6 @@ const OrdersListView = () => {
     } finally {
       setSnackbarOpen(true);
       setAlertOpen(false);
-      loadOrders();
     }
   };
 
@@ -149,11 +147,27 @@ const OrdersListView = () => {
     novoValorFinal
   ) => {
     try {
-      await completeOrderEarly(orderId, novaDataFim, novoValorFinal);
+      // Realiza a chamada API e recebe o pedido atualizado
+      const response = await completeOrderEarly(
+        orderId,
+        novaDataFim,
+        novoValorFinal
+      );
+      const updatedOrder = response.locacao;
+
+      // Atualiza o estado apenas do pedido modificado em vez de recarregar todos
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === orderId ? { ...order, ...updatedOrder } : order
+        )
+      );
+
+      // Atualiza a lista filtrada também
+      filterOrders(filter, orders);
       setSnackbarMessage("Pedido concluído antecipadamente com sucesso!");
-      loadOrders(); // Recarrega os pedidos para atualizar o status
     } catch (error) {
       console.error("Erro ao completar pedido antecipadamente:", error);
+      setSnackbarMessage("Erro ao completar pedido antecipadamente.");
       throw error;
     }
   };

@@ -5,7 +5,7 @@ from models.cliente import Cliente
 from models.inventario import Inventario
 import logging
 from datetime import date
-from helpers import atualizar_estoque, restaurar_estoque  # Importações para manipulação do estoque
+from helpers import atualizar_estoque, restaurar_estoque
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -254,7 +254,7 @@ class Locacao:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            # Atualizar data de término, valor e status da locação
+            # Atualiza a data de término e o valor total
             cursor.execute('''
                 UPDATE locacoes
                 SET data_fim = %s,
@@ -264,29 +264,29 @@ class Locacao:
             ''', (nova_data_fim, novo_valor_final, locacao_id))
             conn.commit()
 
-            # Verificar se a atualização foi bem-sucedida
             sucesso = cursor.rowcount > 0
             if not sucesso:
                 logger.warning(f"Locação ID {locacao_id} não encontrada para finalização antecipada.")
                 return False
 
-            # Restaurar o estoque e marcar a data de devolução para cada item da locação
+            # Restaurar o estoque dos itens devolvidos
             itens_locados = ItensLocados.get_by_locacao(locacao_id)
             for item in itens_locados:
                 item_id = item["item_id"]
                 quantidade = item["quantidade"]
 
-                # Verificar se o item já foi devolvido para evitar duplicação
-                if item["data_devolucao"] is None:  # Apenas processa itens sem data de devolução
-                    # Restaurar o estoque no inventário
+                # Verifica se o item já foi devolvido para evitar duplicação
+                if item["data_devolucao"] is None:
                     estoque_restaurado = restaurar_estoque(item_id, quantidade)
                     if estoque_restaurado:
                         logger.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
                     else:
                         logger.error(f"Falha ao restaurar o estoque para o item ID {item_id}")
 
-                    # Marcar o item como devolvido na tabela itens_locados com a data da devolução antecipada
+                    # Marca o item como devolvido após restaurar o estoque
                     ItensLocados.mark_as_returned(locacao_id, item_id, data_devolucao=nova_data_fim)
+                else:
+                    logger.info(f"Item ID {item_id} já devolvido previamente; nenhuma atualização de estoque necessária.")
 
             logger.info(f"Locação ID {locacao_id} finalizada antecipadamente. Nova data final: {nova_data_fim}, Novo valor final: {novo_valor_final}.")
             return True
@@ -297,6 +297,7 @@ class Locacao:
         finally:
             cursor.close()
             release_connection(conn)
+
 
     @staticmethod
     def update_status(locacao_id, status):
@@ -341,17 +342,15 @@ class Locacao:
 
                 if item_id is None or quantidade is None or data_devolucao is not None:
                     itens_ignorados += 1
-                    logger.warning(f"Item com dados incompletos ou já devolvido ao confirmar devolução para locação ID {locacao_id}: {item}")
+                    logger.warning(f"Item já devolvido ou com dados incompletos ao confirmar devolução para locação ID {locacao_id}: {item}")
                     continue
 
-                # Restaurar o estoque para o item devolvido
                 estoque_restaurado = restaurar_estoque(item_id, quantidade)
                 if estoque_restaurado:
                     logger.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
                 else:
                     logger.error(f"Falha ao restaurar o estoque para o item ID {item_id}")
 
-                # Marcar o item como devolvido na tabela itens_locados com a data atual
                 cursor.execute('''
                     UPDATE itens_locados
                     SET data_devolucao = %s
@@ -362,33 +361,12 @@ class Locacao:
             conn.commit()
             logger.info(f"{itens_atualizados} itens atualizados e estoque restaurado para a locação ID {locacao_id}.")
             if itens_ignorados > 0:
-                logger.warning(f"{itens_ignorados} itens com dados incompletos ou já devolvidos foram ignorados ao confirmar devolução para locação ID {locacao_id}.")
+                logger.warning(f"{itens_ignorados} itens já devolvidos ou com dados incompletos foram ignorados ao confirmar devolução para locação ID {locacao_id}.")
 
             return True
         except psycopg2.Error as e:
             conn.rollback()
             logger.error(f"Erro ao restaurar estoque para locação ID {locacao_id}: {e}")
-            return False
-        finally:
-            cursor.close()
-            release_connection(conn)
-
-    @staticmethod
-    def atualizar_estoque_reducao(locacao_id):
-        """Reduz o estoque dos itens locados de uma locação específica ao reativar a locação."""
-        conn = get_connection()
-        cursor = conn.cursor()
-        try:
-            itens_locados = ItensLocados.get_by_locacao(locacao_id)
-            for item in itens_locados:
-                item_id = item['item_id']
-                quantidade = item['quantidade']
-                atualizar_estoque(item_id, quantidade)
-                logger.info(f"Estoque atualizado para o item ID {item_id}, quantidade: -{quantidade}")
-            return True
-        except psycopg2.Error as e:
-            conn.rollback()
-            logger.error(f"Erro ao reduzir estoque para locação ID {locacao_id}: {e}")
             return False
         finally:
             cursor.close()
