@@ -25,6 +25,11 @@ const RegisterFormContainer = () => {
     itens: [],
   });
 
+  // Estados para prorrogação
+  const [diasAdicionais, setDiasAdicionais] = useState(0);
+  const [novoValorTotal, setNovoValorTotal] = useState(0);
+  const [abatimento, setAbatimento] = useState(0);
+
   // Função para carregar clientes
   const fetchClientes = useCallback(async () => {
     try {
@@ -47,7 +52,6 @@ const RegisterFormContainer = () => {
       if (response.data) {
         console.log("Dados de inventário recebidos do backend:", response.data);
 
-        // Usar `quantidade_disponivel` para refletir o estoque real disponível
         const estoqueMap = response.data.reduce((acc, item) => {
           acc[item.nome_item] = item.quantidade_disponivel || 0;
           return acc;
@@ -167,11 +171,9 @@ const RegisterFormContainer = () => {
       if (response.status === 201) {
         alert("Locação registrada com sucesso!");
 
-        // Recarregar o inventário para atualizar as quantidades disponíveis
-        setIsFetched(false); // Permite que fetchInventario seja chamado novamente
+        setIsFetched(false);
         await fetchInventario();
 
-        // Resetar o formulário
         setNovaLocacao({
           numero_nota: "",
           cliente_info: {
@@ -196,6 +198,32 @@ const RegisterFormContainer = () => {
         alert(`Erro ao registrar locação: ${error.response.data.error}`);
       } else {
         alert("Erro ao registrar locação");
+      }
+    }
+  };
+
+  // Função para prorrogar a locação
+  const extendRental = async (locacaoId) => {
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:5000/locacoes/${locacaoId}/prorrogar`, // Garantido "prorrogar"
+        {
+          dias_adicionais: diasAdicionais,
+          novo_valor_total: novoValorTotal,
+          abatimento,
+        }
+      );
+      if (response.status === 200) {
+        alert("Locação prorrogada com sucesso!");
+        setIsFetched(false);
+        await fetchInventario();
+      }
+    } catch (error) {
+      console.error("Erro ao prorrogar locação:", error.response || error);
+      if (error.response && error.response.data) {
+        alert(`Erro ao prorrogar locação: ${error.response.data.error}`);
+      } else {
+        alert("Erro ao prorrogar locação");
       }
     }
   };
@@ -234,6 +262,13 @@ const RegisterFormContainer = () => {
       CATEGORIES={categorias}
       estoqueDisponivel={estoqueDisponivel}
       handleDiasCombinadosChange={handleDiasCombinadosChange}
+      diasAdicionais={diasAdicionais}
+      setDiasAdicionais={setDiasAdicionais}
+      novoValorTotal={novoValorTotal}
+      setNovoValorTotal={setNovoValorTotal}
+      abatimento={abatimento}
+      setAbatimento={setAbatimento}
+      handleExtendRental={extendRental}
     />
   );
 };

@@ -74,7 +74,7 @@ export const extendOrder = async (
 ) => {
   try {
     const response = await axios.put(
-      `${API_URL}/locacoes/${orderId}/prorrogacao`,
+      `${API_URL}/locacoes/${orderId}/prorrogar`, // Ajustado para "prorrogar"
       {
         dias_adicionais: days,
         novo_valor_total: novoValorTotal,

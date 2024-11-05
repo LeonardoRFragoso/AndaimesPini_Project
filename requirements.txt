@@ -1,3 +1,4 @@
 Flask
 streamlit
 Flask-CORS
+Psycopg2-binary

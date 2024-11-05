@@ -177,22 +177,18 @@ def add_locacao():
 def confirmar_devolucao(locacao_id):
     """Confirma a devolução e atualiza o status da locação para 'concluído'."""
     try:
-        # Obter detalhes da locação
         locacao = Locacao.get_detailed_by_id(locacao_id)
         if not locacao:
             return jsonify({"error": "Locação não encontrada"}), 404
 
-        # Atualizar o status da locação para 'concluído'
         status_atualizado = Locacao.update_status(locacao_id, "concluído")
         if not status_atualizado:
             return jsonify({"error": "Erro ao atualizar status da locação."}), 500
 
-        # Chamar método de atualização de devolução e estoque
         devolucao_confirmada = Locacao.atualizar_estoque_devolucao(locacao_id)
         if not devolucao_confirmada:
             return jsonify({"error": "Erro ao confirmar devolução e atualizar estoque."}), 500
 
-        # Retorne o inventário atualizado
         inventario = Inventario.get_all()
         logger.info(f"Devolução confirmada e estoque atualizado para a locação ID {locacao_id}.")
         return jsonify({"message": "Devolução confirmada e estoque atualizado!", "inventario": inventario}), 200
@@ -208,39 +204,31 @@ def confirmar_devolucao(locacao_id):
 def reativar_locacao(locacao_id):
     """Reativa uma locação, altera o status para 'ativo' e remove os itens do estoque novamente."""
     try:
-        # Obter detalhes da locação
         locacao = Locacao.get_detailed_by_id(locacao_id)
         
-        # Verificar se a locação existe e está concluída
         if not locacao or locacao['status'] != 'concluído':
             return jsonify({"error": "Locação não encontrada ou não está concluída"}), 404
 
-        # Atualizar o status da locação para "ativo"
         status_atualizado = Locacao.update_status(locacao_id, "ativo")
         if not status_atualizado:
             return jsonify({"error": "Erro ao atualizar status da locação."}), 500
 
-        # Processar cada item na locação para atualizar o estoque
-        itens_com_dados_incompletos = 0  # Contador de itens com dados incompletos
+        itens_com_dados_incompletos = 0
         for item in locacao.get('itens', []):
             item_id = item.get('item_id')
             quantidade = item.get('quantidade')
             
-            # Verificar se os dados essenciais estão presentes
             if item_id is None or quantidade is None:
                 itens_com_dados_incompletos += 1
                 logger.warning(f"Item com dados incompletos ao reativar locação ID {locacao_id}: {item}")
                 continue
 
-            # Atualizar o estoque para o item
             atualizar_estoque(item_id, quantidade)
             logger.info(f"Estoque atualizado para o item ID {item_id}, quantidade: -{quantidade}")
 
-        # Registrar um aviso se houver itens ignorados devido a dados incompletos
         if itens_com_dados_incompletos > 0:
             logger.warning(f"{itens_com_dados_incompletos} itens com dados incompletos foram ignorados ao reativar locação ID {locacao_id}.")
 
-        # Retorne o inventário atualizado
         inventario = Inventario.get_all()
         logger.info(f"Locação ID {locacao_id} reativada e estoque ajustado.")
         return jsonify({"message": "Locação reativada e estoque ajustado!", "inventario": inventario}), 200
@@ -263,32 +251,17 @@ def finalizar_antecipadamente(locacao_id):
         if not nova_data_fim or novo_valor_final is None:
             return jsonify({"error": "Nova data de término e novo valor final são obrigatórios!"}), 400
 
-        # Atualizar a data de término e o valor final na tabela de locações
         resultado = Locacao.finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final)
 
-        # Se a locação foi atualizada com sucesso, prossiga com a devolução dos itens
-        if resultado:
-            # Obter todos os itens associados à locação
-            itens_locados = ItensLocados.get_by_locacao(locacao_id)
-
-            for item in itens_locados:
-                item_id = item["item_id"]
-                quantidade = item["quantidade"]
-
-                # Restaurar o estoque no inventário
-                restaurar_estoque(item_id, quantidade)
-
-                # Marcar o item como devolvido na tabela itens_locados
-                ItensLocados.mark_as_returned(locacao_id, item_id)
-
-            # Atualizar o status da locação para 'concluído'
-            Locacao.update_status(locacao_id, "concluído")
-
-            # Obter a locação atualizada com detalhes completos
+        if resultado.get("sucesso"):
             locacao_atualizada = Locacao.get_detailed_by_id(locacao_id)
-
             logger.info(f"Locação ID {locacao_id} finalizada antecipadamente com sucesso.")
-            return jsonify({"message": "Locação finalizada antecipadamente com sucesso!", "locacao": locacao_atualizada}), 200
+            return jsonify({
+                "message": "Locação finalizada antecipadamente com sucesso!",
+                "data_devolucao_efetiva": resultado["data_devolucao_efetiva"],
+                "valor_final_ajustado": resultado["valor_final_ajustado"],
+                "locacao": locacao_atualizada
+            }), 200
         else:
             logger.warning(f"Locação ID {locacao_id} não encontrada para finalização antecipada.")
             return jsonify({"error": "Locação não encontrada."}), 404
@@ -319,3 +292,45 @@ def reportar_problema(locacao_id):
     except Exception as ex:
         logger.error(f"Erro ao registrar problema: {ex}")
         return jsonify({"error": "Erro ao registrar problema."}), 500
+
+@locacoes_routes.route('/<int:locacao_id>/prorrogar', methods=['PUT', 'OPTIONS'])
+def prorrogar_locacao(locacao_id):
+    """Rota para prorrogar a data de término de uma locação e atualizar o valor total."""
+    if request.method == 'OPTIONS':
+        # Responde diretamente a uma requisição OPTIONS para CORS
+        return jsonify({"status": "OK"}), 200
+
+    try:
+        dados = request.get_json()
+        dias_adicionais = dados.get('dias_adicionais')
+        novo_valor_total = dados.get('novo_valor_total')
+        abatimento = dados.get('abatimento', 0)
+
+        # Logging para depuração
+        logger.info(f"Prorrogação solicitada para locação {locacao_id}: dias_adicionais={dias_adicionais}, novo_valor_total={novo_valor_total}, abatimento={abatimento}")
+
+        if dias_adicionais is None or novo_valor_total is None:
+            return jsonify({"error": "Dias adicionais e novo valor total são obrigatórios!"}), 400
+
+        # Chama o método extend do modelo Locacao
+        resultado = Locacao.extend(locacao_id, dias_adicionais, novo_valor_total, abatimento)
+
+        if resultado.get("sucesso"):
+            locacao_atualizada = Locacao.get_detailed_by_id(locacao_id)
+            logger.info(f"Locação ID {locacao_id} prorrogada com sucesso.")
+            return jsonify({
+                "message": "Locação prorrogada com sucesso!",
+                "nova_data_fim": resultado["nova_data_fim"],
+                "valor_final_ajustado": resultado["valor_final_ajustado"],
+                "valor_abatimento": resultado["valor_abatimento"],
+                "locacao": locacao_atualizada
+            }), 200
+        else:
+            logger.warning(f"Locação ID {locacao_id} não encontrada para prorrogação.")
+            return jsonify({"error": "Locação não encontrada."}), 404
+    except psycopg2.Error as e:
+        logger.error(f"Erro no banco de dados ao prorrogar a locação ID {locacao_id}: {e}")
+        return handle_database_error(e)
+    except Exception as ex:
+        logger.error(f"Erro inesperado ao prorrogar a locação ID {locacao_id}: {ex}")
+        return jsonify({"error": "Erro inesperado ao prorrogar locação."}), 500

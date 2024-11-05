@@ -188,6 +188,35 @@ const ClientsTable = ({ onEdit, onDelete }) => {
                   {new Date(pedido.data_fim).toLocaleDateString()} | Valor: R$
                   {pedido.valor_total.toFixed(2)} | Status: {pedido.status}
                 </Typography>
+
+                {/* Exibir dados de prorrogação, se disponíveis */}
+                {pedido.nova_data_fim && (
+                  <Typography variant="body2" color="text.secondary">
+                    Prorrogado até:{" "}
+                    {new Date(pedido.nova_data_fim).toLocaleDateString()}
+                  </Typography>
+                )}
+                {pedido.valor_final_ajustado && (
+                  <Typography variant="body2" color="text.secondary">
+                    Valor ajustado: R$ {pedido.valor_final_ajustado.toFixed(2)}
+                  </Typography>
+                )}
+                {pedido.abatimento && (
+                  <Typography variant="body2" color="text.secondary">
+                    Abatimento aplicado: R$ {pedido.abatimento.toFixed(2)}
+                  </Typography>
+                )}
+
+                {/* Exibir data de devolução antecipada, se disponível */}
+                {pedido.data_devolucao_efetiva && (
+                  <Typography variant="body2" color="text.secondary">
+                    Devolvido em:{" "}
+                    {new Date(
+                      pedido.data_devolucao_efetiva
+                    ).toLocaleDateString()}
+                  </Typography>
+                )}
+
                 <Typography variant="body2" sx={{ mt: 1 }}>
                   Itens Locados:
                 </Typography>

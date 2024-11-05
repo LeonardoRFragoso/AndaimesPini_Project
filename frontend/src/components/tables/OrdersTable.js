@@ -141,7 +141,7 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
       ) || 0;
 
     try {
-      await axios.put(`${API_BASE_URL}/locacoes/${orderId}/prorrogacao`, {
+      await axios.put(`${API_BASE_URL}/locacoes/${orderId}/prorrogar`, {
         dias_adicionais: diasAdicionais,
         novo_valor_total: novoValorTotal,
         abatimento: abatimento,

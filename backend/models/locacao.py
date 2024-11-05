@@ -4,7 +4,7 @@ from models.itens_locados import ItensLocados
 from models.cliente import Cliente
 from models.inventario import Inventario
 import logging
-from datetime import date
+from datetime import date, timedelta
 from helpers import atualizar_estoque, restaurar_estoque
 
 # Configuração de logging
@@ -27,7 +27,6 @@ class Locacao:
             conn.commit()
             logger.info(f"Locação criada com sucesso: ID {locacao_id}")
 
-            # Atualizar o estoque para cada item locado
             for item in ItensLocados.get_by_locacao(locacao_id):
                 item_id = item['item_id']
                 quantidade = item['quantidade']
@@ -223,24 +222,31 @@ class Locacao:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute('''
+            cursor.execute(f'''
                 UPDATE locacoes 
-                SET data_fim = data_fim + INTERVAL '%s days',
-                    valor_total = %s,
-                    abatimento = %s
+                SET data_fim = data_fim + INTERVAL '{dias_adicionais} days',
+                    valor_total = %s - %s
                 WHERE id = %s
-            ''', (dias_adicionais, novo_valor_total, abatimento, locacao_id))
+            ''', (novo_valor_total, abatimento, locacao_id))
+
             conn.commit()
             sucesso = cursor.rowcount > 0
             if sucesso:
-                logger.info(f"Locação ID {locacao_id} prorrogada, valor atualizado para {novo_valor_total}, com abatimento de {abatimento}.")
+                nova_data_fim = (date.today() + timedelta(days=dias_adicionais)).strftime("%Y-%m-%d")
+                logger.info(f"Locação ID {locacao_id} prorrogada com {dias_adicionais} dias adicionais e valor ajustado.")
+                return {
+                    "sucesso": True,
+                    "nova_data_fim": nova_data_fim,
+                    "valor_final_ajustado": novo_valor_total - abatimento,
+                    "valor_abatimento": abatimento
+                }
             else:
                 logger.warning(f"Locação ID {locacao_id} não encontrada para prorrogação.")
-            return sucesso
+                return {"sucesso": False}
         except psycopg2.Error as e:
             conn.rollback()
             logger.error(f"Erro ao prorrogar locação e atualizar valor: {e}")
-            return False
+            return {"sucesso": False}
         finally:
             cursor.close()
             release_connection(conn)
@@ -254,7 +260,6 @@ class Locacao:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            # Atualiza a data de término e o valor total
             cursor.execute('''
                 UPDATE locacoes
                 SET data_fim = %s,
@@ -262,6 +267,7 @@ class Locacao:
                     status = 'concluido'
                 WHERE id = %s
             ''', (nova_data_fim, novo_valor_final, locacao_id))
+            
             conn.commit()
 
             sucesso = cursor.rowcount > 0
@@ -269,35 +275,36 @@ class Locacao:
                 logger.warning(f"Locação ID {locacao_id} não encontrada para finalização antecipada.")
                 return False
 
-            # Restaurar o estoque dos itens devolvidos
+            data_devolucao_efetiva = nova_data_fim
             itens_locados = ItensLocados.get_by_locacao(locacao_id)
             for item in itens_locados:
                 item_id = item["item_id"]
                 quantidade = item["quantidade"]
 
-                # Verifica se o item já foi devolvido para evitar duplicação
                 if item["data_devolucao"] is None:
                     estoque_restaurado = restaurar_estoque(item_id, quantidade)
                     if estoque_restaurado:
                         logger.info(f"Estoque restaurado para o item ID {item_id}, quantidade: {quantidade}")
                     else:
                         logger.error(f"Falha ao restaurar o estoque para o item ID {item_id}")
-
-                    # Marca o item como devolvido após restaurar o estoque
-                    ItensLocados.mark_as_returned(locacao_id, item_id, data_devolucao=nova_data_fim)
+                    
+                    ItensLocados.mark_as_returned(locacao_id, item_id, data_devolucao=data_devolucao_efetiva)
                 else:
-                    logger.info(f"Item ID {item_id} já devolvido previamente; nenhuma atualização de estoque necessária.")
+                    logger.info(f"Item ID {item_id} já devolvido anteriormente.")
 
-            logger.info(f"Locação ID {locacao_id} finalizada antecipadamente. Nova data final: {nova_data_fim}, Novo valor final: {novo_valor_final}.")
-            return True
+            logger.info(f"Locação ID {locacao_id} finalizada antecipadamente.")
+            return {
+                "sucesso": True,
+                "data_devolucao_efetiva": data_devolucao_efetiva,
+                "valor_final_ajustado": novo_valor_final
+            }
         except psycopg2.Error as e:
             conn.rollback()
             logger.error(f"Erro ao finalizar antecipadamente a locação ID {locacao_id}: {e}")
-            return False
+            return {"sucesso": False}
         finally:
             cursor.close()
             release_connection(conn)
-
 
     @staticmethod
     def update_status(locacao_id, status):

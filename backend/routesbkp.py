@@ -303,7 +303,7 @@ def devolver_locacao(locacao_id):
         print(f"Erro inesperado ao registrar devolução: {ex}")
         return jsonify({"error": "Erro inesperado ao registrar devolução."}), 500
 
-@routes.route('/locacoes/<int:locacao_id>/prorrogacao', methods=['PUT'])
+@routes.route('/locacoes/<int:locacao_id>/prorrogar', methods=['PUT'])
 def prorrogar_locacao(locacao_id):
     try:
         dados = request.get_json()

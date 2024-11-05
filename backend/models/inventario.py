@@ -68,26 +68,32 @@ class Inventario:
         conn = get_connection()
         cursor = conn.cursor()
         try:
+            # Primeiro, verifica se a quantidade disponível é suficiente
+            cursor.execute('SELECT quantidade_disponivel FROM inventario WHERE id = %s', (item_id,))
+            estoque_atual = cursor.fetchone()
+            
+            if not estoque_atual or estoque_atual[0] < quantidade_retirada:
+                logger.warning(f"Estoque insuficiente para item ID {item_id}. Disponível: {estoque_atual[0] if estoque_atual else 'Item não encontrado'}")
+                raise ValueError("Estoque insuficiente")
+
+            # Se suficiente, realiza a atualização
             cursor.execute('''
                 UPDATE inventario 
                 SET quantidade_disponivel = quantidade_disponivel - %s 
-                WHERE id = %s AND quantidade_disponivel >= %s
-            ''', (quantidade_retirada, item_id, quantidade_retirada))
-
-            if cursor.rowcount == 0:
-                logger.warning(f"Quantidade insuficiente no estoque para item ID {item_id}.")
-                raise ValueError("Estoque insuficiente")
+                WHERE id = %s
+            ''', (quantidade_retirada, item_id))
             
             conn.commit()
             logger.info(f"Estoque do item ID {item_id} atualizado, quantidade retirada: {quantidade_retirada}.")
             return True
         except (psycopg2.Error, ValueError) as e:
             conn.rollback()
-            logger.error(f"Erro ao atualizar estoque: {e}")
+            logger.error(f"Erro ao atualizar estoque para item ID {item_id} com quantidade {quantidade_retirada}: {e}")
             return False
         finally:
             cursor.close()
             release_connection(conn)
+
 
     @staticmethod
     def restaurar_estoque(item_id, quantidade_reposta):
@@ -95,14 +101,18 @@ class Inventario:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            # Verifica se o item já foi restaurado
-            cursor.execute('''
-                SELECT quantidade_disponivel FROM inventario 
-                WHERE id = %s AND quantidade_disponivel >= quantidade
-            ''', (item_id,))
+            # Verifica a quantidade disponível atual
+            cursor.execute('SELECT quantidade_disponivel, quantidade FROM inventario WHERE id = %s', (item_id,))
+            estoque_info = cursor.fetchone()
             
-            # Se o estoque já está restaurado (quantidade disponível >= quantidade original), não incrementa novamente
-            if cursor.fetchone() is not None:
+            if not estoque_info:
+                logger.warning(f"Item ID {item_id} não encontrado para restauração de estoque.")
+                return False
+            
+            quantidade_disponivel, quantidade_total = estoque_info
+
+            # Verifica se já está restaurado
+            if quantidade_disponivel >= quantidade_total:
                 logger.warning(f"Item ID {item_id} já está com estoque restaurado. Ação ignorada.")
                 return False  # Evita restauração duplicada
 
@@ -112,10 +122,6 @@ class Inventario:
                 SET quantidade_disponivel = quantidade_disponivel + %s 
                 WHERE id = %s
             ''', (quantidade_reposta, item_id))
-            
-            if cursor.rowcount == 0:
-                logger.warning(f"Item ID {item_id} não encontrado para restauração de estoque.")
-                return False  # Retorna False se o item não foi encontrado
             
             conn.commit()
             logger.info(f"Estoque do item ID {item_id} restaurado, quantidade reposta: {quantidade_reposta}.")
@@ -127,6 +133,7 @@ class Inventario:
         finally:
             cursor.close()
             release_connection(conn)
+
 
     @staticmethod
     def update_quantidade(item_id, nova_quantidade):

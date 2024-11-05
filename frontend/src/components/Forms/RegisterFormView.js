@@ -24,6 +24,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Badge,
+  TextField,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -39,6 +40,13 @@ const RegisterFormView = ({
   CATEGORIES,
   estoqueDisponivel,
   handleDiasCombinadosChange,
+  diasAdicionais,
+  setDiasAdicionais,
+  novoValorTotal,
+  setNovoValorTotal,
+  abatimento,
+  setAbatimento,
+  handleExtendRental,
 }) => {
   const [itensAdicionados, setItensAdicionados] = useState([]);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -65,6 +73,16 @@ const RegisterFormView = ({
     setConfirmDialogOpen(false);
     setItensAdicionados([]);
     setIsLoading(false); // Fim do feedback de carregamento
+  };
+
+  const handleExtendRentalClick = () => {
+    if (novaLocacao.id) {
+      handleExtendRental(novaLocacao.id);
+    } else {
+      alert(
+        "Erro: ID da locação não encontrado. Verifique a locação selecionada."
+      );
+    }
   };
 
   return (
@@ -194,6 +212,49 @@ const RegisterFormView = ({
                 ))}
               </List>
             )}
+          </Grid>
+
+          {/* Inputs e Botão para Prorrogar Locação */}
+          <Grid item xs={12} mb={2}>
+            <Typography variant="h6" gutterBottom>
+              Prorrogação de Locação
+            </Typography>
+            <TextField
+              label="Dias adicionais"
+              type="number"
+              fullWidth
+              value={diasAdicionais}
+              onChange={(e) => setDiasAdicionais(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              label="Novo valor total"
+              type="number"
+              fullWidth
+              value={novoValorTotal}
+              onChange={(e) => setNovoValorTotal(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              label="Abatimento (se houver)"
+              type="number"
+              fullWidth
+              value={abatimento}
+              onChange={(e) => setAbatimento(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleExtendRentalClick}
+              disabled={isLoading || !diasAdicionais || !novoValorTotal}
+            >
+              {isLoading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Prorrogar Locação"
+              )}
+            </Button>
           </Grid>
 
           {/* Botão Registrar Locação com Feedback de Carregamento */}
