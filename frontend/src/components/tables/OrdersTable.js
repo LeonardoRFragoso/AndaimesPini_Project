@@ -390,17 +390,20 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               <Typography>
                 Data de Início: {selectedOrder.data_inicio}
               </Typography>
-              <Typography>Data de Término: {selectedOrder.data_fim}</Typography>
               <Typography>
-                Valor Total: R$ {selectedOrder.valor_total.toFixed(2)}
+                Data de Término Original:{" "}
+                {selectedOrder.data_fim_original || "Não disponível"}
               </Typography>
               <Typography>
-                Valor Pago na Entrega: R${" "}
-                {selectedOrder.valor_pago_entrega.toFixed(2)}
+                Nova Data de Término:{" "}
+                {selectedOrder.data_fim || "Não disponível"}
               </Typography>
               <Typography>
-                Valor a Receber no Final: R${" "}
-                {selectedOrder.valor_receber_final.toFixed(2)}
+                Valor Total: R${" "}
+                {(
+                  selectedOrder.valor_final_ajustado ||
+                  selectedOrder.valor_total
+                ).toFixed(2)}
               </Typography>
               <Typography>
                 Status: {selectedOrder.status || "Indefinido"}

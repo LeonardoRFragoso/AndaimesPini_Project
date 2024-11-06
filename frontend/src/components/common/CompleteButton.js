@@ -3,7 +3,7 @@ import { IconButton, Tooltip } from "@mui/material";
 import { Replay } from "@mui/icons-material";
 
 const CompleteButton = ({ onClick }) => (
-  <Tooltip title="Completar Antecipado">
+  <Tooltip title="Devolução antecipada">
     <IconButton color="warning" onClick={onClick}>
       <Replay />
     </IconButton>

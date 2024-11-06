@@ -64,7 +64,8 @@ export const updateOrderStatus = async (orderId, status) => {
  * @param {Number} days - Número de dias adicionais para a prorrogação
  * @param {Number} novoValorTotal - Novo valor total da locação após prorrogação
  * @param {Number} [abatimento=0] - Abatimento opcional a ser aplicado
- * @returns {Object} Resposta da API com os novos detalhes do pedido prorrogado
+ * @returns {Object} Resposta da API com os novos detalhes do pedido prorrogado,
+ * incluindo a data de término original e a nova data de término.
  */
 export const extendOrder = async (
   orderId,
@@ -74,14 +75,14 @@ export const extendOrder = async (
 ) => {
   try {
     const response = await axios.put(
-      `${API_URL}/locacoes/${orderId}/prorrogar`, // Ajustado para "prorrogar"
+      `${API_URL}/locacoes/${orderId}/prorrogar`,
       {
         dias_adicionais: days,
         novo_valor_total: novoValorTotal,
         abatimento,
       }
     );
-    return response.data;
+    return response.data; // Deve retornar a resposta completa, incluindo datas originais e ajustadas
   } catch (error) {
     console.error(
       `Erro ao prorrogar pedido ${orderId} em ${days} dias:`,
@@ -94,9 +95,9 @@ export const extendOrder = async (
 /**
  * Marca um pedido como concluído antecipadamente e restaura o estoque.
  * @param {Number} orderId - ID do pedido
- * @param {String} novaDataFim - Nova data de término da locação
+ * @param {String} novaDataFim - Nova data de término da locação (formato yyyy-MM-dd)
  * @param {Number} novoValorFinal - Novo valor total após finalizar antecipadamente
- * @returns {Object} Resposta da API confirmando a conclusão antecipada
+ * @returns {Object} Resposta da API confirmando a conclusão antecipada, com os detalhes atualizados do pedido
  */
 export const completeOrderEarly = async (
   orderId,
@@ -111,7 +112,7 @@ export const completeOrderEarly = async (
         novo_valor_final: novoValorFinal,
       }
     );
-    return response.data;
+    return response.data; // Inclui detalhes do pedido atualizado
   } catch (error) {
     console.error(
       `Erro ao concluir pedido antecipadamente ${orderId}:`,

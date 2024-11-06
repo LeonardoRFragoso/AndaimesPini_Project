@@ -39,6 +39,8 @@ const OrdersListView = () => {
   const [loading, setLoading] = useState(true);
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [extendDays, setExtendDays] = useState("");
+  const [novoValorTotal, setNovoValorTotal] = useState("");
+  const [abatimento, setAbatimento] = useState("");
 
   useEffect(() => {
     loadOrders();
@@ -87,8 +89,6 @@ const OrdersListView = () => {
     setSelectedOrder({ ...order, action });
     if (action === "extend") {
       setExtendDialogOpen(true);
-    } else if (action === "early") {
-      setAlertOpen(true); // Abre o diálogo de confirmação
     } else {
       setAlertOpen(true);
     }
@@ -127,9 +127,14 @@ const OrdersListView = () => {
     }
   };
 
-  const handleExtendOrder = async (days) => {
+  const handleExtendOrder = async () => {
     try {
-      await extendOrder(selectedOrder.id, days);
+      await extendOrder(
+        selectedOrder.id,
+        extendDays,
+        novoValorTotal,
+        abatimento
+      );
       setSnackbarMessage("Pedido prorrogado com sucesso!");
       loadOrders();
     } catch (error) {
@@ -138,6 +143,8 @@ const OrdersListView = () => {
     } finally {
       setExtendDialogOpen(false);
       setExtendDays("");
+      setNovoValorTotal("");
+      setAbatimento("");
     }
   };
 
@@ -147,7 +154,6 @@ const OrdersListView = () => {
     novoValorFinal
   ) => {
     try {
-      // Realiza a chamada API e recebe o pedido atualizado
       const response = await completeOrderEarly(
         orderId,
         novaDataFim,
@@ -155,14 +161,12 @@ const OrdersListView = () => {
       );
       const updatedOrder = response.locacao;
 
-      // Atualiza o estado apenas do pedido modificado em vez de recarregar todos
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === orderId ? { ...order, ...updatedOrder } : order
         )
       );
 
-      // Atualiza a lista filtrada também
       filterOrders(filter, orders);
       setSnackbarMessage("Pedido concluído antecipadamente com sucesso!");
     } catch (error) {
@@ -184,12 +188,12 @@ const OrdersListView = () => {
   };
 
   const handleExtendConfirm = async () => {
-    if (extendDays <= 0) {
-      setSnackbarMessage("Por favor, insira um número de dias válido.");
+    if (extendDays <= 0 || !novoValorTotal) {
+      setSnackbarMessage("Por favor, insira valores válidos para prorrogação.");
       setSnackbarOpen(true);
       return;
     }
-    await handleExtendOrder(extendDays);
+    await handleExtendOrder();
   };
 
   const handleSnackbarClose = () => {
@@ -315,6 +319,22 @@ const OrdersListView = () => {
             fullWidth
             value={extendDays}
             onChange={(e) => setExtendDays(e.target.value)}
+          />
+          <TextField
+            margin="dense"
+            label="Novo Valor Total"
+            type="number"
+            fullWidth
+            value={novoValorTotal}
+            onChange={(e) => setNovoValorTotal(e.target.value)}
+          />
+          <TextField
+            margin="dense"
+            label="Abatimento (opcional)"
+            type="number"
+            fullWidth
+            value={abatimento}
+            onChange={(e) => setAbatimento(e.target.value)}
           />
         </DialogContent>
         <DialogActions>

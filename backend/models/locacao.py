@@ -14,15 +14,16 @@ logger = logging.getLogger(__name__)
 class Locacao:
     @staticmethod
     def create(cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status="ativo"):
-        """Cria uma nova locação no banco de dados com um status inicial."""
+        """Cria uma nova locação no banco de dados com um status inicial e define a data_fim_original."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
+            # Definindo data_fim_original como data_fim na criação da locação
             cursor.execute('''
-                INSERT INTO locacoes (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO locacoes (cliente_id, data_inicio, data_fim, data_fim_original, valor_total, valor_pago_entrega, valor_receber_final, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            ''', (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status))
+            ''', (cliente_id, data_inicio, data_fim, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status))
             locacao_id = cursor.fetchone()[0]
             conn.commit()
             logger.info(f"Locação criada com sucesso: ID {locacao_id}")
@@ -92,14 +93,14 @@ class Locacao:
 
     @staticmethod
     def get_detailed_by_id(locacao_id):
-        """Retorna os detalhes de uma locação específica pelo ID."""
+        """Retorna os detalhes de uma locação específica pelo ID, incluindo data_fim_original e data_fim atual."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
             query = '''
-                SELECT locacoes.id, locacoes.data_inicio, locacoes.data_fim, locacoes.valor_total,
-                    locacoes.valor_pago_entrega, locacoes.valor_receber_final, locacoes.status,
-                    clientes.nome, clientes.endereco, clientes.telefone
+                SELECT locacoes.id, locacoes.data_inicio, locacoes.data_fim, locacoes.data_fim_original,
+                    locacoes.valor_total, locacoes.valor_pago_entrega, locacoes.valor_receber_final,
+                    locacoes.status, clientes.nome, clientes.endereco, clientes.telefone
                 FROM locacoes
                 JOIN clientes ON locacoes.cliente_id = clientes.id
                 WHERE locacoes.id = %s
@@ -112,14 +113,15 @@ class Locacao:
                     "id": locacao[0],
                     "data_inicio": locacao[1].strftime("%d/%m/%Y"),
                     "data_fim": locacao[2].strftime("%d/%m/%Y"),
-                    "valor_total": float(locacao[3]),
-                    "valor_pago_entrega": float(locacao[4]) if locacao[4] else 0.0,
-                    "valor_receber_final": float(locacao[5]) if locacao[5] else 0.0,
-                    "status": locacao[6],
+                    "data_fim_original": locacao[3].strftime("%d/%m/%Y") if locacao[3] else None,
+                    "valor_total": float(locacao[4]),
+                    "valor_pago_entrega": float(locacao[5]) if locacao[5] else 0.0,
+                    "valor_receber_final": float(locacao[6]) if locacao[6] else 0.0,
+                    "status": locacao[7],
                     "cliente": {
-                        "nome": locacao[7],
-                        "endereco": locacao[8],
-                        "telefone": locacao[9]
+                        "nome": locacao[8],
+                        "endereco": locacao[9],
+                        "telefone": locacao[10]
                     },
                     "itens": itens_locados
                 }
@@ -222,12 +224,14 @@ class Locacao:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute(f'''
+            # Atualizando a data_fim e valor_total, preservando data_fim_original se ainda estiver NULL
+            cursor.execute('''
                 UPDATE locacoes 
-                SET data_fim = data_fim + INTERVAL '{dias_adicionais} days',
-                    valor_total = %s - %s
+                SET data_fim = data_fim + INTERVAL '%s days',
+                    valor_total = %s - %s,
+                    data_fim_original = COALESCE(data_fim_original, data_fim)
                 WHERE id = %s
-            ''', (novo_valor_total, abatimento, locacao_id))
+            ''', (dias_adicionais, novo_valor_total, abatimento, locacao_id))
 
             conn.commit()
             sucesso = cursor.rowcount > 0
