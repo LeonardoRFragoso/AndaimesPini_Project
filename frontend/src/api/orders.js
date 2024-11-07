@@ -79,10 +79,10 @@ export const extendOrder = async (
       {
         dias_adicionais: days,
         novo_valor_total: novoValorTotal,
-        abatimento,
+        abatimento, // Aqui o abatimento é enviado no corpo da requisição
       }
     );
-    return response.data; // Deve retornar a resposta completa, incluindo datas originais e ajustadas
+    return response.data;
   } catch (error) {
     console.error(
       `Erro ao prorrogar pedido ${orderId} em ${days} dias:`,
@@ -167,5 +167,23 @@ export const reportProblem = async (orderId, itemId, descricaoProblema) => {
       error.response || error.message
     );
     throw new Error("Erro ao reportar problema no pedido. Tente novamente.");
+  }
+};
+
+/**
+ * Busca os detalhes de uma locação específica.
+ * @param {Number} orderId - ID do pedido
+ * @returns {Object} Detalhes completos da locação, incluindo datas e valores ajustados
+ */
+export const fetchOrderDetails = async (orderId) => {
+  try {
+    const response = await axios.get(`${API_URL}/locacoes/${orderId}`);
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Erro ao buscar detalhes do pedido ${orderId}:`,
+      error.response || error.message
+    );
+    throw new Error("Erro ao buscar detalhes do pedido. Tente novamente.");
   }
 };

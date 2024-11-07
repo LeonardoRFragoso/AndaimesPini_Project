@@ -247,11 +247,12 @@ def finalizar_antecipadamente(locacao_id):
         dados = request.get_json()
         nova_data_fim = dados.get('nova_data_fim')
         novo_valor_final = dados.get('novo_valor_final')
+        motivo_ajuste_valor = dados.get('motivo_ajuste_valor')
 
         if not nova_data_fim or novo_valor_final is None:
             return jsonify({"error": "Nova data de término e novo valor final são obrigatórios!"}), 400
 
-        resultado = Locacao.finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final)
+        resultado = Locacao.finalizar_antecipadamente(locacao_id, nova_data_fim, novo_valor_final, motivo_ajuste_valor)
 
         if resultado.get("sucesso"):
             locacao_atualizada = Locacao.get_detailed_by_id(locacao_id)
@@ -272,52 +273,28 @@ def finalizar_antecipadamente(locacao_id):
         logger.error(f"Erro inesperado ao finalizar antecipadamente a locação ID {locacao_id}: {ex}")
         return jsonify({"error": "Erro inesperado ao finalizar antecipadamente a locação."}), 500
 
-@locacoes_routes.route('/<int:locacao_id>/problema', methods=['POST'])
-def reportar_problema(locacao_id):
-    """Rota para registrar um problema em um item locado."""
-    try:
-        dados = request.get_json()
-        item_id = dados.get('item_id')
-        descricao_problema = dados.get('descricao_problema')
-
-        if not item_id or not descricao_problema:
-            logger.warning("Item ID e descrição do problema são obrigatórios!")
-            return jsonify({"error": "Item ID e descrição do problema são obrigatórios!"}), 400
-
-        RegistroDanos.add_problem(locacao_id, item_id, descricao_problema)
-        logger.info(f"Problema registrado para item ID {item_id} na locação ID {locacao_id}.")
-        return jsonify({"message": "Problema registrado com sucesso!"}), 200
-    except psycopg2.Error as e:
-        return handle_database_error(e)
-    except Exception as ex:
-        logger.error(f"Erro ao registrar problema: {ex}")
-        return jsonify({"error": "Erro ao registrar problema."}), 500
-
-@locacoes_routes.route('/<int:locacao_id>/prorrogar', methods=['PUT', 'OPTIONS'])
+@locacoes_routes.route('/<int:locacao_id>/prorrogar', methods=['PUT'])
 def prorrogar_locacao(locacao_id):
-    """Rota para prorrogar a data de término de uma locação e atualizar o valor total."""
-    if request.method == 'OPTIONS':
-        # Responde diretamente a uma requisição OPTIONS para CORS
-        return jsonify({"status": "OK"}), 200
-
+    """Rota para prorrogar uma locação com ajuste de valor e abatimento."""
     try:
         dados = request.get_json()
         dias_adicionais = dados.get('dias_adicionais')
         novo_valor_total = dados.get('novo_valor_total')
         abatimento = dados.get('abatimento', 0)
+        motivo_ajuste_valor = dados.get('motivo_ajuste_valor')
 
-        # Logging para depuração
-        logger.info(f"Prorrogação solicitada para locação {locacao_id}: dias_adicionais={dias_adicionais}, novo_valor_total={novo_valor_total}, abatimento={abatimento}")
-
+        # Validação dos parâmetros obrigatórios
         if dias_adicionais is None or novo_valor_total is None:
-            return jsonify({"error": "Dias adicionais e novo valor total são obrigatórios!"}), 400
+            logger.warning("Parâmetros obrigatórios ausentes na prorrogação da locação.")
+            return jsonify({"error": "Parâmetros obrigatórios faltando (dias adicionais e novo valor total)."}), 400
 
-        # Chama o método extend do modelo Locacao
-        resultado = Locacao.extend(locacao_id, dias_adicionais, novo_valor_total, abatimento)
+        # Log dos parâmetros recebidos para prorrogação
+        logger.info(f"Prorrogação - ID: {locacao_id}, Dias adicionais: {dias_adicionais}, Novo valor: {novo_valor_total}, Abatimento: {abatimento}, Motivo: {motivo_ajuste_valor}")
 
+        resultado = Locacao.extend(locacao_id, dias_adicionais, novo_valor_total, abatimento, motivo_ajuste_valor)
+        
         if resultado.get("sucesso"):
             locacao_atualizada = Locacao.get_detailed_by_id(locacao_id)
-            logger.info(f"Locação ID {locacao_id} prorrogada com sucesso.")
             return jsonify({
                 "message": "Locação prorrogada com sucesso!",
                 "nova_data_fim": resultado["nova_data_fim"],
@@ -326,11 +303,12 @@ def prorrogar_locacao(locacao_id):
                 "locacao": locacao_atualizada
             }), 200
         else:
+            # Caso a locação não seja encontrada
             logger.warning(f"Locação ID {locacao_id} não encontrada para prorrogação.")
             return jsonify({"error": "Locação não encontrada."}), 404
     except psycopg2.Error as e:
-        logger.error(f"Erro no banco de dados ao prorrogar a locação ID {locacao_id}: {e}")
+        logger.error(f"Erro no banco de dados ao prorrogar locação ID {locacao_id}: {e}")
         return handle_database_error(e)
     except Exception as ex:
-        logger.error(f"Erro inesperado ao prorrogar a locação ID {locacao_id}: {ex}")
+        logger.error(f"Erro inesperado ao prorrogar locação ID {locacao_id}: {ex}")
         return jsonify({"error": "Erro inesperado ao prorrogar locação."}), 500

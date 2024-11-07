@@ -267,6 +267,18 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
                   ))}
               </TableCell>
               <TableCell
+                onClick={() => handleSort("novo_valor_total")}
+                style={{ cursor: "pointer" }}
+              >
+                Valor Ajustado{" "}
+                {orderBy.field === "novo_valor_total" &&
+                  (orderBy.direction === "asc" ? (
+                    <ArrowUpward fontSize="small" />
+                  ) : (
+                    <ArrowDownward fontSize="small" />
+                  ))}
+              </TableCell>
+              <TableCell
                 onClick={() => handleSort("status")}
                 style={{ cursor: "pointer" }}
               >
@@ -299,6 +311,9 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
                 <TableCell>{`R$ ${(order.valor_total ?? 0).toFixed(
                   2
                 )}`}</TableCell>
+                <TableCell>{`R$ ${(
+                  order.novo_valor_total ?? order.valor_total
+                ).toFixed(2)}`}</TableCell>
                 <TableCell>
                   <Chip
                     label={order.status === "concluído" ? "Concluído" : "Ativo"}
@@ -367,7 +382,6 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               <Typography>
                 Endereço: {selectedOrder.cliente?.endereco || "Não informado"}
               </Typography>
-
               <Typography variant="h6" style={{ marginTop: "1em" }}>
                 Itens Locados
               </Typography>
@@ -383,7 +397,6 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               ) : (
                 <Typography>Nenhum item locado.</Typography>
               )}
-
               <Typography variant="h6" style={{ marginTop: "1em" }}>
                 Detalhes da Locação
               </Typography>
@@ -399,11 +412,19 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
                 {selectedOrder.data_fim || "Não disponível"}
               </Typography>
               <Typography>
-                Valor Total: R${" "}
+                Valor Total: R$ {selectedOrder.valor_total.toFixed(2)}
+              </Typography>
+              <Typography>
+                Valor Ajustado: R${" "}
                 {(
-                  selectedOrder.valor_final_ajustado ||
-                  selectedOrder.valor_total
+                  selectedOrder.novo_valor_total ?? selectedOrder.valor_total
                 ).toFixed(2)}
+              </Typography>
+              <Typography>
+                Valor Abatimento: R${" "}
+                {selectedOrder.abatimento
+                  ? selectedOrder.abatimento.toFixed(2)
+                  : "0.00"}
               </Typography>
               <Typography>
                 Status: {selectedOrder.status || "Indefinido"}
