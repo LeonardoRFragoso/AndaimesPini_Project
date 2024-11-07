@@ -100,7 +100,7 @@ class Locacao:
 
     @staticmethod
     def get_detailed_by_id(locacao_id):
-        """Obtém os detalhes completos de uma locação específica, incluindo o valor de abatimento e o valor ajustado final."""
+        """Obtém os detalhes completos de uma locação específica, incluindo valores financeiros ajustados."""
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -115,29 +115,36 @@ class Locacao:
             '''
             cursor.execute(query, (locacao_id,))
             locacao = cursor.fetchone()
+            
             if locacao:
+                # Obtendo os itens locados associados a esta locação
                 itens_locados = ItensLocados.get_by_locacao(locacao_id)
-                # Calcula o valor final ajustado, aplicando o abatimento
-                valor_final_ajustado = float(locacao[7]) - float(locacao[14]) if locacao[7] else 0.0
+                
+                # Calculando o valor final ajustado
+                novo_valor_total = float(locacao[7]) if locacao[7] else None
+                abatimento = float(locacao[14]) if locacao[14] else 0.0
+                valor_final_ajustado = novo_valor_total - abatimento if novo_valor_total is not None else 0.0
+                
+                # Construindo o dicionário de resposta com todos os campos financeiros e detalhes
                 return {
                     "id": locacao[0],
                     "data_inicio": locacao[1].strftime("%d/%m/%Y"),
                     "data_fim": locacao[2].strftime("%d/%m/%Y"),
                     "data_fim_original": locacao[3].strftime("%d/%m/%Y") if locacao[3] else None,
-                    "valor_total": float(locacao[4]),
+                    "valor_total": float(locacao[4]) if locacao[4] else 0.0,
                     "valor_pago_entrega": float(locacao[5]) if locacao[5] else 0.0,
                     "valor_receber_final": float(locacao[6]) if locacao[6] else 0.0,
-                    "novo_valor_total": float(locacao[7]) if locacao[7] else 0.0,
+                    "novo_valor_total": novo_valor_total if novo_valor_total is not None else 0.0,
                     "valor_final_ajustado": valor_final_ajustado,
                     "data_devolucao_efetiva": locacao[8].strftime("%d/%m/%Y") if locacao[8] else None,
-                    "motivo_ajuste_valor": locacao[9],
+                    "motivo_ajuste_valor": locacao[9] if locacao[9] else "",
                     "status": locacao[10],
                     "cliente": {
                         "nome": locacao[11],
                         "endereco": locacao[12],
                         "telefone": locacao[13]
                     },
-                    "abatimento": float(locacao[14]) if locacao[14] else 0.0,
+                    "abatimento": abatimento,
                     "itens": itens_locados
                 }
             else:
