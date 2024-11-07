@@ -382,6 +382,7 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               <Typography>
                 Endereço: {selectedOrder.cliente?.endereco || "Não informado"}
               </Typography>
+
               <Typography variant="h6" style={{ marginTop: "1em" }}>
                 Itens Locados
               </Typography>
@@ -397,6 +398,7 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
               ) : (
                 <Typography>Nenhum item locado.</Typography>
               )}
+
               <Typography variant="h6" style={{ marginTop: "1em" }}>
                 Detalhes da Locação
               </Typography>
@@ -411,21 +413,37 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
                 Nova Data de Término:{" "}
                 {selectedOrder.data_fim || "Não disponível"}
               </Typography>
-              <Typography>
-                Valor Total: R$ {selectedOrder.valor_total.toFixed(2)}
+
+              <Typography variant="h6" style={{ marginTop: "1em" }}>
+                Dados Financeiros
               </Typography>
               <Typography>
-                Valor Ajustado: R${" "}
-                {(
-                  selectedOrder.novo_valor_total ?? selectedOrder.valor_total
-                ).toFixed(2)}
+                Valor Total: R${" "}
+                {selectedOrder.valor_total?.toFixed(2) || "0.00"}
+              </Typography>
+              <Typography>
+                Valor Pago na Entrega: R${" "}
+                {selectedOrder.valor_pago_entrega?.toFixed(2) || "0.00"}
+              </Typography>
+              <Typography>
+                Valor a Receber no Final: R${" "}
+                {selectedOrder.valor_receber_final?.toFixed(2) || "0.00"}
               </Typography>
               <Typography>
                 Valor Abatimento: R${" "}
-                {selectedOrder.abatimento
-                  ? selectedOrder.abatimento.toFixed(2)
-                  : "0.00"}
+                {selectedOrder.abatimento?.toFixed(2) || "0.00"}
               </Typography>
+              <Typography>
+                Novo Valor Total: R${" "}
+                {selectedOrder.novo_valor_total?.toFixed(2) || "0.00"}
+              </Typography>
+              <Typography>
+                Valor Ajustado Final: R${" "}
+                {(
+                  selectedOrder.novo_valor_total - selectedOrder.abatimento
+                ).toFixed(2)}
+              </Typography>
+
               <Typography>
                 Status: {selectedOrder.status || "Indefinido"}
               </Typography>
