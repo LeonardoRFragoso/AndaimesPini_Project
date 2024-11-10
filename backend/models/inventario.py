@@ -37,7 +37,29 @@ class Inventario:
             cursor.execute('SELECT id, nome_item, quantidade, quantidade_disponivel, tipo_item FROM inventario')
             inventario = cursor.fetchall()
             logger.info("Itens do inventário listados com sucesso.")
-            return [{"id": item[0], "nome_item": item[1], "quantidade": item[2], "quantidade_disponivel": item[3], "tipo_item": item[4]} for item in inventario]
+            inventario_list = []
+            for item in inventario:
+                id = item[0]
+                nome_item = item[1]
+                quantidade = item[2]
+                quantidade_disponivel = item[3]
+                tipo_item = item[4]
+                # Calculando o status do item
+                if quantidade_disponivel == 0:
+                    status = 'indisponível'
+                elif quantidade_disponivel == quantidade:
+                    status = 'disponível'
+                else:
+                    status = 'parcialmente disponível'
+                inventario_list.append({
+                    "id": id,
+                    "nome_item": nome_item,
+                    "quantidade": quantidade,
+                    "quantidade_disponivel": quantidade_disponivel,
+                    "tipo_item": tipo_item,
+                    "status": status
+                })
+            return inventario_list
         except psycopg2.Error as e:
             logger.error(f"Erro ao buscar inventário: {e}")
             return []
@@ -51,10 +73,32 @@ class Inventario:
         cursor = conn.cursor()
         try:
             logger.info("Executando Inventario.get_available")
-            cursor.execute('SELECT id, nome_item, quantidade_disponivel, tipo_item FROM inventario WHERE quantidade_disponivel > 0')
+            cursor.execute('SELECT id, nome_item, quantidade, quantidade_disponivel, tipo_item FROM inventario WHERE quantidade_disponivel > 0')
             inventario_disponivel = cursor.fetchall()
             logger.info(f"Itens disponíveis no inventário listados com sucesso. Total de itens disponíveis: {len(inventario_disponivel)}")
-            return [{"id": item[0], "nome_item": item[1], "quantidade_disponivel": item[2], "tipo_item": item[3]} for item in inventario_disponivel]
+            inventario_list = []
+            for item in inventario_disponivel:
+                id = item[0]
+                nome_item = item[1]
+                quantidade = item[2]
+                quantidade_disponivel = item[3]
+                tipo_item = item[4]
+                # Calculando o status do item
+                if quantidade_disponivel == 0:
+                    status = 'indisponível'
+                elif quantidade_disponivel == quantidade:
+                    status = 'disponível'
+                else:
+                    status = 'parcialmente disponível'
+                inventario_list.append({
+                    "id": id,
+                    "nome_item": nome_item,
+                    "quantidade": quantidade,
+                    "quantidade_disponivel": quantidade_disponivel,
+                    "tipo_item": tipo_item,
+                    "status": status
+                })
+            return inventario_list
         except psycopg2.Error as e:
             logger.error(f"Erro ao buscar inventário disponível: {e}")
             return []

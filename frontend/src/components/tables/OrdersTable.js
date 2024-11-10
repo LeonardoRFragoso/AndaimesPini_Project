@@ -1,71 +1,83 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios"; // Importando Axios
 import {
   Table,
   TableBody,
-  TableCell,
   TableContainer,
-  TableHead,
-  TableRow,
   Paper,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Button,
   Typography,
   Snackbar,
-  Chip,
-  Button,
 } from "@mui/material";
+import TableHeader from "./TableHeader";
+import OrderTableRow from "./OrderTableRow";
+import OrderDetailsDialog from "./OrderDetailsDialog";
+import { Check } from "@mui/icons-material";
 import {
-  Check,
-  WarningAmber,
-  ArrowUpward,
-  ArrowDownward,
-  Restore,
-} from "@mui/icons-material";
+  fetchOrders,
+  updateOrderStatus,
+  reactivateOrder,
+} from "../../api/orders";
 
-// Importando botões modularizados
-import CompleteButton from "../common/CompleteButton";
-import DetailsButton from "../common/DetailsButton";
-import ExtendButton from "../common/ExtendButton";
-import ReturnButton from "../common/ReturnButton";
-
-// URL base da API centralizada
-const API_BASE_URL = "http://localhost:5000";
-
-const OrdersTable = ({ orders, onAction, loadOrders }) => {
+const OrdersTable = () => {
+  const [orders, setOrders] = useState([]);
   const [openDetails, setOpenDetails] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    message: "",
+    type: "info",
+    open: false,
+  });
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [orderToReturn, setOrderToReturn] = useState(null);
-  const isMounted = useRef(true);
   const [orderBy, setOrderBy] = useState({ field: null, direction: "asc" });
+  const isMounted = useRef(true);
 
+  // Carregar pedidos no carregamento inicial
   useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const data = await fetchOrders();
+        if (isMounted.current) {
+          setOrders(data);
+          console.log("Pedidos carregados com sucesso:", data);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar pedidos:", error);
+        openSnackbar("Erro ao carregar pedidos. Tente novamente.", "error");
+      }
+    };
+
     isMounted.current = true;
+    loadOrders();
+
     return () => {
       isMounted.current = false;
     };
   }, []);
 
+  // Abrir snackbar com mensagens de sucesso/erro
+  const openSnackbar = (message, type = "info") => {
+    setSnackbar({ message, type, open: true });
+  };
+
+  const closeSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Função para ordenar a tabela
   const handleSort = (field) => {
     const isAsc = orderBy.field === field && orderBy.direction === "asc";
     setOrderBy({ field, direction: isAsc ? "desc" : "asc" });
   };
 
-  const getNestedValue = (obj, path) => {
-    return path
-      .split(".")
-      .reduce(
-        (acc, part) => (acc && acc[part] !== undefined ? acc[part] : null),
-        obj
-      );
-  };
-
   const sortedOrders = React.useMemo(() => {
+    const getNestedValue = (obj, path) =>
+      path.split(".").reduce((acc, part) => acc?.[part] ?? null, obj);
+
     return [...orders].sort((a, b) => {
       if (!orderBy.field) return 0;
       const aValue = getNestedValue(a, orderBy.field) ?? "";
@@ -76,20 +88,10 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
     });
   }, [orders, orderBy]);
 
-  const handleOpenDetails = async (order) => {
-    try {
-      const { data } = await axios.get(`${API_BASE_URL}/locacoes/${order.id}`);
-      if (isMounted.current) {
-        setSelectedOrder(data);
-        setOpenDetails(true);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar detalhes da locação:", error);
-      if (isMounted.current) {
-        setSnackbarMessage("Erro ao carregar detalhes do pedido.");
-        setSnackbarOpen(true);
-      }
-    }
+  // Abrir diálogo de detalhes do pedido
+  const handleOpenDetails = (order) => {
+    setSelectedOrder(order);
+    setOpenDetails(true);
   };
 
   const handleCloseDetails = () => {
@@ -97,106 +99,56 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
     setOpenDetails(false);
   };
 
+  // Abrir diálogo de confirmação de devolução
   const handleConfirmReturn = (orderId) => {
     setOrderToReturn(orderId);
     setConfirmDialogOpen(true);
   };
 
+  // Confirmar devolução do pedido
   const confirmReturnAction = async () => {
     setConfirmDialogOpen(false);
     try {
-      const response = await axios.patch(
-        `${API_BASE_URL}/locacoes/${orderToReturn}/confirmar-devolucao`
-      );
-      if (response.status === 200 && isMounted.current) {
-        setSnackbarMessage("Devolução confirmada com sucesso!");
-        loadOrders();
+      const response = await updateOrderStatus(orderToReturn, "concluído");
+      if (response) {
+        openSnackbar("Devolução confirmada com sucesso!", "success");
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === orderToReturn
+              ? { ...order, status: "concluído" }
+              : order
+          )
+        );
+        console.log(`Pedido ${orderToReturn} atualizado para 'concluído'.`);
+      } else {
+        throw new Error("Erro ao confirmar devolução.");
       }
     } catch (error) {
       console.error("Erro ao confirmar devolução:", error);
-      if (isMounted.current) {
-        setSnackbarMessage("Erro ao confirmar devolução. Tente novamente.");
-        setSnackbarOpen(true);
-      }
+      openSnackbar("Erro ao confirmar devolução. Tente novamente.", "error");
     } finally {
       setOrderToReturn(null);
     }
   };
 
-  const handleExtendOrder = async (orderId) => {
-    const diasAdicionais = parseInt(
-      prompt("Quantos dias deseja prorrogar?"),
-      10
-    );
-    if (!diasAdicionais || diasAdicionais <= 0) return;
-
-    const novoValorTotal = parseFloat(
-      prompt("Informe o novo valor total do pedido:")
-    );
-    if (!novoValorTotal || novoValorTotal <= 0) return;
-
-    const abatimento =
-      parseFloat(
-        prompt("Informe o valor de abatimento, se houver (0 para nenhum):")
-      ) || 0;
-
-    try {
-      await axios.put(`${API_BASE_URL}/locacoes/${orderId}/prorrogar`, {
-        dias_adicionais: diasAdicionais,
-        novo_valor_total: novoValorTotal,
-        abatimento: abatimento,
-      });
-      setSnackbarMessage("Locação prorrogada com sucesso!");
-      loadOrders();
-    } catch (error) {
-      console.error("Erro ao prorrogar locação:", error);
-      setSnackbarMessage("Erro ao prorrogar locação. Tente novamente.");
-      setSnackbarOpen(true);
-    }
-  };
-
-  const handleEarlyReturn = async (orderId) => {
-    const newEndDate = prompt(
-      "Informe a nova data final do pedido (dd-MM-yyyy):"
-    );
-    if (!newEndDate) return;
-
-    const [day, month, year] = newEndDate.split("-");
-    const formattedEndDate = `${year}-${month}-${day}`;
-
-    const newTotalValue = parseFloat(
-      prompt("Informe o novo valor total do pedido:")
-    );
-    if (!newTotalValue || newTotalValue <= 0) return;
-
-    try {
-      await axios.put(
-        `${API_BASE_URL}/locacoes/${orderId}/finalizar_antecipadamente`,
-        {
-          nova_data_fim: formattedEndDate,
-          novo_valor_final: newTotalValue,
-        }
-      );
-      setSnackbarMessage("Devolução antecipada registrada com sucesso!");
-      loadOrders();
-    } catch (error) {
-      console.error("Erro ao registrar devolução antecipada:", error);
-      setSnackbarMessage(
-        "Erro ao registrar devolução antecipada. Tente novamente."
-      );
-      setSnackbarOpen(true);
-    }
-  };
-
+  // Reativar pedido
   const handleReactivateOrder = async (orderId) => {
     try {
-      await axios.patch(`${API_BASE_URL}/locacoes/${orderId}/reativar`);
-      setSnackbarMessage("Pedido reativado com sucesso!");
-      loadOrders();
+      const response = await reactivateOrder(orderId);
+      if (response) {
+        openSnackbar("Pedido reativado com sucesso!", "success");
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === orderId ? { ...order, status: "ativo" } : order
+          )
+        );
+        console.log(`Pedido ${orderId} atualizado para 'ativo'.`);
+      } else {
+        throw new Error("Erro ao reativar pedido.");
+      }
     } catch (error) {
       console.error("Erro ao reativar pedido:", error);
-      setSnackbarMessage("Erro ao reativar pedido. Tente novamente.");
-      setSnackbarOpen(true);
+      openSnackbar("Erro ao reativar pedido. Tente novamente.", "error");
     }
   };
 
@@ -204,260 +156,29 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
     <>
       <TableContainer component={Paper} sx={{ mt: 3 }}>
         <Table>
-          <TableHead sx={{ backgroundColor: "#e0f2f1" }}>
-            <TableRow>
-              <TableCell
-                onClick={() => handleSort("id")}
-                style={{ cursor: "pointer" }}
-              >
-                ID do Pedido{" "}
-                {orderBy.field === "id" &&
-                  (orderBy.direction === "asc" ? (
-                    <ArrowUpward fontSize="small" />
-                  ) : (
-                    <ArrowDownward fontSize="small" />
-                  ))}
-              </TableCell>
-              <TableCell
-                onClick={() => handleSort("data_inicio")}
-                style={{ cursor: "pointer" }}
-              >
-                Data de Início{" "}
-                {orderBy.field === "data_inicio" &&
-                  (orderBy.direction === "asc" ? (
-                    <ArrowUpward fontSize="small" />
-                  ) : (
-                    <ArrowDownward fontSize="small" />
-                  ))}
-              </TableCell>
-              <TableCell
-                onClick={() => handleSort("data_fim")}
-                style={{ cursor: "pointer" }}
-              >
-                Data de Término{" "}
-                {orderBy.field === "data_fim" &&
-                  (orderBy.direction === "asc" ? (
-                    <ArrowUpward fontSize="small" />
-                  ) : (
-                    <ArrowDownward fontSize="small" />
-                  ))}
-              </TableCell>
-              <TableCell
-                onClick={() => handleSort("cliente.nome")}
-                style={{ cursor: "pointer" }}
-              >
-                Cliente{" "}
-                {orderBy.field === "cliente.nome" &&
-                  (orderBy.direction === "asc" ? (
-                    <ArrowUpward fontSize="small" />
-                  ) : (
-                    <ArrowDownward fontSize="small" />
-                  ))}
-              </TableCell>
-              <TableCell
-                onClick={() => handleSort("valor_total")}
-                style={{ cursor: "pointer" }}
-              >
-                Valor Total{" "}
-                {orderBy.field === "valor_total" &&
-                  (orderBy.direction === "asc" ? (
-                    <ArrowUpward fontSize="small" />
-                  ) : (
-                    <ArrowDownward fontSize="small" />
-                  ))}
-              </TableCell>
-              <TableCell
-                onClick={() => handleSort("novo_valor_total")}
-                style={{ cursor: "pointer" }}
-              >
-                Valor Ajustado{" "}
-                {orderBy.field === "novo_valor_total" &&
-                  (orderBy.direction === "asc" ? (
-                    <ArrowUpward fontSize="small" />
-                  ) : (
-                    <ArrowDownward fontSize="small" />
-                  ))}
-              </TableCell>
-              <TableCell
-                onClick={() => handleSort("status")}
-                style={{ cursor: "pointer" }}
-              >
-                Status{" "}
-                {orderBy.field === "status" &&
-                  (orderBy.direction === "asc" ? (
-                    <ArrowUpward fontSize="small" />
-                  ) : (
-                    <ArrowDownward fontSize="small" />
-                  ))}
-              </TableCell>
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
+          <TableHeader orderBy={orderBy} onSort={handleSort} />
           <TableBody>
             {sortedOrders.map((order) => (
-              <TableRow
+              <OrderTableRow
                 key={order.id}
-                sx={{
-                  "&:nth-of-type(odd)": { backgroundColor: "#f9f9f9" },
-                  "&:hover": { backgroundColor: "#e0f7fa" },
-                }}
-              >
-                <TableCell>{order.id}</TableCell>
-                <TableCell>
-                  {order.data_inicio || "Data Indisponível"}
-                </TableCell>
-                <TableCell>{order.data_fim || "Data Indisponível"}</TableCell>
-                <TableCell>{order.cliente?.nome || "Não informado"}</TableCell>
-                <TableCell>{`R$ ${(order.valor_total ?? 0).toFixed(
-                  2
-                )}`}</TableCell>
-                <TableCell>{`R$ ${(
-                  order.novo_valor_total ?? order.valor_total
-                ).toFixed(2)}`}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={order.status === "concluído" ? "Concluído" : "Ativo"}
-                    color={order.status === "concluído" ? "success" : "error"}
-                    sx={{
-                      backgroundColor:
-                        order.status === "concluído" ? "#d1f7d1" : "#ffebee",
-                      color:
-                        order.status === "concluído" ? "#388e3c" : "#d32f2f",
-                      fontWeight: "bold",
-                    }}
-                    icon={
-                      order.status === "concluído" ? (
-                        <Check />
-                      ) : (
-                        <WarningAmber />
-                      )
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <DetailsButton onClick={() => handleOpenDetails(order)} />
-                  {order.status === "concluído" ? (
-                    <Button
-                      onClick={() => handleReactivateOrder(order.id)}
-                      color="warning"
-                      startIcon={<Restore />}
-                    >
-                      Reativar
-                    </Button>
-                  ) : (
-                    <>
-                      <ReturnButton
-                        onClick={() => handleConfirmReturn(order.id)}
-                      />
-                      <ExtendButton
-                        onClick={() => handleExtendOrder(order.id)}
-                      />
-                      <CompleteButton
-                        onClick={() => handleEarlyReturn(order.id)}
-                      />
-                    </>
-                  )}
-                </TableCell>
-              </TableRow>
+                order={order}
+                onOpenDetails={handleOpenDetails}
+                onConfirmReturn={handleConfirmReturn}
+                onExtendOrder={() => {}}
+                onReactivateOrder={handleReactivateOrder}
+                onCompleteOrder={() => {}}
+              />
             ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Modal de Detalhes do Pedido */}
-      <Dialog
+      <OrderDetailsDialog
         open={openDetails}
+        selectedOrder={selectedOrder}
         onClose={handleCloseDetails}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Detalhes do Pedido</DialogTitle>
-        <DialogContent dividers>
-          {selectedOrder && (
-            <>
-              <Typography variant="h6">Cliente</Typography>
-              <Typography>
-                Nome: {selectedOrder.cliente?.nome || "Não informado"}
-              </Typography>
-              <Typography>
-                Endereço: {selectedOrder.cliente?.endereco || "Não informado"}
-              </Typography>
+      />
 
-              <Typography variant="h6" style={{ marginTop: "1em" }}>
-                Itens Locados
-              </Typography>
-              {selectedOrder.itens && selectedOrder.itens.length > 0 ? (
-                <ul>
-                  {selectedOrder.itens.map((item, index) => (
-                    <li key={index}>
-                      {item.nome_item} - Quantidade: {item.quantidade} (
-                      {item.tipo_item})
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <Typography>Nenhum item locado.</Typography>
-              )}
-
-              <Typography variant="h6" style={{ marginTop: "1em" }}>
-                Detalhes da Locação
-              </Typography>
-              <Typography>
-                Data de Início: {selectedOrder.data_inicio}
-              </Typography>
-              <Typography>
-                Data de Término Original:{" "}
-                {selectedOrder.data_fim_original || "Não disponível"}
-              </Typography>
-              <Typography>
-                Nova Data de Término:{" "}
-                {selectedOrder.data_fim || "Não disponível"}
-              </Typography>
-
-              <Typography variant="h6" style={{ marginTop: "1em" }}>
-                Dados Financeiros
-              </Typography>
-              <Typography>
-                Valor Total: R${" "}
-                {selectedOrder.valor_total?.toFixed(2) || "0.00"}
-              </Typography>
-              <Typography>
-                Valor Pago na Entrega: R${" "}
-                {selectedOrder.valor_pago_entrega?.toFixed(2) || "0.00"}
-              </Typography>
-              <Typography>
-                Valor a Receber no Final: R${" "}
-                {selectedOrder.valor_receber_final?.toFixed(2) || "0.00"}
-              </Typography>
-              <Typography>
-                Valor Abatimento: R${" "}
-                {selectedOrder.abatimento?.toFixed(2) || "0.00"}
-              </Typography>
-              <Typography>
-                Novo Valor Total: R${" "}
-                {selectedOrder.novo_valor_total?.toFixed(2) || "0.00"}
-              </Typography>
-              <Typography>
-                Valor Ajustado Final: R${" "}
-                {(
-                  selectedOrder.novo_valor_total - selectedOrder.abatimento
-                ).toFixed(2)}
-              </Typography>
-
-              <Typography>
-                Status: {selectedOrder.status || "Indefinido"}
-              </Typography>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetails} color="primary">
-            Fechar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Modal de Confirmação de Devolução */}
       <Dialog
         open={confirmDialogOpen}
         onClose={() => setConfirmDialogOpen(false)}
@@ -482,13 +203,23 @@ const OrdersTable = ({ orders, onAction, loadOrders }) => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar para feedback */}
       <Snackbar
-        open={snackbarOpen}
+        open={snackbar.open}
         autoHideDuration={4000}
-        onClose={() => setSnackbarOpen(false)}
-        message={snackbarMessage}
+        onClose={closeSnackbar}
+        message={snackbar.message}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        ContentProps={{
+          sx: {
+            backgroundColor:
+              snackbar.type === "success"
+                ? "#4caf50"
+                : snackbar.type === "error"
+                ? "#f44336"
+                : "#2196f3",
+            color: "#fff",
+          },
+        }}
       />
     </>
   );

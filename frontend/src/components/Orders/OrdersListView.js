@@ -1,25 +1,11 @@
 import React, { useState, useEffect } from "react";
-import {
-  Typography,
-  Paper,
-  Grid,
-  Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Snackbar,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  CircularProgress,
-  TextField,
-  Box,
-} from "@mui/material";
-import { Check, Event, Refresh, Warning, Restore } from "@mui/icons-material";
-import OrdersTable from "../tables/OrdersTable";
+import { Paper, Typography, Grid, Box } from "@mui/material";
+import OrdersFilter from "./OrdersFilter";
+import OrdersActionsDialog from "./OrdersActionsDialog";
+import OrdersExtendDialog from "./OrdersExtendDialog";
+import OrdersTableWrapper from "./OrdersTableWrapper";
+import SnackbarNotification from "./SnackbarNotification";
+import LoadingSpinner from "./LoadingSpinner";
 import {
   fetchOrders,
   updateOrderStatus,
@@ -27,20 +13,17 @@ import {
   completeOrderEarly,
   reactivateOrder,
 } from "../../api/orders";
+import { formatDate, formatCurrency } from "../../utils/formatters";
 
-const OrdersListView = () => {
+const OrdersListView = ({ showTitle = true }) => {
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [filter, setFilter] = useState("all");
   const [alertOpen, setAlertOpen] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [extendDialogOpen, setExtendDialogOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState({ message: "", open: false });
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [extendDialogOpen, setExtendDialogOpen] = useState(false);
-  const [extendDays, setExtendDays] = useState("");
-  const [novoValorTotal, setNovoValorTotal] = useState("");
-  const [abatimento, setAbatimento] = useState("");
 
   useEffect(() => {
     loadOrders();
@@ -50,155 +33,136 @@ const OrdersListView = () => {
     setLoading(true);
     try {
       const data = await fetchOrders();
-      setOrders(data);
-      filterOrders(filter, data);
+      const formattedData = formatOrders(data);
+      setOrders(formattedData);
+      filterOrders(filter, formattedData);
     } catch (error) {
-      setSnackbarMessage("Erro ao carregar pedidos.");
-      setSnackbarOpen(true);
       console.error("Erro ao carregar pedidos:", error);
+      openSnackbar(
+        "Erro ao carregar pedidos. Por favor, tente novamente.",
+        true
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (event) => {
-    const filterValue = event.target.value;
-    setFilter(filterValue);
-    filterOrders(filterValue, orders);
-  };
-
-  const filterOrders = (filterValue, ordersList) => {
+  const filterOrders = (filterValue, ordersList = orders) => {
     const now = new Date();
     let filtered = ordersList;
 
-    if (filterValue === "active") {
-      filtered = ordersList.filter((order) => new Date(order.data_fim) >= now);
-    } else if (filterValue === "expired") {
-      filtered = ordersList.filter(
-        (order) =>
-          new Date(order.data_fim) < now && order.status !== "concluído"
-      );
-    } else if (filterValue === "completed") {
-      filtered = ordersList.filter((order) => order.status === "concluído");
+    switch (filterValue) {
+      case "active":
+        filtered = ordersList.filter(
+          (order) => new Date(order.data_fim) >= now && order.status === "ativo"
+        );
+        break;
+      case "expired":
+        filtered = ordersList.filter(
+          (order) => new Date(order.data_fim) < now && order.status === "ativo"
+        );
+        break;
+      case "completed":
+        filtered = ordersList.filter((order) => order.status === "concluído");
+        break;
+      case "awaiting_return":
+        filtered = ordersList.filter((order) => !order.data_devolucao);
+        break;
+      default:
+        filtered = ordersList;
     }
 
     setFilteredOrders(filtered);
   };
 
-  const handleOrderAction = (order, action) => {
-    setSelectedOrder({ ...order, action });
-    if (action === "extend") {
-      setExtendDialogOpen(true);
-    } else {
-      setAlertOpen(true);
-    }
+  const openSnackbar = (message, isError = false) => {
+    setSnackbar({
+      message,
+      open: true,
+      type: isError ? "error" : "success",
+    });
+  };
+
+  const closeSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const handleFilterChange = (filterValue) => {
+    setFilter(filterValue);
+    filterOrders(filterValue);
   };
 
   const handleConfirmAction = async () => {
+    if (!selectedOrder) return;
+
     try {
-      if (selectedOrder.action === "return") {
-        await handleConfirmReturn(selectedOrder.id);
-      } else if (selectedOrder.action === "early") {
-        await handleCompleteOrderEarly(
-          selectedOrder.id,
-          selectedOrder.data_fim,
-          selectedOrder.valor_total
-        );
-      } else if (selectedOrder.action === "reactivate") {
-        await handleReactivateOrder(selectedOrder.id);
+      let response;
+      switch (selectedOrder.action) {
+        case "return":
+          response = await updateOrderStatus(selectedOrder.id, "concluído");
+          break;
+        case "early":
+          response = await completeOrderEarly(selectedOrder.id, {
+            nova_data_fim: selectedOrder.data_fim,
+            novo_valor_final: selectedOrder.valor_total,
+          });
+          break;
+        case "reactivate":
+          response = await reactivateOrder(selectedOrder.id);
+          break;
+        default:
+          throw new Error("Ação desconhecida");
       }
-      setSnackbarMessage("Ação realizada com sucesso!");
+
+      if (response) {
+        loadOrders(); // Garante consistência ao recarregar a lista
+        openSnackbar("Ação realizada com sucesso!");
+      } else {
+        openSnackbar(
+          "Erro ao realizar ação. Por favor, tente novamente.",
+          true
+        );
+      }
     } catch (error) {
-      setSnackbarMessage("Erro ao realizar ação.");
-      console.error("Erro ao confirmar ação:", error);
+      console.error("Erro ao realizar ação:", error);
+      openSnackbar("Erro ao realizar ação. Por favor, tente novamente.", true);
     } finally {
-      setSnackbarOpen(true);
+      setSelectedOrder(null);
       setAlertOpen(false);
     }
   };
 
-  const handleConfirmReturn = async (orderId) => {
-    try {
-      await updateOrderStatus(orderId, "concluído");
-      loadOrders();
-    } catch (error) {
-      console.error("Erro ao confirmar devolução:", error);
-      throw error;
-    }
-  };
-
-  const handleExtendOrder = async () => {
-    try {
-      await extendOrder(
-        selectedOrder.id,
-        extendDays,
-        novoValorTotal,
-        abatimento
-      );
-      setSnackbarMessage("Pedido prorrogado com sucesso!");
-      loadOrders();
-    } catch (error) {
-      console.error("Erro ao prorrogar pedido:", error);
-      throw error;
-    } finally {
-      setExtendDialogOpen(false);
-      setExtendDays("");
-      setNovoValorTotal("");
-      setAbatimento("");
-    }
-  };
-
-  const handleCompleteOrderEarly = async (
-    orderId,
-    novaDataFim,
-    novoValorFinal
-  ) => {
-    try {
-      const response = await completeOrderEarly(
-        orderId,
-        novaDataFim,
-        novoValorFinal
-      );
-      const updatedOrder = response.locacao;
-
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, ...updatedOrder } : order
-        )
-      );
-
-      filterOrders(filter, orders);
-      setSnackbarMessage("Pedido concluído antecipadamente com sucesso!");
-    } catch (error) {
-      console.error("Erro ao completar pedido antecipadamente:", error);
-      setSnackbarMessage("Erro ao completar pedido antecipadamente.");
-      throw error;
-    }
-  };
-
-  const handleReactivateOrder = async (orderId) => {
-    try {
-      await reactivateOrder(orderId);
-      setSnackbarMessage("Pedido reativado com sucesso!");
-      loadOrders();
-    } catch (error) {
-      console.error("Erro ao reativar pedido:", error);
-      throw error;
-    }
-  };
-
-  const handleExtendConfirm = async () => {
-    if (extendDays <= 0 || !novoValorTotal) {
-      setSnackbarMessage("Por favor, insira valores válidos para prorrogação.");
-      setSnackbarOpen(true);
+  const handleExtendOrder = async (order, extendData) => {
+    if (!extendData.dias || !extendData.novoValor) {
+      openSnackbar("Por favor, insira todos os campos obrigatórios.", true);
       return;
     }
-    await handleExtendOrder();
-  };
 
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
-    setSnackbarMessage("");
+    try {
+      const response = await extendOrder(order.id, {
+        dias_adicionais: extendData.dias,
+        novo_valor_total: extendData.novoValor,
+        abatimento: extendData.abatimento || 0,
+      });
+      if (response) {
+        loadOrders(); // Recarrega a lista para atualizar os dados
+        openSnackbar("Pedido prorrogado com sucesso!");
+      } else {
+        openSnackbar(
+          "Erro ao prorrogar pedido. Por favor, tente novamente.",
+          true
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao prorrogar pedido:", error);
+      openSnackbar(
+        "Erro ao prorrogar pedido. Por favor, tente novamente.",
+        true
+      );
+    } finally {
+      setSelectedOrder(null);
+      setExtendDialogOpen(false);
+    }
   };
 
   return (
@@ -213,158 +177,65 @@ const OrdersListView = () => {
         boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
       }}
     >
-      <Typography
-        variant="h4"
-        align="center"
-        gutterBottom
-        sx={{ color: "#2c552d", fontWeight: "bold" }}
-      >
-        Pedidos
-      </Typography>
-      <Typography
-        variant="body1"
-        align="center"
-        gutterBottom
-        sx={{ color: "#666", marginBottom: "20px" }}
-      >
-        Aqui você pode visualizar e gerenciar todos os pedidos realizados.
-      </Typography>
-
-      <Grid container spacing={3} justifyContent="space-between">
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl variant="outlined" fullWidth>
-            <InputLabel>Filtrar Pedidos</InputLabel>
-            <Select
-              value={filter}
-              onChange={handleFilterChange}
-              label="Filtrar Pedidos"
-              sx={{ backgroundColor: "#fff" }}
-            >
-              <MenuItem value="all">Todos</MenuItem>
-              <MenuItem value="active">Ativos</MenuItem>
-              <MenuItem value="expired">Expirados (não devolvidos)</MenuItem>
-              <MenuItem value="completed">Concluídos</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={loading ? <CircularProgress size={20} /> : <Refresh />}
-            onClick={loadOrders}
-            sx={{
-              backgroundColor: "#45a049",
-              "&:hover": { backgroundColor: "#388e3c" },
-              width: "100%",
-              padding: "10px",
-              borderRadius: "8px",
-            }}
+      {showTitle && (
+        <>
+          <Typography
+            variant="h4"
+            align="center"
+            gutterBottom
+            sx={{ color: "#2c552d", fontWeight: "bold" }}
           >
-            {loading ? "Carregando..." : "Atualizar"}
-          </Button>
-        </Grid>
+            Pedidos
+          </Typography>
+          <Typography
+            variant="body1"
+            align="center"
+            gutterBottom
+            sx={{ color: "#666", marginBottom: "20px" }}
+          >
+            Aqui você pode visualizar e gerenciar todos os pedidos realizados.
+          </Typography>
+        </>
+      )}
+      <Grid container spacing={3} justifyContent="space-between">
+        <OrdersFilter
+          filter={filter}
+          onFilterChange={handleFilterChange}
+          onRefresh={loadOrders}
+          loading={loading}
+        />
       </Grid>
-
       {loading ? (
-        <CircularProgress sx={{ display: "block", margin: "30px auto" }} />
+        <LoadingSpinner />
       ) : (
         <Box sx={{ marginTop: 3 }}>
-          <OrdersTable
+          <OrdersTableWrapper
             orders={filteredOrders}
-            onAction={handleOrderAction}
-            loadOrders={loadOrders}
+            onAction={(order, actionType) => {
+              setSelectedOrder({ ...order, action: actionType });
+              if (actionType === "extend") setExtendDialogOpen(true);
+              else setAlertOpen(true);
+            }}
           />
         </Box>
       )}
-
-      {/* Dialog para confirmar ações */}
-      <Dialog open={alertOpen} onClose={() => setAlertOpen(false)}>
-        <DialogTitle>Confirmar Ação</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {selectedOrder &&
-              `Deseja realmente ${selectedOrder.action} o pedido #${selectedOrder.id}?`}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAlertOpen(false)} color="secondary">
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleConfirmAction}
-            color="primary"
-            startIcon={<Check />}
-          >
-            Confirmar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialog para prorrogar pedido */}
-      <Dialog
+      <OrdersActionsDialog
+        open={alertOpen}
+        order={selectedOrder}
+        onClose={() => setAlertOpen(false)}
+        onConfirm={handleConfirmAction}
+      />
+      <OrdersExtendDialog
         open={extendDialogOpen}
+        order={selectedOrder}
         onClose={() => setExtendDialogOpen(false)}
-      >
-        <DialogTitle>Prorrogar Pedido</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Quantos dias deseja prorrogar o pedido #{selectedOrder?.id}?
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Dias"
-            type="number"
-            fullWidth
-            value={extendDays}
-            onChange={(e) => setExtendDays(e.target.value)}
-          />
-          <TextField
-            margin="dense"
-            label="Novo Valor Total"
-            type="number"
-            fullWidth
-            value={novoValorTotal}
-            onChange={(e) => setNovoValorTotal(e.target.value)}
-          />
-          <TextField
-            margin="dense"
-            label="Abatimento (opcional)"
-            type="number"
-            fullWidth
-            value={abatimento}
-            onChange={(e) => setAbatimento(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setExtendDialogOpen(false)} color="secondary">
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleExtendConfirm}
-            color="primary"
-            startIcon={<Event />}
-          >
-            Confirmar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar para mensagens de feedback */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={5000}
-        onClose={handleSnackbarClose}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        ContentProps={{
-          sx: {
-            backgroundColor: "#333",
-            color: "#fff",
-            fontSize: "1rem",
-          },
-        }}
+        onExtend={handleExtendOrder}
+      />
+      <SnackbarNotification
+        open={snackbar.open}
+        message={snackbar.message}
+        type={snackbar.type}
+        onClose={closeSnackbar}
       />
     </Paper>
   );

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from models.inventario import Inventario  # Import específico para modularidade
-from helpers import atualizar_estoque, restaurar_estoque, handle_database_error
+from helpers import handle_database_error
 import logging
 from psycopg2 import Error as DatabaseError  # Nome mais claro para erro de banco de dados
 
@@ -68,7 +68,10 @@ def update_item(item_id):
         if nova_quantidade is None:
             return jsonify({"error": "Quantidade é obrigatória!"}), 400
 
-        Inventario.update_quantidade(item_id, nova_quantidade)
+        sucesso = Inventario.update_quantidade(item_id, nova_quantidade)
+        if not sucesso:
+            return jsonify({"error": "Erro ao atualizar quantidade do item."}), 500
+
         logger.info(f"Quantidade do item ID {item_id} atualizada para {nova_quantidade}.")
         
         # Retorne o inventário atualizado
@@ -86,11 +89,10 @@ def delete_item(item_id):
     Rota para excluir um item do inventário.
     """
     try:
-        item = Inventario.get_item_id_by_modelo(item_id)
-        if not item:
+        sucesso = Inventario.delete_item(item_id)
+        if not sucesso:
             return jsonify({"error": "Item não encontrado no inventário."}), 404
 
-        Inventario.delete_item(item_id)
         logger.info(f"Item ID {item_id} excluído com sucesso.")
         
         # Retorne o inventário atualizado
@@ -130,16 +132,20 @@ def retirar_estoque(item_id):
             return jsonify({"error": "Quantidade de retirada é obrigatória e deve ser positiva!"}), 400
 
         # Verifique a quantidade disponível antes de atualizar
-        item = Inventario.get_item_id_by_modelo(item_id)  # Certifique-se de que este método retorna o item correto
+        item = Inventario.get_item_by_id(item_id)
+        if item is None:
+            return jsonify({"error": "Item não encontrado no inventário."}), 404
+
         if item['quantidade_disponivel'] < quantidade_retirada:
             return jsonify({"error": "Quantidade insuficiente para a retirada."}), 400
 
         logger.info(f"Tentando retirar do estoque: Item ID {item_id}, Quantidade: {quantidade_retirada}")
-        sucesso = atualizar_estoque(item_id, quantidade_retirada)
+        sucesso = Inventario.atualizar_estoque(item_id, quantidade_retirada)
         if sucesso:
             logger.info(f"Quantidade retirada do estoque para item ID {item_id}: {quantidade_retirada}")
         else:
             logger.error(f"Falha ao atualizar o estoque para o item ID {item_id}.")
+            return jsonify({"error": "Erro ao atualizar o estoque."}), 500
         
         # Retorne o inventário atualizado
         inventario = Inventario.get_all()
@@ -162,8 +168,16 @@ def restaurar_estoque_route(item_id):
         if quantidade is None or quantidade <= 0:
             return jsonify({"error": "Quantidade para restauração é obrigatória e deve ser positiva!"}), 400
 
-        restaurar_estoque(item_id, quantidade)
-        logger.info(f"Quantidade restaurada ao estoque para item ID {item_id}: {quantidade}")
+        item = Inventario.get_item_by_id(item_id)
+        if item is None:
+            return jsonify({"error": "Item não encontrado no inventário."}), 404
+
+        sucesso = Inventario.restaurar_estoque(item_id, quantidade)
+        if sucesso:
+            logger.info(f"Quantidade restaurada ao estoque para item ID {item_id}: {quantidade}")
+        else:
+            logger.error(f"Falha ao restaurar o estoque para o item ID {item_id}.")
+            return jsonify({"error": "Erro ao restaurar o estoque."}), 500
         
         # Retorne o inventário atualizado
         inventario = Inventario.get_all()

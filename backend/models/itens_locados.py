@@ -65,32 +65,46 @@ class ItensLocados:
     @staticmethod
     def get_by_locacao(locacao_id):
         """
-        Retorna todos os itens associados a uma locação específica com detalhes completos.
+        Retorna todos os itens associados a uma locação específica com detalhes completos, incluindo o status.
         """
         conn = get_connection()
         cursor = conn.cursor()
         try:
             query = '''
                 SELECT itens_locados.item_id, inventario.nome_item, itens_locados.quantidade, 
-                       itens_locados.data_alocacao, itens_locados.data_devolucao, inventario.tipo_item
+                       itens_locados.data_alocacao, itens_locados.data_devolucao, inventario.tipo_item,
+                       locacoes.data_fim
                 FROM itens_locados
                 JOIN inventario ON itens_locados.item_id = inventario.id
+                JOIN locacoes ON itens_locados.locacao_id = locacoes.id
                 WHERE itens_locados.locacao_id = %s
             '''
             cursor.execute(query, (locacao_id,))
             items = cursor.fetchall()
             logger.info(f"Itens obtidos para locação ID {locacao_id}.")
-            return [
-                {
+            today = date.today()
+            items_list = []
+            for row in items:
+                data_devolucao = row[4]
+                data_fim = row[6]
+                if data_devolucao is not None:
+                    status = 'devolvido'
+                else:
+                    if data_fim < today:
+                        status = 'atrasado'
+                    else:
+                        status = 'aguardando devolução'
+
+                items_list.append({
                     "item_id": row[0],
                     "nome_item": row[1],
                     "quantidade": row[2],
-                    "data_alocacao": row[3],
-                    "data_devolucao": row[4],
-                    "tipo_item": row[5]
-                }
-                for row in items
-            ]
+                    "data_alocacao": row[3].strftime("%d/%m/%Y") if row[3] else None,
+                    "data_devolucao": data_devolucao.strftime("%d/%m/%Y") if data_devolucao else None,
+                    "tipo_item": row[5],
+                    "status": status
+                })
+            return items_list
         except psycopg2.Error as e:
             logger.error(f"Erro ao buscar itens locados: {e}")
             return []

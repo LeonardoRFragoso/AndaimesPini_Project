@@ -1,6 +1,5 @@
 import psycopg2
 from psycopg2 import pool, Error
-import traceback
 import logging
 
 # Configuração do logging
@@ -37,7 +36,7 @@ def get_connection():
         if connection_pool:
             conn = connection_pool.getconn()
             if conn:
-                logger.info("Conexão obtida do pool com sucesso.")
+                logger.debug("Conexão obtida do pool com sucesso.")
             return conn
         else:
             logger.error("O pool de conexões foi fechado ou não foi inicializado.")
@@ -51,7 +50,7 @@ def release_connection(conn):
     try:
         if conn and connection_pool:
             connection_pool.putconn(conn)
-            logger.info("Conexão retornada ao pool.")
+            logger.debug("Conexão retornada ao pool.")
     except Error as e:
         logger.error("Erro ao retornar conexão ao pool.", exc_info=True)
 
@@ -81,7 +80,8 @@ def create_tables():
                     nome VARCHAR(255) NOT NULL,
                     endereco TEXT,
                     telefone VARCHAR(20) NOT NULL,
-                    referencia TEXT
+                    referencia TEXT,
+                    email VARCHAR(255)
                 )
             ''')
 
@@ -89,8 +89,9 @@ def create_tables():
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS inventario (
                     id SERIAL PRIMARY KEY,
-                    nome_item VARCHAR(255) NOT NULL,
+                    nome_item VARCHAR(255) NOT NULL UNIQUE,
                     quantidade INTEGER NOT NULL CHECK (quantidade >= 0),
+                    quantidade_disponivel INTEGER NOT NULL CHECK (quantidade_disponivel >= 0),
                     tipo_item VARCHAR(50) NOT NULL
                 )
             ''')
@@ -102,9 +103,15 @@ def create_tables():
                     cliente_id INTEGER NOT NULL,
                     data_inicio DATE NOT NULL,
                     data_fim DATE NOT NULL,
+                    data_fim_original DATE,
                     valor_total NUMERIC(10, 2) NOT NULL CHECK (valor_total >= 0),
                     valor_pago_entrega NUMERIC(10, 2) CHECK (valor_pago_entrega >= 0),
                     valor_receber_final NUMERIC(10, 2) CHECK (valor_receber_final >= 0),
+                    novo_valor_total NUMERIC(10, 2) CHECK (novo_valor_total >= 0),
+                    abatimento NUMERIC(10, 2) CHECK (abatimento >= 0),
+                    data_devolucao_efetiva DATE,
+                    motivo_ajuste_valor TEXT,
+                    data_prorrogacao DATE,
                     status VARCHAR(20) DEFAULT 'ativo',
                     FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
                 )
@@ -117,6 +124,8 @@ def create_tables():
                     locacao_id INTEGER NOT NULL,
                     item_id INTEGER NOT NULL,
                     quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+                    data_alocacao DATE,
+                    data_devolucao DATE,
                     FOREIGN KEY (locacao_id) REFERENCES locacoes (id) ON DELETE CASCADE,
                     FOREIGN KEY (item_id) REFERENCES inventario (id) ON DELETE CASCADE
                 )
@@ -127,15 +136,16 @@ def create_tables():
                 CREATE TABLE IF NOT EXISTS registro_danos (
                     id SERIAL PRIMARY KEY,
                     item_id INTEGER NOT NULL,
-                    quantidade_danificada INTEGER NOT NULL CHECK (quantidade_danificada > 0),
                     locacao_id INTEGER NOT NULL,
+                    descricao_problema TEXT NOT NULL,
+                    data_registro DATE NOT NULL DEFAULT CURRENT_DATE,
                     FOREIGN KEY (locacao_id) REFERENCES locacoes (id) ON DELETE CASCADE,
                     FOREIGN KEY (item_id) REFERENCES inventario (id) ON DELETE CASCADE
                 )
             ''')
 
             conn.commit()
-            logger.info("Tabelas criadas com sucesso!")
+            logger.info("Tabelas criadas ou atualizadas com sucesso!")
         except Error as e:
             logger.error("Erro ao criar as tabelas.", exc_info=True)
             conn.rollback()

@@ -1,21 +1,25 @@
-// frontend/src/components/pages/OrdersPage.js
-
 import React, { useState } from "react";
-import { Box, Typography, Button, Snackbar } from "@mui/material";
+import { Box, Button, Snackbar } from "@mui/material";
 import { Link } from "react-router-dom";
 import PageLayout from "../layouts/PageLayout";
-import OrdersListView from "../Orders/OrdersListView";
+import OrdersListView from "../Orders/OrdersListView"; // Importação do componente OrdersListView refatorado
 
 const OrdersPage = () => {
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState(""); // Mensagem do Snackbar
+  const [snackbarOpen, setSnackbarOpen] = useState(false); // Controle do Snackbar
 
-  // Função para exibir mensagem de feedback
+  /**
+   * Exibe uma mensagem de feedback no Snackbar.
+   * @param {string} message - Mensagem a ser exibida.
+   */
   const showSnackbar = (message) => {
     setSnackbarMessage(message);
     setSnackbarOpen(true);
   };
 
+  /**
+   * Fecha o Snackbar e limpa a mensagem.
+   */
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
     setSnackbarMessage("");
@@ -23,28 +27,9 @@ const OrdersPage = () => {
 
   return (
     <PageLayout>
-      {/* Cabeçalho da página */}
-      <Typography
-        variant="h4"
-        gutterBottom
-        align="center"
-        sx={{ color: "#2c552d", fontWeight: "bold", marginTop: "20px" }}
-      >
-        Visualizar Pedidos
-      </Typography>
-      <Typography
-        variant="body1"
-        paragraph
-        align="center"
-        sx={{ color: "#666", marginBottom: "20px" }}
-      >
-        Aqui você pode visualizar todos os pedidos realizados.
-      </Typography>
-
-      {/* Conteúdo do OrdersListView com passagem da função de feedback */}
+      {/* Componente OrdersListView com o título interno */}
       <Box sx={{ mt: 4 }}>
-        <OrdersListView showSnackbar={showSnackbar} />{" "}
-        {/* Passa showSnackbar como prop */}
+        <OrdersListView onSnackbarMessage={showSnackbar} showTitle />
       </Box>
 
       {/* Botão para voltar à HomePage */}
@@ -78,6 +63,9 @@ const OrdersPage = () => {
             backgroundColor: "#333",
             color: "#fff",
             fontSize: "1rem",
+            fontWeight: "bold",
+            padding: "10px",
+            borderRadius: "8px",
           },
         }}
       />
