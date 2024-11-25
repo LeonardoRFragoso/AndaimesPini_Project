@@ -16,9 +16,6 @@ itens_locados_routes = Blueprint('itens_locados_routes', __name__, url_prefix='/
 def get_itens_por_locacao(locacao_id):
     """
     Rota para obter itens de uma locação específica.
-    
-    :param locacao_id: ID da locação cujos itens serão buscados.
-    :return: JSON contendo os itens da locação ou uma mensagem de erro.
     """
     try:
         # Busca os itens associados à locação pelo ID
@@ -44,8 +41,6 @@ def get_itens_por_locacao(locacao_id):
 def get_todos_itens_locados():
     """
     Rota para listar todos os itens locados de todas as locações.
-    
-    :return: JSON contendo todos os itens locados ou uma mensagem de erro.
     """
     try:
         # Busca todos os itens locados
@@ -71,19 +66,27 @@ def get_todos_itens_locados():
 def adicionar_item_locado():
     """
     Rota para adicionar um novo item locado a uma locação.
-    
-    :return: JSON com o ID do item locado criado ou uma mensagem de erro.
     """
     try:
-        dados = request.json
-        locacao_id = dados.get("locacao_id")
-        item_id = dados.get("item_id")
-        quantidade = dados.get("quantidade")
+        dados = request.get_json()
+        
+        # Validação dos dados enviados na requisição
+        campos_obrigatorios = ["locacao_id", "item_id", "quantidade"]
+        for campo in campos_obrigatorios:
+            if not dados.get(campo):
+                logger.warning(f"Parâmetro obrigatório ausente: {campo}")
+                return jsonify({"error": f"Parâmetro obrigatório ausente: {campo}"}), 400
 
-        if not (locacao_id and item_id and quantidade):
-            logger.warning("Parâmetros insuficientes para adicionar item locado.")
-            return jsonify({"error": "Parâmetros insuficientes para adicionar item locado."}), 400
+        locacao_id = dados["locacao_id"]
+        item_id = dados["item_id"]
+        quantidade = dados["quantidade"]
 
+        # Validação de quantidade
+        if quantidade <= 0:
+            logger.warning("A quantidade deve ser maior que zero.")
+            return jsonify({"error": "A quantidade deve ser maior que zero."}), 400
+
+        # Adicionar o item locado
         item_locado_id = ItensLocados.adicionar_item(locacao_id, item_id, quantidade)
         if not item_locado_id:
             logger.error("Erro ao adicionar item locado.")
@@ -105,12 +108,9 @@ def adicionar_item_locado():
 def remover_item_locado(locacao_id, item_id):
     """
     Rota para remover um item locado específico de uma locação.
-    
-    :param locacao_id: ID da locação.
-    :param item_id: ID do item a ser removido.
-    :return: JSON com mensagem de sucesso ou erro.
     """
     try:
+        # Verifica se o item pode ser removido
         item_removido = ItensLocados.remover_item(locacao_id, item_id)
         if not item_removido:
             logger.warning(f"Item ID {item_id} não encontrado na locação ID {locacao_id}.")

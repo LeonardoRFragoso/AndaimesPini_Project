@@ -15,13 +15,23 @@ import {
 } from "../../api/orders";
 import { formatDate, formatCurrency } from "../../utils/formatters";
 
+const normalizeStatus = (status) =>
+  status
+    ?.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
 const OrdersListView = ({ showTitle = true }) => {
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [filter, setFilter] = useState("all");
   const [alertOpen, setAlertOpen] = useState(false);
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState({ message: "", open: false });
+  const [snackbar, setSnackbar] = useState({
+    message: "",
+    open: false,
+    type: "",
+  });
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,19 +43,31 @@ const OrdersListView = ({ showTitle = true }) => {
     setLoading(true);
     try {
       const data = await fetchOrders();
+      if (!data || !Array.isArray(data)) {
+        throw new Error("Dados inválidos recebidos.");
+      }
       const formattedData = formatOrders(data);
       setOrders(formattedData);
       filterOrders(filter, formattedData);
     } catch (error) {
-      console.error("Erro ao carregar pedidos:", error);
-      openSnackbar(
-        "Erro ao carregar pedidos. Por favor, tente novamente.",
-        true
-      );
+      handleError("Erro ao carregar pedidos. Por favor, tente novamente.");
     } finally {
       setLoading(false);
     }
   };
+
+  const formatOrders = (orders) =>
+    orders.map((order) => ({
+      ...order,
+      valor_ajustado: !isNaN(order.valor_total)
+        ? (
+            parseFloat(order.valor_total) - parseFloat(order.abatimento || 0)
+          ).toFixed(2)
+        : "N/A",
+      data_inicio_formatada: formatDate(order.data_inicio),
+      data_fim_formatada: formatDate(order.data_fim),
+      data_devolucao_formatada: formatDate(order.data_devolucao),
+    }));
 
   const filterOrders = (filterValue, ordersList = orders) => {
     const now = new Date();
@@ -54,16 +76,22 @@ const OrdersListView = ({ showTitle = true }) => {
     switch (filterValue) {
       case "active":
         filtered = ordersList.filter(
-          (order) => new Date(order.data_fim) >= now && order.status === "ativo"
+          (order) =>
+            new Date(order.data_fim) >= now &&
+            normalizeStatus(order.status) === "ativo"
         );
         break;
       case "expired":
         filtered = ordersList.filter(
-          (order) => new Date(order.data_fim) < now && order.status === "ativo"
+          (order) =>
+            new Date(order.data_fim) < now &&
+            normalizeStatus(order.status) === "ativo"
         );
         break;
       case "completed":
-        filtered = ordersList.filter((order) => order.status === "concluído");
+        filtered = ordersList.filter(
+          (order) => normalizeStatus(order.status) === "concluido"
+        );
         break;
       case "awaiting_return":
         filtered = ordersList.filter((order) => !order.data_devolucao);
@@ -75,6 +103,11 @@ const OrdersListView = ({ showTitle = true }) => {
     setFilteredOrders(filtered);
   };
 
+  const handleError = (message) => {
+    console.error(message);
+    setSnackbar({ message, open: true, type: "error" });
+  };
+
   const openSnackbar = (message, isError = false) => {
     setSnackbar({
       message,
@@ -84,7 +117,7 @@ const OrdersListView = ({ showTitle = true }) => {
   };
 
   const closeSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+    setSnackbar({ message: "", open: false, type: "" });
   };
 
   const handleFilterChange = (filterValue) => {
@@ -115,17 +148,13 @@ const OrdersListView = ({ showTitle = true }) => {
       }
 
       if (response) {
-        loadOrders(); // Garante consistência ao recarregar a lista
+        await loadOrders(); // Atualiza a lista após a ação
         openSnackbar("Ação realizada com sucesso!");
       } else {
-        openSnackbar(
-          "Erro ao realizar ação. Por favor, tente novamente.",
-          true
-        );
+        handleError("Erro ao realizar ação. Por favor, tente novamente.");
       }
     } catch (error) {
-      console.error("Erro ao realizar ação:", error);
-      openSnackbar("Erro ao realizar ação. Por favor, tente novamente.", true);
+      handleError("Erro ao realizar ação. Por favor, tente novamente.");
     } finally {
       setSelectedOrder(null);
       setAlertOpen(false);
@@ -134,7 +163,7 @@ const OrdersListView = ({ showTitle = true }) => {
 
   const handleExtendOrder = async (order, extendData) => {
     if (!extendData.dias || !extendData.novoValor) {
-      openSnackbar("Por favor, insira todos os campos obrigatórios.", true);
+      handleError("Por favor, insira todos os campos obrigatórios.");
       return;
     }
 
@@ -145,20 +174,13 @@ const OrdersListView = ({ showTitle = true }) => {
         abatimento: extendData.abatimento || 0,
       });
       if (response) {
-        loadOrders(); // Recarrega a lista para atualizar os dados
+        await loadOrders(); // Atualiza os dados após a prorrogação
         openSnackbar("Pedido prorrogado com sucesso!");
       } else {
-        openSnackbar(
-          "Erro ao prorrogar pedido. Por favor, tente novamente.",
-          true
-        );
+        handleError("Erro ao prorrogar pedido. Por favor, tente novamente.");
       }
     } catch (error) {
-      console.error("Erro ao prorrogar pedido:", error);
-      openSnackbar(
-        "Erro ao prorrogar pedido. Por favor, tente novamente.",
-        true
-      );
+      handleError("Erro ao prorrogar pedido. Por favor, tente novamente.");
     } finally {
       setSelectedOrder(null);
       setExtendDialogOpen(false);

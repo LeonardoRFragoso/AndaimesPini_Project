@@ -1,203 +1,324 @@
-from database import get_connection
+from database import get_connection, release_connection
 from datetime import datetime
 import logging
 from io import BytesIO
 import pandas as pd
 
+# Configuração de logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Funções de validação e geração de respostas de erro
-def validate_date(date_text):
-    try:
-        datetime.strptime(date_text, '%Y-%m-%d')
-        return True
-    except ValueError:
-        return False
+class Relatorios:
+    @staticmethod
+    def validar_data(data_texto):
+        """
+        Valida se a string fornecida está no formato de data 'YYYY-MM-DD'.
+        
+        Parâmetros:
+            data_texto (str): String representando a data a ser validada.
+        
+        Retorna:
+            bool: True se a data for válida, False caso contrário.
+        """
+        try:
+            datetime.strptime(data_texto, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
 
-def generate_error_response(message):
-    logger.error(message)
-    return {"error": message}
+    @staticmethod
+    def gerar_resposta_erro(mensagem):
+        """
+        Gera uma resposta de erro formatada e registra no log.
+        
+        Parâmetros:
+            mensagem (str): Mensagem de erro a ser registrada.
+        
+        Retorna:
+            dict: Dicionário contendo a chave 'error' com a mensagem fornecida.
+        """
+        logger.error(mensagem)
+        return {"error": mensagem}
 
-def apply_date_filters(query, params, start_date=None, end_date=None, prefix=""):
-    if start_date:
-        if not validate_date(start_date):
-            return generate_error_response(f"Formato de data inválido para '{prefix}start_date'")
-        query += f" AND {prefix}data_inicio >= %s"
-        params.append(start_date)
-    if end_date:
-        if not validate_date(end_date):
-            return generate_error_response(f"Formato de data inválido para '{prefix}end_date'")
-        query += f" AND {prefix}data_fim <= %s"
-        params.append(end_date)
-    return query
+    @staticmethod
+    def aplicar_filtros_de_data(query, params, data_inicio=None, data_fim=None, prefixo=""):
+        """
+        Aplica filtros de data à consulta SQL fornecida.
+        
+        Parâmetros:
+            query (str): Consulta SQL base.
+            params (list): Lista de parâmetros para a consulta.
+            data_inicio (str, optional): Data de início no formato 'YYYY-MM-DD'. Padrão é None.
+            data_fim (str, optional): Data de fim no formato 'YYYY-MM-DD'. Padrão é None.
+            prefixo (str, optional): Prefixo para os campos de data na consulta. Padrão é "".
+        
+        Retorna:
+            tuple: Consulta SQL atualizada e lista de parâmetros, ou uma resposta de erro em caso de falha.
+        """
+        if data_inicio:
+            if not Relatorios.validar_data(data_inicio):
+                return Relatorios.gerar_resposta_erro(f"Formato de data inválido para '{prefixo}data_inicio'")
+            query += f" AND {prefixo}data_inicio >= %s"
+            params.append(data_inicio)
+        if data_fim:
+            if not Relatorios.validar_data(data_fim):
+                return Relatorios.gerar_resposta_erro(f"Formato de data inválido para '{prefixo}data_fim'")
+            query += f" AND {prefixo}data_fim <= %s"
+            params.append(data_fim)
+        return query, params
 
-# Função de visão geral básica sem filtros
-def obter_dados_resumo():
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("""
-                    SELECT COUNT(*) AS total_locacoes,
-                           COALESCE(SUM(valor_total), 0) AS receita_total,
-                           COUNT(DISTINCT cliente_id) AS clientes_unicos,
-                           COUNT(DISTINCT item_id) AS itens_unicos_alugados,
-                           SUM(CASE WHEN status = 'concluido' THEN 1 ELSE 0 END) AS locacoes_concluidas,
-                           SUM(CASE WHEN status != 'concluido' THEN 1 ELSE 0 END) AS locacoes_pendentes
-                    FROM locacoes
-                """)
-                data = cursor.fetchone()
-                return {
-                    "total_locacoes": data[0] or 0,
-                    "receita_total": data[1] or 0,
-                    "clientes_unicos": data[2] or 0,
-                    "itens_unicos_alugados": data[3] or 0,
-                    "locacoes_concluidas": data[4] or 0,
-                    "locacoes_pendentes": data[5] or 0
-                }
-    except Exception as e:
-        return generate_error_response(f"Erro ao obter dados de visão geral: {e}")
-
-# Função de visão geral com filtros de data
-def get_overview_data(start_date=None, end_date=None):
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cursor:
-                params = []
-                query = """
-                    SELECT COUNT(*) AS total_locacoes,
-                           COALESCE(SUM(valor_total), 0) AS receita_total,
-                           COUNT(DISTINCT cliente_id) AS clientes_unicos,
-                           COUNT(DISTINCT item_id) AS itens_unicos_alugados,
-                           SUM(CASE WHEN status = 'concluido' THEN 1 ELSE 0 END) AS locacoes_concluidas,
-                           SUM(CASE WHEN status != 'concluido' THEN 1 ELSE 0 END) AS locacoes_pendentes
-                    FROM locacoes AS l
-                    LEFT JOIN itens_locados AS il ON l.id = il.locacao_id
-                    WHERE 1=1
-                """
-                query = apply_date_filters(query, params, start_date, end_date, prefix="l.")
-                if isinstance(query, dict):
-                    return query
-
-                cursor.execute(query, params)
-                data = cursor.fetchone()
-                return {
-                    "total_locacoes": data[0] or 0,
-                    "receita_total": data[1] or 0,
-                    "clientes_unicos": data[2] or 0,
-                    "itens_unicos_alugados": data[3] or 0,
-                    "locacoes_concluidas": data[4] or 0,
-                    "locacoes_pendentes": data[5] or 0
-                }
-    except Exception as e:
-        return generate_error_response(f"Erro ao obter dados de visão geral: {e}")
-
-# Função para obter o relatório de um cliente específico
-def get_client_report(cliente_id, start_date=None, end_date=None):
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cursor:
-                params = [cliente_id]
-                query = """
-                    SELECT l.id, l.data_inicio, l.data_fim, COALESCE(l.valor_total, 0), l.status,
-                           i.nome_item, i.tipo_item, COALESCE(il.quantidade, 0)
-                    FROM locacoes AS l
-                    JOIN itens_locados AS il ON l.id = il.locacao_id
-                    JOIN inventario AS i ON il.item_id = i.id
-                    WHERE l.cliente_id = %s
-                """
-                query = apply_date_filters(query, params, start_date, end_date, prefix="l.")
-                if isinstance(query, dict):
-                    return query
-
-                cursor.execute(query, params)
-                locacoes = cursor.fetchall()
-                return [
-                    {
-                        "locacao_id": row[0],
-                        "data_inicio": row[1],
-                        "data_fim": row[2],
-                        "valor_total": row[3],
-                        "status": row[4],
-                        "nome_item": row[5],
-                        "tipo_item": row[6],
-                        "quantidade": row[7]
+    @staticmethod
+    def obter_dados_resumo():
+        """
+        Obtém uma visão geral básica sem filtros, incluindo total de locações, receita total,
+        clientes únicos, itens únicos alugados, locações concluídas e pendentes.
+        
+        Retorna:
+            dict: Dicionário contendo os dados de resumo ou uma resposta de erro em caso de falha.
+        """
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    logger.info("Executando consulta para obter dados de visão geral.")
+                    cursor.execute("""
+                        SELECT COUNT(*) AS total_locacoes,
+                               COALESCE(SUM(valor_total), 0) AS receita_total,
+                               COUNT(DISTINCT cliente_id) AS clientes_unicos,
+                               COUNT(DISTINCT item_id) AS itens_unicos_alugados,
+                               SUM(CASE WHEN status = 'concluido' THEN 1 ELSE 0 END) AS locacoes_concluidas,
+                               SUM(CASE WHEN status != 'concluido' THEN 1 ELSE 0 END) AS locacoes_pendentes
+                        FROM locacoes
+                    """)
+                    dados = cursor.fetchone()
+                    resumo = {
+                        "total_locacoes": dados[0] or 0,
+                        "receita_total": float(dados[1]) or 0.0,
+                        "clientes_unicos": dados[2] or 0,
+                        "itens_unicos_alugados": dados[3] or 0,
+                        "locacoes_concluidas": dados[4] or 0,
+                        "locacoes_pendentes": dados[5] or 0
                     }
-                    for row in locacoes
-                ]
-    except Exception as e:
-        return generate_error_response(f"Erro ao obter relatório do cliente {cliente_id}: {e}")
-
-# Função para obter o uso do inventário para um item específico
-def get_inventory_usage(item_id, start_date=None, end_date=None):
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cursor:
-                params = [item_id]
-                query = """
-                    SELECT l.id, l.data_inicio, l.data_fim, l.status,
-                           i.nome_item, i.tipo_item, COALESCE(il.quantidade, 0)
-                    FROM locacoes AS l
-                    JOIN itens_locados AS il ON l.id = il.locacao_id
-                    JOIN inventario AS i ON il.item_id = i.id
-                    WHERE i.id = %s
-                """
-                query = apply_date_filters(query, params, start_date, end_date, prefix="l.")
-                if isinstance(query, dict):
-                    return query
-
-                cursor.execute(query, params)
-                data = cursor.fetchall()
-                return [
-                    {
-                        "locacao_id": row[0],
-                        "data_inicio": row[1],
-                        "data_fim": row[2],
-                        "status": row[3],
-                        "quantidade": row[6]
+                    logger.info("Dados de visão geral obtidos com sucesso.")
+                    return resumo
+        except psycopg2.Error as e:
+            return Relatorios.gerar_resposta_erro(f"Erro ao obter dados de visão geral: {e}")
+    
+    @staticmethod
+    def obter_dados_resumo_com_filtros(data_inicio=None, data_fim=None):
+        """
+        Obtém uma visão geral com filtros de data, incluindo total de locações, receita total,
+        clientes únicos, itens únicos alugados, locações concluídas e pendentes dentro do intervalo de datas.
+        
+        Parâmetros:
+            data_inicio (str, optional): Data de início no formato 'YYYY-MM-DD'. Padrão é None.
+            data_fim (str, optional): Data de fim no formato 'YYYY-MM-DD'. Padrão é None.
+        
+        Retorna:
+            dict: Dicionário contendo os dados de resumo filtrados ou uma resposta de erro em caso de falha.
+        """
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    params = []
+                    query = """
+                        SELECT COUNT(*) AS total_locacoes,
+                               COALESCE(SUM(valor_total), 0) AS receita_total,
+                               COUNT(DISTINCT cliente_id) AS clientes_unicos,
+                               COUNT(DISTINCT item_id) AS itens_unicos_alugados,
+                               SUM(CASE WHEN status = 'concluido' THEN 1 ELSE 0 END) AS locacoes_concluidas,
+                               SUM(CASE WHEN status != 'concluido' THEN 1 ELSE 0 END) AS locacoes_pendentes
+                        FROM locacoes AS l
+                        LEFT JOIN itens_locados AS il ON l.id = il.locacao_id
+                        WHERE 1=1
+                    """
+                    resultado = Relatorios.aplicar_filtros_de_data(query, params, data_inicio, data_fim, prefixo="l.")
+                    if isinstance(resultado, dict):
+                        return resultado
+                    query, params = resultado
+                    logger.info("Executando consulta para obter dados de visão geral com filtros de data.")
+                    cursor.execute(query, params)
+                    dados = cursor.fetchone()
+                    resumo = {
+                        "total_locacoes": dados[0] or 0,
+                        "receita_total": float(dados[1]) or 0.0,
+                        "clientes_unicos": dados[2] or 0,
+                        "itens_unicos_alugados": dados[3] or 0,
+                        "locacoes_concluidas": dados[4] or 0,
+                        "locacoes_pendentes": dados[5] or 0
                     }
-                    for row in data
-                ]
-    except Exception as e:
-        return generate_error_response(f"Erro ao obter uso do inventário para o item {item_id}: {e}")
-
-# Função para obter o relatório de status
-def get_status_report(start_date=None, end_date=None):
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cursor:
-                params = []
-                query = """
-                    SELECT status, COUNT(*) AS total_locacoes, COALESCE(SUM(valor_total), 0) AS receita_total
-                    FROM locacoes 
-                    WHERE 1=1
-                """
-                query = apply_date_filters(query, params, start_date, end_date)
-                if isinstance(query, dict):
-                    return query
-
-                query += " GROUP BY status"
-                cursor.execute(query, params)
-                data = cursor.fetchall()
-                return [{"status": row[0], "total_locacoes": row[1], "receita_total": row[2]} for row in data]
-    except Exception as e:
-        return generate_error_response(f"Erro ao obter relatório de status: {e}")
-
-# Função para obter relatório por ID
-def obter_relatorio_por_id(relatorio_id):
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cursor:
-                query = "SELECT * FROM relatorios WHERE id = %s"
-                cursor.execute(query, (relatorio_id,))
-                resultado = cursor.fetchone()
-                if resultado is None:
-                    return generate_error_response(f"Relatório com ID {relatorio_id} não encontrado.")
-                return {
-                    "id": resultado[0],
-                    "data_inicio": resultado[1],
-                    "data_fim": resultado[2],
-                    "valor_total": resultado[3],
-                    "status": resultado[4]
-                }
-    except Exception as e:
-        return generate_error_response(f"Erro ao obter relatório com ID {relatorio_id}: {e}")
+                    logger.info("Dados de visão geral com filtros obtidos com sucesso.")
+                    return resumo
+        except psycopg2.Error as e:
+            return Relatorios.gerar_resposta_erro(f"Erro ao obter dados de visão geral com filtros: {e}")
+    
+    @staticmethod
+    def obter_relatorio_cliente(cliente_id, data_inicio=None, data_fim=None):
+        """
+        Obtém o relatório de um cliente específico, incluindo detalhes das locações e itens locados.
+        
+        Parâmetros:
+            cliente_id (int): ID do cliente.
+            data_inicio (str, optional): Data de início no formato 'YYYY-MM-DD'. Padrão é None.
+            data_fim (str, optional): Data de fim no formato 'YYYY-MM-DD'. Padrão é None.
+        
+        Retorna:
+            list: Lista de dicionários com detalhes das locações do cliente ou uma resposta de erro em caso de falha.
+        """
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    params = [cliente_id]
+                    query = """
+                        SELECT l.id, l.data_inicio, l.data_fim, COALESCE(l.valor_total, 0) AS valor_total, l.status,
+                               i.nome_item, i.tipo_item, COALESCE(il.quantidade, 0) AS quantidade_locada
+                        FROM locacoes AS l
+                        JOIN itens_locados AS il ON l.id = il.locacao_id
+                        JOIN inventario AS i ON il.item_id = i.id
+                        WHERE l.cliente_id = %s
+                    """
+                    resultado = Relatorios.aplicar_filtros_de_data(query, params, data_inicio, data_fim, prefixo="l.")
+                    if isinstance(resultado, dict):
+                        return resultado
+                    query, params = resultado
+                    logger.info(f"Executando consulta para obter relatório do cliente ID {cliente_id}.")
+                    cursor.execute(query, params)
+                    locacoes = cursor.fetchall()
+                    relatorio = [
+                        {
+                            "locacao_id": locacao[0],
+                            "data_inicio": locacao[1].strftime("%Y-%m-%d") if locacao[1] else None,
+                            "data_fim": locacao[2].strftime("%Y-%m-%d") if locacao[2] else None,
+                            "valor_total": float(locacao[3]),
+                            "status": locacao[4],
+                            "nome_item": locacao[5],
+                            "tipo_item": locacao[6],
+                            "quantidade_locada": locacao[7]
+                        }
+                        for locacao in locacoes
+                    ]
+                    logger.info(f"Relatório do cliente ID {cliente_id} obtido com sucesso. Total de locações: {len(relatorio)}.")
+                    return relatorio
+        except psycopg2.Error as e:
+            return Relatorios.gerar_resposta_erro(f"Erro ao obter relatório do cliente {cliente_id}: {e}")
+    
+    @staticmethod
+    def obter_uso_inventario(item_id, data_inicio=None, data_fim=None):
+        """
+        Obtém o uso do inventário para um item específico, incluindo detalhes das locações em que foi alugado.
+        
+        Parâmetros:
+            item_id (int): ID do item no inventário.
+            data_inicio (str, optional): Data de início no formato 'YYYY-MM-DD'. Padrão é None.
+            data_fim (str, optional): Data de fim no formato 'YYYY-MM-DD'. Padrão é None.
+        
+        Retorna:
+            list: Lista de dicionários com detalhes das locações onde o item foi alugado ou uma resposta de erro em caso de falha.
+        """
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    params = [item_id]
+                    query = """
+                        SELECT l.id, l.data_inicio, l.data_fim, l.status,
+                               i.nome_item, i.tipo_item, COALESCE(il.quantidade, 0) AS quantidade_locada
+                        FROM locacoes AS l
+                        JOIN itens_locados AS il ON l.id = il.locacao_id
+                        JOIN inventario AS i ON il.item_id = i.id
+                        WHERE i.id = %s
+                    """
+                    resultado = Relatorios.aplicar_filtros_de_data(query, params, data_inicio, data_fim, prefixo="l.")
+                    if isinstance(resultado, dict):
+                        return resultado
+                    query, params = resultado
+                    logger.info(f"Executando consulta para obter uso do inventário para item ID {item_id}.")
+                    cursor.execute(query, params)
+                    dados = cursor.fetchall()
+                    uso_inventario = [
+                        {
+                            "locacao_id": dado[0],
+                            "data_inicio": dado[1].strftime("%Y-%m-%d") if dado[1] else None,
+                            "data_fim": dado[2].strftime("%Y-%m-%d") if dado[2] else None,
+                            "status": dado[3],
+                            "nome_item": dado[4],
+                            "tipo_item": dado[5],
+                            "quantidade_locada": dado[6]
+                        }
+                        for dado in dados
+                    ]
+                    logger.info(f"Uso do inventário para item ID {item_id} obtido com sucesso. Total de locações: {len(uso_inventario)}.")
+                    return uso_inventario
+        except psycopg2.Error as e:
+            return Relatorios.gerar_resposta_erro(f"Erro ao obter uso do inventário para o item {item_id}: {e}")
+    
+    @staticmethod
+    def obter_relatorio_status(data_inicio=None, data_fim=None):
+        """
+        Obtém o relatório de status das locações, incluindo total de locações e receita total por status.
+        
+        Parâmetros:
+            data_inicio (str, optional): Data de início no formato 'YYYY-MM-DD'. Padrão é None.
+            data_fim (str, optional): Data de fim no formato 'YYYY-MM-DD'. Padrão é None.
+        
+        Retorna:
+            list: Lista de dicionários com detalhes do relatório de status ou uma resposta de erro em caso de falha.
+        """
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    params = []
+                    query = """
+                        SELECT status, COUNT(*) AS total_locacoes, COALESCE(SUM(valor_total), 0) AS receita_total
+                        FROM locacoes 
+                        WHERE 1=1
+                    """
+                    resultado = Relatorios.aplicar_filtros_de_data(query, params, data_inicio, data_fim)
+                    if isinstance(resultado, dict):
+                        return resultado
+                    query, params = resultado
+                    query += " GROUP BY status"
+                    logger.info("Executando consulta para obter relatório de status das locações.")
+                    cursor.execute(query, params)
+                    dados = cursor.fetchall()
+                    relatorio_status = [
+                        {
+                            "status": dado[0],
+                            "total_locacoes": dado[1],
+                            "receita_total": float(dado[2])
+                        }
+                        for dado in dados
+                    ]
+                    logger.info(f"Relatório de status obtido com sucesso. Total de status diferentes: {len(relatorio_status)}.")
+                    return relatorio_status
+        except psycopg2.Error as e:
+            return Relatorios.gerar_resposta_erro(f"Erro ao obter relatório de status: {e}")
+    
+    @staticmethod
+    def obter_relatorio_por_id(relatorio_id):
+        """
+        Obtém o relatório de um ID específico da tabela 'relatorios'.
+        
+        Parâmetros:
+            relatorio_id (int): ID do relatório a ser buscado.
+        
+        Retorna:
+            dict: Dicionário com detalhes do relatório ou uma resposta de erro em caso de falha.
+        """
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cursor:
+                    logger.info(f"Executando consulta para obter relatório com ID {relatorio_id}.")
+                    cursor.execute("SELECT * FROM relatorios WHERE id = %s", (relatorio_id,))
+                    resultado = cursor.fetchone()
+                    if resultado is None:
+                        return Relatorios.gerar_resposta_erro(f"Relatório com ID {relatorio_id} não encontrado.")
+                    relatorio = {
+                        "id": resultado[0],
+                        "data_inicio": resultado[1].strftime("%Y-%m-%d") if resultado[1] else None,
+                        "data_fim": resultado[2].strftime("%Y-%m-%d") if resultado[2] else None,
+                        "valor_total": float(resultado[3]) if resultado[3] else 0.0,
+                        "status": resultado[4]
+                    }
+                    logger.info(f"Relatório com ID {relatorio_id} obtido com sucesso.")
+                    return relatorio
+        except psycopg2.Error as e:
+            return Relatorios.gerar_resposta_erro(f"Erro ao obter relatório com ID {relatorio_id}: {e}")

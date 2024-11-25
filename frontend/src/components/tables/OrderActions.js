@@ -7,6 +7,7 @@ import DetailsButton from "../common/DetailsButton";
 import ExtendButton from "../common/ExtendButton";
 import ReturnButton from "../common/ReturnButton";
 
+// Estilos para hover nos botões
 const hoverStyles = {
   details: {
     backgroundColor: "#e3f2fd",
@@ -30,6 +31,13 @@ const hoverStyles = {
   },
 };
 
+// Função para normalizar o status
+const normalizeStatus = (status) =>
+  status
+    ?.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
 const OrderActions = ({
   order,
   onOpenDetails,
@@ -38,8 +46,8 @@ const OrderActions = ({
   onReactivateOrder,
   onCompleteOrder,
 }) => {
-  // Determina se o pedido está concluído
-  const isConcluded = order.status?.toLowerCase() === "concluido";
+  // Normaliza o status do pedido para evitar problemas de formatação
+  const normalizedStatus = normalizeStatus(order.status);
 
   return (
     <div
@@ -48,10 +56,10 @@ const OrderActions = ({
         gap: "10px",
         justifyContent: "center",
         alignItems: "center",
-        flexWrap: "wrap", // Exibição responsiva em telas menores
+        flexWrap: "wrap", // Exibição responsiva para dispositivos menores
       }}
     >
-      {/* Botão para abrir os detalhes do pedido */}
+      {/* Botão para abrir os detalhes do pedido (sempre visível) */}
       <DetailsButton
         onClick={() => onOpenDetails(order)}
         aria-label={`Ver detalhes do pedido ${order.id}`}
@@ -61,8 +69,9 @@ const OrderActions = ({
         }}
       />
 
-      {isConcluded ? (
-        // Botão para reativar pedido concluído
+      {/* Renderização condicional dos botões baseados no status */}
+      {normalizedStatus === "concluido" ? (
+        // Botão para reativar o pedido se estiver concluído
         <Button
           onClick={() => onReactivateOrder(order.id)}
           color="warning"
@@ -81,7 +90,7 @@ const OrderActions = ({
         </Button>
       ) : (
         <>
-          {/* Botão para confirmar devolução */}
+          {/* Botão para confirmar a devolução */}
           <ReturnButton
             onClick={() => onConfirmReturn(order.id)}
             aria-label={`Confirmar devolução do pedido ${order.id}`}
@@ -99,7 +108,7 @@ const OrderActions = ({
               "&:hover": hoverStyles.extend,
             }}
           />
-          {/* Botão para concluir pedido antecipadamente */}
+          {/* Botão para concluir antecipadamente */}
           <CompleteButton
             onClick={() => onCompleteOrder(order)}
             aria-label={`Concluir antecipadamente o pedido ${order.id}`}
@@ -117,8 +126,8 @@ const OrderActions = ({
 // Validação de propriedades (PropTypes)
 OrderActions.propTypes = {
   order: PropTypes.shape({
-    id: PropTypes.number.isRequired, // ID do pedido é obrigatório
-    status: PropTypes.string.isRequired, // Status do pedido é obrigatório
+    id: PropTypes.number.isRequired, // ID do pedido
+    status: PropTypes.string.isRequired, // Status do pedido
   }).isRequired,
   onOpenDetails: PropTypes.func.isRequired, // Função para abrir detalhes
   onConfirmReturn: PropTypes.func.isRequired, // Função para confirmar devolução

@@ -1,84 +1,109 @@
 from flask import Blueprint, request, jsonify, send_file
-from models.report import (
-    obter_dados_resumo,       # Função para obter dados de visão geral
-    obter_relatorio_por_id,   # Função para obter relatório por ID
-    get_overview_data,        # Função para obter dados de visão geral com filtros
-    get_client_report,        # Função para relatório detalhado de locações de um cliente
-    get_inventory_usage,      # Função para obter uso do inventário
-    get_status_report         # Função para obter dados de status e gráficos
-)
-from io import BytesIO  # Para o tratamento de gráficos
+from models.report import Relatorios
+from io import BytesIO
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/reports")
 
 # Endpoint de visão geral com indicadores principais e filtros de data
 @reports_bp.route("/overview", methods=["GET"])
 def overview_report():
+    """
+    Retorna um resumo geral das locações, com suporte a filtros de data.
+    """
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
-    data = get_overview_data(start_date, end_date)  # Ajustado para usar get_overview_data com filtros
 
-    if "error" in data:
-        return jsonify(data), 400
+    try:
+        data = Relatorios.obter_dados_resumo_com_filtros(start_date, end_date)
 
-    return jsonify(data), 200
+        if "error" in data:
+            return jsonify(data), 400
 
-# Endpoint de relatório de locações para um cliente específico
+        return jsonify(data), 200
+    except Exception as ex:
+        return jsonify({"error": f"Erro ao gerar relatório de visão geral: {str(ex)}"}), 500
+
+# Endpoint de relatório detalhado de locações de um cliente específico
 @reports_bp.route("/client/<int:cliente_id>", methods=["GET"])
 def client_report(cliente_id):
+    """
+    Retorna um relatório detalhado de locações associadas a um cliente.
+    """
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
-    data = get_client_report(cliente_id, start_date, end_date)
 
-    if "error" in data:
-        return jsonify(data), 400
+    try:
+        data = Relatorios.obter_relatorio_cliente(cliente_id, start_date, end_date)
 
-    return jsonify(data), 200
+        if "error" in data:
+            return jsonify(data), 400
+
+        return jsonify(data), 200
+    except Exception as ex:
+        return jsonify({"error": f"Erro ao gerar relatório do cliente: {str(ex)}"}), 500
 
 # Endpoint de uso do inventário para um item específico
 @reports_bp.route("/inventory/<int:item_id>", methods=["GET"])
 def inventory_usage(item_id):
+    """
+    Retorna o uso de um item do inventário em todas as locações.
+    """
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
-    data = get_inventory_usage(item_id, start_date, end_date)
 
-    if "error" in data:
-        return jsonify(data), 400
+    try:
+        data = Relatorios.obter_uso_inventario(item_id, start_date, end_date)
 
-    return jsonify(data), 200
+        if "error" in data:
+            return jsonify(data), 400
+
+        return jsonify(data), 200
+    except Exception as ex:
+        return jsonify({"error": f"Erro ao gerar uso do inventário: {str(ex)}"}), 500
 
 # Endpoint de relatório de status com opções de exportação
 @reports_bp.route("/status", methods=["GET"])
 def status_report():
+    """
+    Retorna o status das locações, podendo ser exportado como Excel ou gráfico.
+    """
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
     export_format = request.args.get("export_format")
 
-    data = get_status_report(start_date, end_date)  # Chamada ajustada para filtros de data
+    try:
+        data = Relatorios.obter_relatorio_status(start_date, end_date)
 
-    # Verifica por erros antes de responder
-    if "error" in data:
-        return jsonify(data), 400
+        if "error" in data:
+            return jsonify(data), 400
 
-    # Retorna arquivo Excel para download
-    if export_format == "excel":
-        output, filename = export_report_to_excel(data)
-        return send_file(output, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        # Retorna arquivo Excel para download
+        if export_format == "excel":
+            # Função export_report_to_excel não está definida
+            return jsonify({"error": "Exportação para Excel não implementada"}), 501
 
-    # Retorna gráfico gerado
-    if export_format == "chart":
-        chart_output = generate_summary_chart(data)
-        return send_file(chart_output, mimetype="image/png")
+        # Retorna gráfico gerado
+        if export_format == "chart":
+            # Função generate_summary_chart não está definida
+            return jsonify({"error": "Geração de gráfico não implementada"}), 501
 
-    # Retorna dados em JSON como resposta padrão
-    return jsonify(data), 200
+        # Retorna dados em JSON como resposta padrão
+        return jsonify(data), 200
+    except Exception as ex:
+        return jsonify({"error": f"Erro ao gerar relatório de status: {str(ex)}"}), 500
 
 # Endpoint para obter um relatório específico pelo ID
 @reports_bp.route("/report/<int:relatorio_id>", methods=["GET"])
 def report_by_id(relatorio_id):
-    data = obter_relatorio_por_id(relatorio_id)
+    """
+    Retorna os detalhes de um relatório específico pelo ID.
+    """
+    try:
+        data = Relatorios.obter_relatorio_por_id(relatorio_id)
 
-    if "error" in data:
-        return jsonify(data), 400
+        if "error" in data:
+            return jsonify(data), 400
 
-    return jsonify(data), 200
+        return jsonify(data), 200
+    except Exception as ex:
+        return jsonify({"error": f"Erro ao obter relatório pelo ID: {str(ex)}"}), 500

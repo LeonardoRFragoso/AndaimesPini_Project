@@ -19,7 +19,7 @@ def get_locacoes():
     Lista todas as locações com detalhes do cliente e itens locados.
     """
     try:
-        locacoes = Locacao.get_all_detailed()
+        locacoes = Locacao.obter_todas_detalhadas()
         if not locacoes:
             logger.info("Nenhuma locação encontrada.")
             return jsonify({"message": "Nenhuma locação encontrada."}), 200
@@ -40,7 +40,7 @@ def get_locacao_detalhes(locacao_id):
     Obtém detalhes de uma locação específica.
     """
     try:
-        locacao = Locacao.get_detailed_by_id(locacao_id)
+        locacao = Locacao.obter_detalhes_por_id(locacao_id)
         if not locacao:
             logger.warning(f"Locação ID {locacao_id} não encontrada.")
             return jsonify({"error": "Locação não encontrada"}), 404
@@ -61,7 +61,7 @@ def confirmar_devolucao(locacao_id):
     Confirma a devolução e atualiza o status da locação para 'concluido'.
     """
     try:
-        locacao = Locacao.get_detailed_by_id(locacao_id)
+        locacao = Locacao.obter_detalhes_por_id(locacao_id)
         if not locacao:
             logger.warning(f"Locação ID {locacao_id} não encontrada.")
             return jsonify({"error": "Locação não encontrada"}), 404
@@ -75,7 +75,7 @@ def confirmar_devolucao(locacao_id):
             return jsonify({"error": "Somente locações ativas podem ser devolvidas."}), 400
 
         # Atualizar o status para "concluido"
-        status_atualizado = Locacao.update_status(locacao_id, "concluido")
+        status_atualizado = Locacao.atualizar_status(locacao_id, "concluido")
         if not status_atualizado:
             logger.error(f"Erro ao atualizar status da locação ID {locacao_id}.")
             return jsonify({"error": "Erro ao atualizar status da locação."}), 500
@@ -113,17 +113,42 @@ def criar_locacao():
     """
     try:
         dados = request.get_json()
-        cliente_id = dados.get("cliente_id")
-        data_inicio = dados.get("data_inicio")
-        data_fim = dados.get("data_fim")
-        valor_total = dados.get("valor_total")
-        valor_pago_entrega = dados.get("valor_pago_entrega")
-        valor_receber_final = dados.get("valor_receber_final")
+        if not dados:
+            logger.error("Nenhum dado fornecido para criar locação.")
+            return jsonify({"error": "Nenhum dado fornecido."}), 400
 
-        if not (cliente_id and data_inicio and data_fim and valor_total):
-            return jsonify({"error": "Parâmetros insuficientes para criar locação."}), 400
+        # Log para verificar o payload recebido
+        logger.debug(f"Dados recebidos para criação de locação: {dados}")
 
-        locacao_id = Locacao.create(cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final)
+        # Verificar campos obrigatórios
+        campos_obrigatorios = [
+            "data_inicio", "data_fim", "valor_total", "itens",
+            "nome_cliente", "endereco_cliente", "telefone_cliente", "numero_nota"
+        ]
+        for campo in campos_obrigatorios:
+            if not dados.get(campo):
+                logger.warning(f"Parâmetro obrigatório ausente: {campo}")
+                return jsonify({"error": f"Parâmetro obrigatório ausente: {campo}"}), 400
+
+        # Garantir valores padrão para campos opcionais
+        dados["valor_pago_entrega"] = dados.get("valor_pago_entrega", 0)
+        dados["valor_receber_final"] = dados.get("valor_receber_final", dados["valor_total"] - dados["valor_pago_entrega"])
+
+        # Criar a locação
+        locacao_id = Locacao.criar_locacao(
+            nome_cliente=dados["nome_cliente"],
+            endereco_cliente=dados["endereco_cliente"],
+            telefone_cliente=dados["telefone_cliente"],
+            data_inicio=dados["data_inicio"],
+            data_fim=dados["data_fim"],
+            valor_total=dados["valor_total"],
+            valor_pago_entrega=dados["valor_pago_entrega"],
+            valor_receber_final=dados["valor_receber_final"],
+            numero_nota=dados["numero_nota"],
+            status=dados.get("status", "ativo"),
+            itens=dados["itens"]
+        )
+
         if not locacao_id:
             logger.error("Erro ao criar locação.")
             return jsonify({"error": "Erro ao criar locação."}), 500
@@ -133,9 +158,12 @@ def criar_locacao():
     except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados ao criar locação: {e}")
         return handle_database_error(e)
+    except ValueError as ve:
+        logger.error(f"Erro de validação ao criar locação: {ve}")
+        return jsonify({"error": str(ve)}), 400
     except Exception as ex:
         logger.error(f"Erro inesperado ao criar locação: {ex}")
-        return jsonify({"error": "Erro ao criar locação."}), 500
+        return jsonify({"error": "Erro inesperado ao criar locação."}), 500
 
 
 @locacoes_routes.route('/<int:locacao_id>/reativar', methods=['PATCH'])
@@ -144,7 +172,7 @@ def reativar_locacao(locacao_id):
     Rota para reativar uma locação.
     """
     try:
-        locacao = Locacao.get_detailed_by_id(locacao_id)
+        locacao = Locacao.obter_detalhes_por_id(locacao_id)
         if not locacao:
             logger.warning(f"Locação ID {locacao_id} não encontrada.")
             return jsonify({"error": "Locação não encontrada"}), 404
@@ -153,8 +181,8 @@ def reativar_locacao(locacao_id):
             logger.info(f"Locação ID {locacao_id} já está ativa.")
             return jsonify({"message": "A locação já está ativa."}), 200
 
-        status_atualizado = Locacao.update_status(locacao_id, "ativo")
-        if not status_atualizado:
+        sucesso = Locacao.atualizar_status(locacao_id, "ativo")
+        if not sucesso:
             logger.error(f"Erro ao reativar locação ID {locacao_id}.")
             return jsonify({"error": "Erro ao reativar locação."}), 500
 
@@ -181,7 +209,13 @@ def atualizar_status_locacao(locacao_id):
             logger.warning("Status não fornecido para atualização.")
             return jsonify({"error": "O status é obrigatório para atualizar a locação."}), 400
 
-        sucesso = Locacao.update_status(locacao_id, novo_status)
+        # Validar o novo status (opcional)
+        statuses_validos = ["ativo", "concluido", "pendente"]
+        if novo_status not in statuses_validos:
+            logger.warning(f"Status inválido fornecido: {novo_status}")
+            return jsonify({"error": f"Status inválido. Os status válidos são: {', '.join(statuses_validos)}."}), 400
+
+        sucesso = Locacao.atualizar_status(locacao_id, novo_status)
         if not sucesso:
             logger.error(f"Erro ao atualizar status da locação ID {locacao_id}.")
             return jsonify({"error": "Erro ao atualizar status da locação."}), 500

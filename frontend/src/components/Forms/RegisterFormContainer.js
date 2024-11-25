@@ -9,38 +9,31 @@ const RegisterFormContainer = () => {
   const [isFetched, setIsFetched] = useState(false);
   const [novaLocacao, setNovaLocacao] = useState({
     numero_nota: "",
-    cliente_info: {
-      nome: "",
-      endereco: "",
-      referencia: "",
-      referencia_rapida: "",
-      telefone: "",
-    },
+    nome_cliente: "",
+    endereco_cliente: "",
+    telefone_cliente: "",
     data_inicio: "",
     dias_combinados: 1,
     data_fim: "",
     valor_total: 0,
     valor_pago_entrega: 0,
     valor_receber_final: 0,
+    status: "ativo",
     itens: [],
   });
 
-  // Estados para prorrogação
-  const [diasAdicionais, setDiasAdicionais] = useState(0);
-  const [novoValorTotal, setNovoValorTotal] = useState(0);
-  const [abatimento, setAbatimento] = useState(0);
-
-  // Função para carregar clientes
+  // Função para buscar clientes
   const fetchClientes = useCallback(async () => {
     try {
       const response = await axios.get("http://127.0.0.1:5000/clientes");
       setClientes(response.data);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
+      alert("Erro ao buscar clientes. Tente novamente mais tarde.");
     }
   }, []);
 
-  // Função para carregar o inventário e configurar categorias dinamicamente
+  // Função para buscar inventário disponível
   const fetchInventario = useCallback(async () => {
     if (isFetched) return;
     setIsFetched(true);
@@ -50,8 +43,6 @@ const RegisterFormContainer = () => {
         "http://127.0.0.1:5000/inventario/disponiveis"
       );
       if (response.data) {
-        console.log("Dados de inventário recebidos do backend:", response.data);
-
         const estoqueMap = response.data.reduce((acc, item) => {
           acc[item.nome_item] = item.quantidade_disponivel || 0;
           return acc;
@@ -69,40 +60,45 @@ const RegisterFormContainer = () => {
       }
     } catch (error) {
       console.error("Erro ao buscar inventário:", error);
+      alert("Erro ao buscar inventário. Tente novamente mais tarde.");
     }
   }, [isFetched]);
 
+  // Hooks para buscar dados ao montar o componente
   useEffect(() => {
     fetchClientes();
     fetchInventario();
   }, [fetchClientes, fetchInventario]);
 
+  // Hook para atualizar o valor_receber_final automaticamente
   useEffect(() => {
     setNovaLocacao((prev) => ({
       ...prev,
-      valor_receber_final: prev.valor_total - prev.valor_pago_entrega,
+      valor_receber_final: parseFloat(
+        (
+          parseFloat(prev.valor_total || 0) -
+          parseFloat(prev.valor_pago_entrega || 0)
+        ).toFixed(2)
+      ),
     }));
   }, [novaLocacao.valor_total, novaLocacao.valor_pago_entrega]);
 
+  // Método handleChange para tratar campos planos
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name.startsWith("cliente_info.")) {
-      const key = name.split(".")[1];
-      setNovaLocacao((prev) => ({
-        ...prev,
-        cliente_info: {
-          ...prev.cliente_info,
-          [key]: value,
-        },
-      }));
-    } else {
-      setNovaLocacao((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+
+    const numericFields = [
+      "valor_total",
+      "valor_pago_entrega",
+      "dias_combinados",
+    ];
+    setNovaLocacao((prev) => ({
+      ...prev,
+      [name]: numericFields.includes(name) ? parseFloat(value) || 0 : value,
+    }));
   };
 
+  // Método para atualizar a data de fim com base nos dias combinados
   const updateDataFim = (dataInicio, diasCombinados) => {
     if (dataInicio && diasCombinados >= 0) {
       const inicio = new Date(dataInicio);
@@ -115,6 +111,7 @@ const RegisterFormContainer = () => {
     }
   };
 
+  // Método para lidar com a mudança nos dias combinados
   const handleDiasCombinadosChange = (e) => {
     const dias = parseInt(e.target.value, 10) || 0;
     setNovaLocacao((prev) => ({
@@ -124,11 +121,65 @@ const RegisterFormContainer = () => {
     updateDataFim(novaLocacao.data_inicio, dias);
   };
 
+  // Função de validação dos dados da locação
+  const validarLocacaoData = () => {
+    const {
+      data_inicio,
+      data_fim,
+      valor_total,
+      valor_pago_entrega,
+      valor_receber_final,
+      nome_cliente,
+      endereco_cliente,
+      telefone_cliente,
+    } = novaLocacao;
+
+    if (!data_inicio) {
+      return "A data de início é obrigatória.";
+    }
+
+    if (!data_fim) {
+      return "A data de fim é obrigatória.";
+    }
+
+    if (new Date(data_inicio) >= new Date(data_fim)) {
+      return "A data de início deve ser anterior à data de fim.";
+    }
+
+    const valorTotal = parseFloat(valor_total || 0);
+    const valorPagoEntrega = parseFloat(valor_pago_entrega || 0);
+    const valorReceberFinal = parseFloat(valor_receber_final || 0);
+
+    if (valorTotal < 0 || valorPagoEntrega < 0 || valorReceberFinal < 0) {
+      return "Os valores financeiros não podem ser negativos.";
+    }
+
+    if (valorPagoEntrega > valorTotal) {
+      return "O valor pago na entrega não pode exceder o valor total.";
+    }
+
+    if (!nome_cliente.trim()) {
+      return "O nome do cliente é obrigatório.";
+    }
+
+    if (!endereco_cliente.trim()) {
+      return "O endereço do cliente é obrigatório.";
+    }
+
+    if (!telefone_cliente.trim()) {
+      return "O telefone do cliente é obrigatório.";
+    }
+
+    return null;
+  };
+
+  // Método handleSubmit ajustado para incluir os campos do cliente
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!novaLocacao.data_inicio || !novaLocacao.cliente_info.nome) {
-      alert("Preencha a data de início e as informações do cliente.");
+    const erroValidacao = validarLocacaoData();
+    if (erroValidacao) {
+      alert(erroValidacao);
       return;
     }
 
@@ -149,11 +200,17 @@ const RegisterFormContainer = () => {
     }
 
     const locacaoData = {
-      ...novaLocacao,
+      numero_nota: novaLocacao.numero_nota,
+      nome_cliente: novaLocacao.nome_cliente,
+      endereco_cliente: novaLocacao.endereco_cliente,
+      telefone_cliente: novaLocacao.telefone_cliente,
+      data_inicio: novaLocacao.data_inicio,
       dias_combinados: parseInt(novaLocacao.dias_combinados, 10),
+      data_fim: novaLocacao.data_fim,
       valor_total: parseFloat(novaLocacao.valor_total),
       valor_pago_entrega: parseFloat(novaLocacao.valor_pago_entrega),
       valor_receber_final: parseFloat(novaLocacao.valor_receber_final),
+      status: novaLocacao.status,
       itens: novaLocacao.itens.map((item) => ({
         modelo: item.modelo,
         quantidade: parseInt(item.quantidade, 10),
@@ -161,14 +218,17 @@ const RegisterFormContainer = () => {
       })),
     };
 
-    console.log("Enviando dados de locação:", locacaoData);
-
     try {
       const response = await axios.post(
-        "http://127.0.0.1:5000/locacoes",
-        locacaoData
+        "http://127.0.0.1:5000/locacoes/criar",
+        locacaoData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
-      if (response.status === 201) {
+      if (response.status === 201 || response.status === 200) {
         alert("Locação registrada com sucesso!");
 
         setIsFetched(false);
@@ -176,58 +236,30 @@ const RegisterFormContainer = () => {
 
         setNovaLocacao({
           numero_nota: "",
-          cliente_info: {
-            nome: "",
-            endereco: "",
-            referencia: "",
-            referencia_rapida: "",
-            telefone: "",
-          },
+          nome_cliente: "",
+          endereco_cliente: "",
+          telefone_cliente: "",
           data_inicio: "",
           dias_combinados: 1,
           data_fim: "",
           valor_total: 0,
           valor_pago_entrega: 0,
           valor_receber_final: 0,
+          status: "ativo",
           itens: [],
         });
       }
     } catch (error) {
       console.error("Erro ao registrar locação:", error.response || error);
-      if (error.response && error.response.data) {
+      if (error.response && error.response.data && error.response.data.error) {
         alert(`Erro ao registrar locação: ${error.response.data.error}`);
       } else {
-        alert("Erro ao registrar locação");
+        alert("Erro ao registrar locação. Tente novamente mais tarde.");
       }
     }
   };
 
-  // Função para prorrogar a locação
-  const extendRental = async (locacaoId) => {
-    try {
-      const response = await axios.put(
-        `http://127.0.0.1:5000/locacoes/${locacaoId}/prorrogar`, // Garantido "prorrogar"
-        {
-          dias_adicionais: diasAdicionais,
-          novo_valor_total: novoValorTotal,
-          abatimento,
-        }
-      );
-      if (response.status === 200) {
-        alert("Locação prorrogada com sucesso!");
-        setIsFetched(false);
-        await fetchInventario();
-      }
-    } catch (error) {
-      console.error("Erro ao prorrogar locação:", error.response || error);
-      if (error.response && error.response.data) {
-        alert(`Erro ao prorrogar locação: ${error.response.data.error}`);
-      } else {
-        alert("Erro ao prorrogar locação");
-      }
-    }
-  };
-
+  // Método para adicionar itens à locação
   const addItem = (category, modelo, quantidade, unidade = "peças") => {
     if (!category || !modelo || !categorias[category]?.includes(modelo)) {
       alert("Selecione uma categoria e um modelo válidos.");
@@ -243,7 +275,6 @@ const RegisterFormContainer = () => {
           { modelo, quantidade, unidade },
         ],
       }));
-      console.log("Item adicionado:", { modelo, quantidade, unidade });
     } else if (quantidade > quantidadeEstoque) {
       alert(
         `Quantidade solicitada para ${modelo} excede o estoque disponível (${quantidadeEstoque} unidades).`
@@ -262,13 +293,7 @@ const RegisterFormContainer = () => {
       CATEGORIES={categorias}
       estoqueDisponivel={estoqueDisponivel}
       handleDiasCombinadosChange={handleDiasCombinadosChange}
-      diasAdicionais={diasAdicionais}
-      setDiasAdicionais={setDiasAdicionais}
-      novoValorTotal={novoValorTotal}
-      setNovoValorTotal={setNovoValorTotal}
-      abatimento={abatimento}
-      setAbatimento={setAbatimento}
-      handleExtendRental={extendRental}
+      clientes={clientes}
     />
   );
 };

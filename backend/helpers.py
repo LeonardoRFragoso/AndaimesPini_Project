@@ -12,18 +12,19 @@ def handle_database_error(error):
     logger.error(f"Erro no banco de dados: {error}")
     return jsonify({"error": "Erro no banco de dados"}), 500
 
-def atualizar_estoque(itens):
+def atualizar_estoque(item_id, quantidade):
     """
-    Atualiza o estoque ao registrar devoluções ou ajustes.
-    :param itens: Lista de itens a serem atualizados no estoque.
+    Atualiza o estoque para um item específico.
+    :param item_id: ID do item a ser atualizado.
+    :param quantidade: Quantidade a ser ajustada no estoque (pode ser negativa).
     """
     try:
-        for item in itens:
-            # Simulação de lógica para atualizar o estoque
-            # Aqui você pode usar a lógica para incrementar a quantidade disponível
-            logger.info(f"Estoque atualizado para o item {item['id']}. Quantidade adicionada: {item['quantidade']}")
+        # Simulação de lógica para atualizar o estoque
+        logger.info(f"Estoque do item {item_id} ajustado em {quantidade} unidades.")
+        # Aqui pode ser adicionada a lógica real de atualização no banco de dados
+        return True
     except Exception as e:
-        logger.error(f"Erro ao atualizar estoque: {e}")
+        logger.error(f"Erro ao atualizar estoque para o item {item_id}: {e}")
         raise e
 
 def restaurar_estoque(itens):
@@ -34,8 +35,8 @@ def restaurar_estoque(itens):
     try:
         for item in itens:
             # Simulação de lógica para restaurar o estoque
-            # Aqui você pode usar a lógica para decrementar a quantidade disponível
             logger.info(f"Estoque restaurado para o item {item['id']}. Quantidade removida: {item['quantidade']}")
+            # Aqui pode ser adicionada a lógica real de restauração no banco de dados
     except Exception as e:
         logger.error(f"Erro ao restaurar estoque: {e}")
         raise e

@@ -29,6 +29,13 @@ const statusChipConfig = {
   },
 };
 
+// Função para normalizar o status
+const normalizeStatus = (status) =>
+  status
+    ?.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
 // Função para formatação de valores monetários
 const formatCurrency = (value) => {
   const formattedValue = value !== undefined && value !== null ? value : 0;
@@ -52,14 +59,15 @@ const OrderTableRow = React.memo(
     onReactivateOrder,
     onCompleteOrder,
   }) => {
+    const normalizedStatus = normalizeStatus(order.status);
+
     const currentStatus =
-      statusChipConfig[order.status?.toLowerCase()] ||
-      statusChipConfig.indefinido;
+      statusChipConfig[normalizedStatus] || statusChipConfig.indefinido;
 
     // Lógica para exibir "Data de Término"
     const terminoMessage = formatDate(
       order.data_fim,
-      order.status?.toLowerCase() === "ativo"
+      normalizedStatus === "ativo"
         ? "Ainda Locado com o Cliente"
         : "Data Indisponível"
     );
@@ -67,7 +75,7 @@ const OrderTableRow = React.memo(
     // Lógica para exibir "Data de Devolução"
     const devolucaoMessage = formatDate(
       order.data_devolucao,
-      order.status?.toLowerCase() === "concluido"
+      normalizedStatus === "concluido"
         ? "Devolução Confirmada"
         : "Ainda Locado com o Cliente"
     );
@@ -141,11 +149,11 @@ OrderTableRow.propTypes = {
     data_prorrogacao: PropTypes.string,
     status: PropTypes.string.isRequired,
   }).isRequired,
-  onOpenDetails: PropTypes.func.isRequired,
-  onConfirmReturn: PropTypes.func.isRequired,
-  onExtendOrder: PropTypes.func.isRequired,
-  onReactivateOrder: PropTypes.func.isRequired,
-  onCompleteOrder: PropTypes.func.isRequired,
+  onOpenDetails: PropTypes.func.isRequired, // Função para abrir detalhes
+  onConfirmReturn: PropTypes.func.isRequired, // Função para confirmar devolução
+  onExtendOrder: PropTypes.func.isRequired, // Função para prorrogar pedido
+  onReactivateOrder: PropTypes.func.isRequired, // Função para reativar pedido
+  onCompleteOrder: PropTypes.func.isRequired, // Função para concluir antecipadamente
 };
 
 export default OrderTableRow;
