@@ -5,6 +5,9 @@ from datetime import datetime
 import psycopg2
 import logging
 
+# Definindo a lista de status válidos
+STATUSES_VALIDOS = ["ativo", "concluido", "pendente", "concluído"]
+
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -209,11 +212,10 @@ def atualizar_status_locacao(locacao_id):
             logger.warning("Status não fornecido para atualização.")
             return jsonify({"error": "O status é obrigatório para atualizar a locação."}), 400
 
-        # Validar o novo status (opcional)
-        statuses_validos = ["ativo", "concluido", "pendente"]
-        if novo_status not in statuses_validos:
+        # Validar o novo status
+        if novo_status not in STATUSES_VALIDOS:
             logger.warning(f"Status inválido fornecido: {novo_status}")
-            return jsonify({"error": f"Status inválido. Os status válidos são: {', '.join(statuses_validos)}."}), 400
+            return jsonify({"error": f"Status inválido. Os status válidos são: {', '.join(STATUSES_VALIDOS)}."}), 400
 
         sucesso = Locacao.atualizar_status(locacao_id, novo_status)
         if not sucesso:

@@ -16,6 +16,16 @@ class Locacao:
     def validar_dados_locacao(data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final):
         """
         Valida os dados de entrada para criação de uma locação.
+        
+        Parâmetros:
+            data_inicio (str): Data de início da locação no formato 'YYYY-MM-DD'.
+            data_fim (str): Data de término da locação no formato 'YYYY-MM-DD'.
+            valor_total (float): Valor total da locação.
+            valor_pago_entrega (float): Valor pago no momento da entrega.
+            valor_receber_final (float): Valor a ser pago ao final da locação.
+        
+        Levanta:
+            ValueError: Se qualquer um dos dados fornecidos for inválido.
         """
         try:
             inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
@@ -37,6 +47,22 @@ class Locacao:
                       status="ativo", itens=None):
         """
         Cria uma nova locação no banco de dados.
+        
+        Parâmetros:
+            nome_cliente (str): Nome do cliente.
+            endereco_cliente (str): Endereço do cliente.
+            telefone_cliente (str): Telefone do cliente.
+            data_inicio (str): Data de início da locação.
+            data_fim (str): Data de término da locação.
+            valor_total (float): Valor total da locação.
+            valor_pago_entrega (float): Valor pago no momento da entrega.
+            valor_receber_final (float): Valor final a ser pago.
+            numero_nota (str): Número da nota fiscal da locação.
+            status (str): Status da locação, padrão é "ativo".
+            itens (list): Lista de itens a serem locados.
+
+        Retorna:
+            int: ID da locação criada no banco de dados, ou None em caso de erro.
         """
         logger.debug("Iniciando o processo de criação de locação.")
         if not all([data_inicio, data_fim]):
@@ -118,7 +144,7 @@ class Locacao:
         Obtém todas as locações com detalhes completos, incluindo informações do cliente e itens locados.
 
         Retorna:
-            list: Lista de dicionários com detalhes das locações.
+            list: Lista de dicionários com detalhes das locações, ou uma lista vazia se não houver locações.
         """
         conn = get_connection()
         try:
@@ -268,6 +294,41 @@ class Locacao:
             return True
         except (psycopg2.Error, ValueError) as e:
             logger.error(f"Erro ao restaurar estoque para locação ID {locacao_id}: {e}")
+            return False
+        finally:
+            release_connection(conn)
+
+    @staticmethod
+    def atualizar_status(locacao_id, novo_status):
+        """
+        Atualiza o status de uma locação no banco de dados.
+        
+        Parâmetros:
+            locacao_id (int): ID da locação a ser atualizada.
+            novo_status (str): Novo status a ser definido.
+        
+        Retorna:
+            bool: True se o status foi atualizado com sucesso, False caso contrário.
+        """
+        conn = get_connection()
+        try:
+            with conn:
+                with conn.cursor() as cursor:
+                    cursor.execute('''
+                        UPDATE locacoes
+                        SET status = %s
+                        WHERE id = %s
+                    ''', (novo_status, locacao_id))
+
+                    # Confirmar que a atualização foi aplicada
+                    if cursor.rowcount > 0:
+                        logger.info(f"Status da locação ID {locacao_id} atualizado para '{novo_status}'.")
+                        return True
+                    else:
+                        logger.warning(f"Não foi possível atualizar o status da locação ID {locacao_id}.")
+                        return False
+        except psycopg2.Error as e:
+            logger.error(f"Erro no banco de dados ao atualizar status da locação ID {locacao_id}: {e}")
             return False
         finally:
             release_connection(conn)
