@@ -7,16 +7,8 @@ import RegisterFormContainer from "../Forms/RegisterFormContainer"; // Atualizad
 const RegisterPage = () => {
   return (
     <PageLayout>
-      {/* Cabeçalho da página */}
-      <Typography variant="h4" gutterBottom align="center">
-        Registrar Nova Locação
-      </Typography>
-      <Typography variant="body1" paragraph align="center">
-        Preencha os dados abaixo para registrar uma nova locação.
-      </Typography>
-
       {/* Formulário de Registro */}
-      <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
+      <Box sx={{ display: "flex", justifyContent: "center" }}>
         <RegisterFormContainer /> {/* Atualizado para usar o novo componente */}
       </Box>
     </PageLayout>

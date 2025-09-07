@@ -24,7 +24,8 @@ const TableHeader = ({ orderBy, onSort }) => {
 
   return (
     <TableHead sx={{ 
-      backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(40, 40, 40, 0.9)' : '#e0f2f1' 
+      backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.9)' : 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
+      borderBottom: theme => theme.palette.mode === 'dark' ? '2px solid rgba(76, 175, 80, 0.3)' : '2px solid #4caf50'
     }}>
       <TableRow>
         {columns.map((column) => (

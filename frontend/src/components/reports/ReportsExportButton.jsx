@@ -80,13 +80,24 @@ const ReportsExportButton = ({ data, filename, exportFormat = "csv", filter }) =
       variant="contained"
       startIcon={<Download />}
       onClick={handleExport}
+      size="large"
       sx={{ 
-        mt: 2,
-        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.8)' : '#2c552d',
-        color: '#fff',
+        background: 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)',
+        color: 'white',
+        fontWeight: 600,
+        fontSize: '1rem',
+        px: 4,
+        py: 1.5,
+        borderRadius: 2,
+        textTransform: 'none',
+        boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+        mb: 3,
         '&:hover': {
-          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.9)' : '#45a049',
-        }
+          background: 'linear-gradient(135deg, #1b3a1c 0%, #388e3c 100%)',
+          transform: 'translateY(-1px)',
+          boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
+        },
+        transition: 'all 0.3s ease-in-out',
       }}
     >
       {exportFormat === "excel" ? "Exportar Excel" : exportFormat === "chart" ? "Exportar Gráfico" : "Exportar CSV"}

@@ -57,10 +57,11 @@ const OrderActions = ({
     <div
       style={{
         display: "flex",
-        gap: "10px",
+        gap: "8px",
         justifyContent: "center",
         alignItems: "center",
-        flexWrap: "wrap", // Exibição responsiva para dispositivos menores
+        flexWrap: "wrap",
+        padding: "4px",
         color: theme.palette.mode === 'dark' ? '#fff' : 'inherit',
       }}
     >
@@ -81,16 +82,26 @@ const OrderActions = ({
           onClick={() => onReactivateOrder(order.id)}
           color="warning"
           startIcon={<Restore />}
-          variant="outlined"
+          variant="contained"
+          size="small"
           aria-label={`Reativar pedido ${order.id}`}
           title="Reativar pedido"
           sx={{
-            fontWeight: "bold",
-            padding: "6px 12px",
-            fontSize: "0.875rem",
-            color: theme => theme.palette.mode === 'dark' ? '#fff176' : 'inherit',
-            borderColor: theme => theme.palette.mode === 'dark' ? '#fff176' : 'inherit',
-            "&:hover": hoverStyles.reactivate,
+            fontWeight: "600",
+            padding: "6px 16px",
+            fontSize: "0.75rem",
+            borderRadius: "20px",
+            textTransform: "none",
+            minWidth: "auto",
+            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 193, 7, 0.9)' : '#ffc107',
+            color: theme => theme.palette.mode === 'dark' ? '#000' : '#000',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            "&:hover": {
+              backgroundColor: theme => theme.palette.mode === 'dark' ? '#ffb300' : '#ffb300',
+              transform: 'translateY(-1px)',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+            },
+            transition: 'all 0.2s ease-in-out',
           }}
         >
           Reativar

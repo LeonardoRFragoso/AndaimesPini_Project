@@ -10,6 +10,7 @@ import {
   IconButton,
   Paper,
   useTheme,
+  Box,
 } from "@mui/material";
 import { Edit, Delete, ArrowUpward, ArrowDownward } from "@mui/icons-material";
 
@@ -40,10 +41,11 @@ const InventoryTable = ({ items, onEdit, onDelete, sortItems, sortConfig }) => {
       }}
     >
       <Table>
-        <TableHead>
-          <TableRow sx={{ 
-            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(40, 40, 40, 0.9)' : '#f5f5f5' 
-          }}>
+        <TableHead sx={{ 
+          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.9)' : 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
+          borderBottom: theme => theme.palette.mode === 'dark' ? '2px solid rgba(76, 175, 80, 0.3)' : '2px solid #4caf50'
+        }}>
+          <TableRow>
             <TableCell
               sx={{ 
                 width: "30%", 
@@ -97,15 +99,24 @@ const InventoryTable = ({ items, onEdit, onDelete, sortItems, sortConfig }) => {
                 sx={{
                   "&:nth-of-type(odd)": { 
                     backgroundColor: theme => theme.palette.mode === 'dark' 
-                      ? 'rgba(50, 50, 50, 0.6)' 
-                      : '#f9f9f9' 
+                      ? 'rgba(60, 60, 60, 0.3)' 
+                      : '#f8f9fa' 
                   },
                   "&:hover": { 
                     backgroundColor: theme => theme.palette.mode === 'dark' 
-                      ? 'rgba(70, 70, 70, 0.8)' 
-                      : '#e0f7fa' 
+                      ? 'rgba(76, 175, 80, 0.1)' 
+                      : 'rgba(76, 175, 80, 0.05)', 
+                    cursor: "pointer",
+                    transform: 'translateY(-1px)',
+                    boxShadow: theme => theme.palette.mode === 'dark' 
+                      ? '0 2px 8px rgba(0, 0, 0, 0.3)' 
+                      : '0 2px 8px rgba(0, 0, 0, 0.1)'
                   },
                   color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+                  transition: 'all 0.2s ease-in-out',
+                  borderBottom: theme => theme.palette.mode === 'dark' 
+                    ? '1px solid rgba(255, 255, 255, 0.05)' 
+                    : '1px solid rgba(0, 0, 0, 0.05)'
                 }}
               >
                 <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'inherit' }}>
@@ -120,12 +131,44 @@ const InventoryTable = ({ items, onEdit, onDelete, sortItems, sortConfig }) => {
                     : "Quantidade não especificada"}
                 </TableCell>
                 <TableCell align="right">
-                  <IconButton onClick={() => onEdit(item)}>
-                    <Edit color="primary" />
-                  </IconButton>
-                  <IconButton onClick={() => onDelete(item.id)}>
-                    <Delete color="secondary" />
-                  </IconButton>
+                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                    <IconButton 
+                      onClick={() => onEdit(item)}
+                      size="small"
+                      sx={{
+                        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.1)',
+                        borderRadius: '50%',
+                        width: 32,
+                        height: 32,
+                        '&:hover': {
+                          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.3)' : 'rgba(33, 150, 243, 0.2)',
+                          transform: 'scale(1.1)',
+                          boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
+                        },
+                        transition: 'all 0.2s ease-in-out',
+                      }}
+                    >
+                      <Edit fontSize="small" color="primary" />
+                    </IconButton>
+                    <IconButton 
+                      onClick={() => onDelete(item.id)}
+                      size="small"
+                      sx={{
+                        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(244, 67, 54, 0.2)' : 'rgba(244, 67, 54, 0.1)',
+                        borderRadius: '50%',
+                        width: 32,
+                        height: 32,
+                        '&:hover': {
+                          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(244, 67, 54, 0.3)' : 'rgba(244, 67, 54, 0.2)',
+                          transform: 'scale(1.1)',
+                          boxShadow: '0 2px 8px rgba(244, 67, 54, 0.3)',
+                        },
+                        transition: 'all 0.2s ease-in-out',
+                      }}
+                    >
+                      <Delete fontSize="small" color="error" />
+                    </IconButton>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))

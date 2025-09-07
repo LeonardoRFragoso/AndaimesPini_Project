@@ -208,6 +208,34 @@ const Navbar = () => {
                 >
                   Estoque
                 </Button>
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/clients"
+                  sx={{ 
+                    textTransform: "none",
+                    fontWeight: isActive('/clients') ? 'bold' : 'normal',
+                    borderBottom: isActive('/clients') ? '2px solid white' : 'none',
+                    borderRadius: 0,
+                    px: 2
+                  }}
+                >
+                  Clientes
+                </Button>
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/reports"
+                  sx={{ 
+                    textTransform: "none",
+                    fontWeight: isActive('/reports') ? 'bold' : 'normal',
+                    borderBottom: isActive('/reports') ? '2px solid white' : 'none',
+                    borderRadius: 0,
+                    px: 2
+                  }}
+                >
+                  Relatórios
+                </Button>
               </>
             )}
           </Box>
@@ -399,7 +427,7 @@ const Navbar = () => {
                       <MenuItem component={Link} to="/reports" onClick={handleMobileMenuClose}>
                         Relatórios
                       </MenuItem>
-                      <MenuItem component={Link} to="/clientes" onClick={handleMobileMenuClose}>
+                      <MenuItem component={Link} to="/clients" onClick={handleMobileMenuClose}>
                         Clientes
                       </MenuItem>
                     </>

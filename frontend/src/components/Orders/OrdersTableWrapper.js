@@ -33,22 +33,22 @@ const OrdersTableWrapper = ({ orders, onAction }) => {
   };
 
   return (
+    <Paper
+      elevation={3}
+      sx={{
+        borderRadius: 3,
+        overflow: 'hidden',
+        backgroundColor: theme => theme.palette.mode === 'dark' 
+          ? 'rgba(40, 40, 40, 0.9)' 
+          : '#ffffff',
+        border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.05)',
+        position: "relative",
+      }}
+    >
     <TableContainer
-      component={Paper}
       sx={{
         overflowX: "auto",
         maxWidth: "100%",
-        margin: "0 auto",
-        boxShadow: theme => theme.palette.mode === 'dark' 
-          ? '0px 4px 12px rgba(0, 0, 0, 0.3)' 
-          : '0px 4px 12px rgba(0, 0, 0, 0.1)',
-        backgroundColor: theme => theme.palette.mode === 'dark' 
-          ? 'rgba(30, 30, 30, 0.8)' 
-          : '#f9f9f9',
-        borderRadius: "8px",
-        padding: "16px",
-        position: "relative",
-        border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
       }}
     >
       {loading && (
@@ -82,6 +82,7 @@ const OrdersTableWrapper = ({ orders, onAction }) => {
         }}
       />
     </TableContainer>
+    </Paper>
   );
 };
 

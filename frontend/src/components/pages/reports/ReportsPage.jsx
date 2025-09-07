@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress, Container, Paper, useTheme } from '@mui/material';
 import ReportsFilterForm from '../../components/reports/ReportsFilterForm';
 import ReportsSummaryPanel from '../../components/reports/ReportsSummaryPanel';
 import ReportsDataTable from '../../components/reports/ReportsDataTable';
@@ -79,66 +79,144 @@ const ReportsPage = () => {
     }
   }, [filter, clientId, itemId, startDate, endDate]);
 
+  const theme = useTheme();
+
   return (
-    <Box sx={{ p: 4, bgcolor: "#f5f5f5", minHeight: "100vh" }}>
-      <Typography variant="h4" gutterBottom align="center">
-        Relatórios
-      </Typography>
+    <Box sx={{ 
+      bgcolor: theme => theme.palette.mode === 'dark' ? '#121212' : '#f5f5f5',
+      minHeight: '100vh',
+      py: 3
+    }}>
+      <Container maxWidth="xl">
+        {/* Modern Gradient Header */}
+        <Paper
+          elevation={0}
+          sx={{
+            background: 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)',
+            borderRadius: 3,
+            p: 4,
+            mb: 4,
+            textAlign: 'center',
+            color: 'white',
+          }}
+        >
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 700,
+              mb: 1,
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+            }}
+          >
+            Relatórios
+          </Typography>
+          <Typography
+            variant="h6"
+            sx={{ 
+              opacity: 0.9,
+              fontWeight: 400
+            }}
+          >
+            Análise completa dos dados de locação
+          </Typography>
+        </Paper>
 
-      <ReportsFilterForm
-        filter={filter}
-        onFilterChange={handleFilterChange}
-        onClientIdChange={handleClientIdChange}
-        onItemIdChange={handleItemIdChange}
-        onDateChange={handleDateChange}
-      />
-
-      <ReportsSummaryPanel overviewData={overviewData} />
-
-      {loading ? (
-        <Box display="flex" justifyContent="center" mt={4}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <>
-          <ReportsDataTable
-            data={
-              filter === "by-client"
-                ? clientData
-                : filter === "by-item"
-                ? itemData
-                : filter === "by-status"
-                ? statusData
-                : overviewData || []
-            }
+        {/* Enhanced Filter Section */}
+        <Paper
+          elevation={2}
+          sx={{
+            p: 3,
+            mb: 4,
+            borderRadius: 3,
+            bgcolor: theme => theme.palette.mode === 'dark' ? '#1e1e1e' : '#fff',
+            border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+          }}
+        >
+          <ReportsFilterForm
             filter={filter}
+            onFilterChange={handleFilterChange}
+            onClientIdChange={handleClientIdChange}
+            onItemIdChange={handleItemIdChange}
+            onDateChange={handleDateChange}
           />
-          <ReportsExportButton
-            data={
-              filter === "by-client"
-                ? clientData
-                : filter === "by-item"
-                ? itemData
-                : filter === "by-status"
-                ? statusData
-                : overviewData || []
-            }
-            filename={`relatorio_${filter}`}
-          />
-          <ReportsChart
-            data={
-              filter === "by-client"
-                ? clientData
-                : filter === "by-item"
-                ? itemData
-                : filter === "by-status"
-                ? statusData
-                : overviewData || []
-            }
-            filter={filter}
-          />
-        </>
-      )}
+        </Paper>
+
+        <ReportsSummaryPanel overviewData={overviewData} />
+
+        {loading ? (
+          <Box 
+            display="flex" 
+            justifyContent="center" 
+            alignItems="center"
+            sx={{ 
+              mt: 8,
+              mb: 8,
+              minHeight: '200px'
+            }}
+          >
+            <CircularProgress 
+              size={60}
+              sx={{ 
+                color: '#4caf50'
+              }}
+            />
+          </Box>
+        ) : (
+          <>
+            <ReportsDataTable
+              data={
+                filter === "by-client"
+                  ? clientData
+                  : filter === "by-item"
+                  ? itemData
+                  : filter === "by-status"
+                  ? statusData
+                  : overviewData || []
+              }
+              filter={filter}
+            />
+            
+            {/* Enhanced Export and Chart Section */}
+            <Paper
+              elevation={2}
+              sx={{
+                p: 3,
+                mt: 4,
+                borderRadius: 3,
+                bgcolor: theme => theme.palette.mode === 'dark' ? '#1e1e1e' : '#fff',
+                border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+                textAlign: 'center'
+              }}
+            >
+              <ReportsExportButton
+                data={
+                  filter === "by-client"
+                    ? clientData
+                    : filter === "by-item"
+                    ? itemData
+                    : filter === "by-status"
+                    ? statusData
+                    : overviewData || []
+                }
+                filename={`relatorio_${filter}`}
+              />
+              
+              <ReportsChart
+                data={
+                  filter === "by-client"
+                    ? clientData
+                    : filter === "by-item"
+                    ? itemData
+                    : filter === "by-status"
+                    ? statusData
+                    : overviewData || []
+                }
+                filter={filter}
+              />
+            </Paper>
+          </>
+        )}
+      </Container>
     </Box>
   );
 };

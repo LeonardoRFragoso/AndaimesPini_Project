@@ -146,6 +146,30 @@ export const ThemeProvider = ({ children }) => {
             },
           },
         },
+        MuiTextField: {
+          styleOverrides: {
+            root: {
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                '& fieldset': {
+                  borderColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
+                },
+                '&:hover fieldset': {
+                  borderColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.87)',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: mode === 'dark' ? '#4caf50' : '#2c552d',
+                },
+              },
+              '& .MuiInputLabel-root': {
+                color: mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
+              },
+              '& .MuiInputBase-input': {
+                color: mode === 'dark' ? '#ffffff' : '#333333',
+              },
+            },
+          },
+        },
       },
     });
   }, [mode]);

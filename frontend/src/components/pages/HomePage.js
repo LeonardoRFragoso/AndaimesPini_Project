@@ -1,62 +1,52 @@
 // frontend/src/pages/HomePage.js
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
-  Box,
+  Container,
   Typography,
+  Box,
+  Paper,
   Grid,
   Card,
   CardContent,
-  CardActions,
   Button,
-  Container,
-  CircularProgress,
   Tabs,
   Tab,
+  CircularProgress,
   Alert,
-  Paper,
-  Divider,
-  IconButton,
-  Tooltip,
-  Chip,
-  Badge,
+  Fade,
+  Grow,
   useTheme,
   useMediaQuery,
-  Fade,
-  Zoom,
-  Slide,
+  CardActions,
   Snackbar,
-} from "@mui/material";
+  Slide,
+  Zoom
+} from '@mui/material';
 import {
+  Dashboard as DashboardIcon,
+  TrendingUp,
+  Warning,
+  CheckCircle,
   AddCircle,
   Visibility,
   Inventory,
   Assessment,
   PersonAdd,
-  Dashboard as DashboardIcon,
-  Refresh as RefreshIcon,
-  NightsStay as DarkModeIcon,
-  LightMode as LightModeIcon,
-  Notifications as NotificationsIcon,
-  TrendingUp,
-  BarChart,
-  Home as HomeIcon,
-  Speed as SpeedIcon,
-} from "@mui/icons-material";
-import { Link } from "react-router-dom";
-import PageLayout from "../layouts/PageLayout";
-
-// Componentes do Dashboard
-import StockOverview from "../Dashboard/StockOverview";
-import CriticalItems from "../Dashboard/CriticalItems";
-import AlertsPanel from "../Dashboard/AlertsPanel";
-import VisaoGeral from "../Dashboard/VisaoGeral";
-
-// APIs
-import { listarItens } from "../../api/inventario";
-import { listarLocacoes } from "../../api/locacoes";
+  Home as HomeIcon
+} from '@mui/icons-material';
+import { useNavigate, Link } from 'react-router-dom';
+import { useThemeMode } from '../../contexts/ThemeContext';
+import { listarItens } from '../../api/inventario';
+import { listarLocacoes } from '../../api/locacoes';
+import VisaoGeral from '../Dashboard/VisaoGeral';
+import AlertsPanel from '../Dashboard/AlertsPanel';
+import StockOverview from '../Dashboard/StockOverview';
+import CriticalItems from '../Dashboard/CriticalItems';
 
 const HomePage = () => {
+  const { mode } = useThemeMode();
+  const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -160,9 +150,80 @@ const HomePage = () => {
   };
 
   return (
-    <PageLayout>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Modern Gradient Header */}
+      <Box
+        sx={{
+          background: mode === 'light' 
+            ? 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)'
+            : 'linear-gradient(135deg, #1a1a1a 0%, #2c552d 100%)',
+          color: 'white',
+          py: { xs: 6, md: 8 },
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.08"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+            opacity: 0.4,
+          },
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            top: '-50%',
+            right: '-20%',
+            width: '40%',
+            height: '200%',
+            background: 'radial-gradient(ellipse, rgba(255,255,255,0.1) 0%, transparent 70%)',
+            transform: 'rotate(-15deg)',
+            animation: 'float 6s ease-in-out infinite',
+          },
+          '@keyframes float': {
+            '0%, 100%': { transform: 'rotate(-15deg) translateY(0px)' },
+            '50%': { transform: 'rotate(-15deg) translateY(-20px)' },
+          }
+        }}
+      >
+        <Container maxWidth="xl">
+          <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <HomeIcon sx={{ fontSize: 40, mr: 2 }} />
+              <Typography
+                variant={isMobile ? "h4" : "h3"}
+                component="h1"
+                fontWeight="bold"
+                sx={{
+                  background: 'linear-gradient(45deg, #ffffff 30%, #e8f5e8 90%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                }}
+              >
+                Dashboard Principal
+              </Typography>
+            </Box>
+            <Typography
+              variant={isMobile ? "body1" : "h6"}
+              sx={{
+                opacity: 0.9,
+                maxWidth: 600,
+                lineHeight: 1.6,
+                fontWeight: 300
+              }}
+            >
+              Bem-vindo ao sistema de gestão Andaimes Pini. Acesse rapidamente as principais funcionalidades e monitore o status do seu negócio.
+            </Typography>
+          </Box>
+        </Container>
+      </Box>
 
-      {/* Tabs are now in the VisaoGeral component */}
+      <Container maxWidth="xl" sx={{ py: 4, px: { xs: 1, sm: 2, md: 3 } }}>
+        {/* Tabs are now in the VisaoGeral component */}
 
       {currentTab === 0 ? (
         loading ? (
@@ -244,7 +305,7 @@ const HomePage = () => {
           />
           
           <Zoom in={true} style={{ transitionDelay: '100ms' }}>
-            <Grid container spacing={{ xs: 2, sm: 3, md: 4 }} justifyContent="center">
+            <Grid container spacing={{ xs: 3, sm: 4, md: 5 }} justifyContent="center" sx={{ mt: 2 }}>
               {/* Card Template */}
               {[
                 {
@@ -290,31 +351,32 @@ const HomePage = () => {
                   color: "#e91e63"
                 },
               ].map((item, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
+                <Grid item xs={12} sm={6} lg={4} key={index}>
                   <Fade in={true} timeout={600 + (index * 150)}>
                     <Card
                       sx={{
                         textAlign: "center",
-                        transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                        transition: "all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
                         "&:hover": {
-                          transform: "translateY(-15px)",
+                          transform: "translateY(-20px) scale(1.02)",
                           boxShadow: theme => theme.palette.mode === 'dark'
-                            ? '0px 15px 30px rgba(0, 0, 0, 0.4)'
-                            : '0px 15px 30px rgba(0, 0, 0, 0.15)',
+                            ? `0px 25px 50px rgba(0, 0, 0, 0.5), 0 0 30px ${item.color}40`
+                            : `0px 25px 50px rgba(0, 0, 0, 0.2), 0 0 20px ${item.color}30`,
                         },
-                        borderRadius: 4,
-                        padding: 3,
+                        borderRadius: 6,
+                        p: 4,
                         mx: "auto",
-                        maxWidth: 320,
+                        maxWidth: 340,
+                        minHeight: 280,
                         background: theme => theme.palette.mode === 'dark' 
                           ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
-                          : 'linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%)',
+                          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                         border: theme => theme.palette.mode === 'dark'
-                          ? '1px solid rgba(255,255,255,0.05)'
-                          : '1px solid rgba(0,0,0,0.05)',
+                          ? '1px solid rgba(255,255,255,0.08)'
+                          : '1px solid rgba(0,0,0,0.08)',
                         boxShadow: theme => theme.palette.mode === 'dark'
-                          ? '0 4px 20px rgba(0,0,0,0.4)'
-                          : '0 4px 20px rgba(0,0,0,0.05)',
+                          ? '0 8px 32px rgba(0,0,0,0.4)'
+                          : '0 8px 32px rgba(0,0,0,0.08)',
                         position: 'relative',
                         overflow: 'hidden',
                         '&::before': {
@@ -323,59 +385,89 @@ const HomePage = () => {
                           top: 0,
                           left: 0,
                           width: '100%',
-                          height: '5px',
+                          height: '6px',
                           background: `linear-gradient(90deg, ${item.color} 0%, ${item.color}99 100%)`,
                         },
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          top: '-50%',
+                          right: '-50%',
+                          width: '100%',
+                          height: '100%',
+                          background: `radial-gradient(circle, ${item.color}10 0%, transparent 70%)`,
+                          opacity: 0,
+                          transition: 'opacity 0.3s ease',
+                        },
+                        '&:hover::after': {
+                          opacity: 1,
+                        }
                       }}
                     >
                       <CardContent>
                         <Box
                           sx={{
-                            color: "#ffffff",
                             display: "flex",
                             justifyContent: "center",
                             alignItems: "center",
-                            width: 80,
-                            height: 80,
-                            borderRadius: "24px",
-                            background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}99 100%)`,
-                            boxShadow: theme => theme.palette.mode === 'dark'
-                              ? `0 10px 20px ${item.color}50`
-                              : `0 10px 20px ${item.color}33`,
+                            width: 90,
+                            height: 90,
+                            borderRadius: "50%",
+                            background: `linear-gradient(135deg, ${item.color} 30%, ${item.color}99 90%)`,
+                            color: "#fff",
+                            mx: "auto",
                             mb: 3,
-                            mx: 'auto',
-                            transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                            "&:hover": {
-                              transform: "scale(1.1) rotate(5deg)",
-                              boxShadow: theme => theme.palette.mode === 'dark'
-                                ? `0 15px 30px ${item.color}60`
-                                : `0 15px 30px ${item.color}40`,
+                            boxShadow: `0 12px 30px ${item.color}40`,
+                            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                            position: 'relative',
+                            '&::before': {
+                              content: '""',
+                              position: 'absolute',
+                              top: '-5px',
+                              left: '-5px',
+                              right: '-5px',
+                              bottom: '-5px',
+                              borderRadius: '50%',
+                              background: `linear-gradient(135deg, ${item.color}30, ${item.color}10)`,
+                              opacity: 0,
+                              transition: 'opacity 0.3s ease',
                             },
+                            '&:hover': {
+                              transform: 'scale(1.15) rotate(5deg)',
+                              boxShadow: `0 20px 40px ${item.color}60`,
+                            },
+                            '&:hover::before': {
+                              opacity: 1,
+                            }
                           }}
                         >
-                          {item.icon}
+                          {React.cloneElement(item.icon, { sx: { fontSize: 55 } })}
                         </Box>
                         <Typography
                           variant="h5"
-                          component="div"
+                          component="h3"
+                          fontWeight="700"
                           gutterBottom
-                          sx={{ 
-                            fontWeight: "600", 
-                            color: theme => theme.palette.mode === 'dark' 
-                              ? `${item.color}DD` // Slightly lighter in dark mode
-                              : item.color 
+                          sx={{
+                            color: theme => theme.palette.mode === 'dark' ? '#fff' : '#2c3e50',
+                            mb: 2,
+                            fontSize: { xs: '1.3rem', sm: '1.5rem' },
+                            letterSpacing: '-0.02em'
                           }}
                         >
                           {item.title}
                         </Typography>
                         <Typography
-                          variant="body2"
-                          sx={{ 
-                            fontSize: "0.9rem", 
-                            minHeight: '48px',
-                            color: theme => theme.palette.mode === 'dark' 
-                              ? 'rgba(255, 255, 255, 0.7)' 
-                              : 'rgba(0, 0, 0, 0.6)'
+                          variant="body1"
+                          color="text.secondary"
+                          sx={{
+                            lineHeight: 1.7,
+                            mb: 3,
+                            fontSize: '0.95rem',
+                            color: theme => theme.palette.mode === 'dark'
+                              ? 'rgba(255, 255, 255, 0.8)'
+                              : 'rgba(0, 0, 0, 0.7)',
+                            fontWeight: 400
                           }}
                         >
                           {item.description}
@@ -387,27 +479,40 @@ const HomePage = () => {
                           component={Link}
                           to={item.link}
                           sx={{
-                            background: `linear-gradient(135deg, ${item.color} 30%, ${item.color}99 90%)`,
+                            background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}dd 100%)`,
                             color: "#fff",
-                            fontWeight: "bold",
-                            borderRadius: "12px",
-                            px: 4,
-                            py: 1.2,
-                            fontSize: "0.95rem",
+                            fontWeight: "600",
+                            borderRadius: "16px",
+                            px: 5,
+                            py: 1.8,
+                            fontSize: "1rem",
                             textTransform: "none",
-                            letterSpacing: "0.5px",
-                            boxShadow: `0 10px 20px ${item.color}33`,
-                            transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                            letterSpacing: "0.3px",
+                            boxShadow: `0 8px 25px ${item.color}40`,
+                            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                            position: 'relative',
+                            overflow: 'hidden',
+                            '&::before': {
+                              content: '""',
+                              position: 'absolute',
+                              top: 0,
+                              left: '-100%',
+                              width: '100%',
+                              height: '100%',
+                              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                              transition: 'left 0.6s ease',
+                            },
                             "&:hover": {
-                              background: `linear-gradient(135deg, ${item.color}99 30%, ${item.color} 90%)`,
-                              transform: "translateY(-5px)",
-                              boxShadow: theme => theme.palette.mode === 'dark'
-                                ? `0 15px 30px ${item.color}60`
-                                : `0 15px 30px ${item.color}40`,
+                              background: `linear-gradient(135deg, ${item.color}ee 0%, ${item.color} 100%)`,
+                              transform: "translateY(-3px) scale(1.05)",
+                              boxShadow: `0 15px 35px ${item.color}50`,
+                            },
+                            "&:hover::before": {
+                              left: '100%',
                             },
                             "&:active": {
-                              transform: "translateY(2px)",
-                              boxShadow: `0 5px 10px ${item.color}33`,
+                              transform: "translateY(-1px) scale(1.02)",
+                              boxShadow: `0 8px 20px ${item.color}40`,
                             },
                           }}
                         >
@@ -440,7 +545,8 @@ const HomePage = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
-    </PageLayout>
+      </Container>
+    </Box>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Paper, Typography, Grid, Box, useTheme } from "@mui/material";
+import { Paper, Typography, Grid, Box, useTheme, Container } from "@mui/material";
 import OrdersFilter from "./OrdersFilter";
 import OrdersActionsDialog from "./OrdersActionsDialog";
 import OrdersExtendDialog from "./OrdersExtendDialog";
@@ -189,58 +189,39 @@ const OrdersListView = ({ showTitle = true }) => {
   };
 
   return (
-    <Paper
-      elevation={4}
-      sx={{
-        padding: 4,
-        maxWidth: "90%",
-        margin: "20px auto",
-        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : '#f5f5f5',
-        borderRadius: "8px",
-        boxShadow: theme => theme.palette.mode === 'dark' 
-          ? '0px 4px 12px rgba(0, 0, 0, 0.3)' 
-          : '0px 4px 12px rgba(0, 0, 0, 0.1)',
-        border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
-      }}
-    >
-      {showTitle && (
-        <>
-          <Typography
-            variant="h4"
-            align="center"
-            gutterBottom
-            sx={{ 
-              color: theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d', 
-              fontWeight: "bold" 
-            }}
-          >
-            Pedidos
-          </Typography>
-          <Typography
-            variant="body1"
-            align="center"
-            gutterBottom
-            sx={{ 
-              color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : '#666', 
-              marginBottom: "20px" 
-            }}
-          >
-            Aqui você pode visualizar e gerenciar todos os pedidos realizados.
-          </Typography>
-        </>
-      )}
-      <Grid container spacing={3} justifyContent="space-between">
-        <OrdersFilter
-          filter={filter}
-          onFilterChange={handleFilterChange}
-          onRefresh={loadOrders}
-          loading={loading}
-        />
-      </Grid>
-      {loading ? (
-        <LoadingSpinner />
-      ) : (
-        <Box sx={{ marginTop: 3 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Paper elevation={4} sx={{ borderRadius: 4, overflow: 'hidden' }}>
+        {showTitle && (
+          <Box sx={{ 
+            background: 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)',
+            color: 'white',
+            p: 4,
+            textAlign: 'center'
+          }}>
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+              Pedidos
+            </Typography>
+            <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+              Aqui você pode visualizar e gerenciar todos os pedidos realizados
+            </Typography>
+          </Box>
+        )}
+        
+        <Box sx={{
+          padding: 4,
+          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : '#f8f9fa',
+        }}>
+        <Box sx={{ mb: 4 }}>
+          <OrdersFilter
+            filter={filter}
+            onFilterChange={handleFilterChange}
+            onRefresh={loadOrders}
+            loading={loading}
+          />
+        </Box>
+        {loading ? (
+          <LoadingSpinner />
+        ) : (
           <OrdersTableWrapper
             orders={filteredOrders}
             onAction={(order, actionType) => {
@@ -249,8 +230,10 @@ const OrdersListView = ({ showTitle = true }) => {
               else setAlertOpen(true);
             }}
           />
+        )}
         </Box>
-      )}
+      </Paper>
+      
       <OrdersActionsDialog
         open={alertOpen}
         order={selectedOrder}
@@ -269,7 +252,7 @@ const OrdersListView = ({ showTitle = true }) => {
         type={snackbar.type}
         onClose={closeSnackbar}
       />
-    </Paper>
+    </Container>
   );
 };
 

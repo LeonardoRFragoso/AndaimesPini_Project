@@ -9,6 +9,7 @@ import {
   Button,
   CircularProgress,
   useTheme,
+  Paper,
 } from "@mui/material";
 import { Refresh } from "@mui/icons-material";
 
@@ -16,7 +17,17 @@ const OrdersFilter = ({ filter, onFilterChange, onRefresh, loading }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   return (
-    <Grid container spacing={2} alignItems="center">
+    <Paper 
+      elevation={2} 
+      sx={{ 
+        p: 3, 
+        borderRadius: 3,
+        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(40, 40, 40, 0.8)' : '#ffffff',
+        border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.08)',
+        mb: 3
+      }}
+    >
+      <Grid container spacing={3} alignItems="center">
       {/* Filtro de Pedidos */}
       <Grid item xs={12} sm={6} md={4}>
         <FormControl variant="outlined" fullWidth>
@@ -128,7 +139,8 @@ const OrdersFilter = ({ filter, onFilterChange, onRefresh, loading }) => {
           Limpar Filtros
         </Button>
       </Grid>
-    </Grid>
+      </Grid>
+    </Paper>
   );
 };
 

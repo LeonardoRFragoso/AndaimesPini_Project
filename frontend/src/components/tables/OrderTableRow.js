@@ -8,23 +8,23 @@ import OrderActions from "./OrderActions";
 const getStatusChipConfig = (isDarkMode) => ({
   ativo: {
     label: "Ativo",
-    color: "error",
-    backgroundColor: isDarkMode ? "rgba(255, 0, 0, 0.15)" : "#ffebee",
-    textColor: isDarkMode ? "#ff6b6b" : "#d32f2f",
+    color: "warning",
+    backgroundColor: isDarkMode ? "rgba(255, 193, 7, 0.2)" : "#fff3cd",
+    textColor: isDarkMode ? "#ffc107" : "#856404",
     icon: <WarningAmber />,
   },
   concluido: {
     label: "Concluído",
     color: "success",
-    backgroundColor: isDarkMode ? "rgba(0, 255, 0, 0.15)" : "#d1f7d1",
-    textColor: isDarkMode ? "#69f0ae" : "#388e3c",
+    backgroundColor: isDarkMode ? "rgba(76, 175, 80, 0.2)" : "#d4edda",
+    textColor: isDarkMode ? "#4caf50" : "#155724",
     icon: <Check />,
   },
   indefinido: {
     label: "Indefinido",
     color: "default",
-    backgroundColor: isDarkMode ? "rgba(128, 128, 128, 0.15)" : "#f0f0f0",
-    textColor: isDarkMode ? "#bdbdbd" : "#000",
+    backgroundColor: isDarkMode ? "rgba(158, 158, 158, 0.2)" : "#e2e3e5",
+    textColor: isDarkMode ? "#9e9e9e" : "#6c757d",
     icon: null,
   },
 });
@@ -90,16 +90,24 @@ const OrderTableRow = React.memo(
         sx={{
           "&:nth-of-type(odd)": { 
             backgroundColor: theme => theme.palette.mode === 'dark' 
-              ? 'rgba(50, 50, 50, 0.5)' 
-              : '#f9f9f9' 
+              ? 'rgba(60, 60, 60, 0.3)' 
+              : '#f8f9fa' 
           },
           "&:hover": { 
             backgroundColor: theme => theme.palette.mode === 'dark' 
-              ? 'rgba(70, 70, 70, 0.7)' 
-              : '#e0f7fa', 
-            cursor: "pointer" 
+              ? 'rgba(76, 175, 80, 0.1)' 
+              : 'rgba(76, 175, 80, 0.05)', 
+            cursor: "pointer",
+            transform: 'translateY(-1px)',
+            boxShadow: theme => theme.palette.mode === 'dark' 
+              ? '0 2px 8px rgba(0, 0, 0, 0.3)' 
+              : '0 2px 8px rgba(0, 0, 0, 0.1)'
           },
           color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+          transition: 'all 0.2s ease-in-out',
+          borderBottom: theme => theme.palette.mode === 'dark' 
+            ? '1px solid rgba(255, 255, 255, 0.05)' 
+            : '1px solid rgba(0, 0, 0, 0.05)'
         }}
         aria-label={`Pedido ${order.id}`} // Acessibilidade
       >

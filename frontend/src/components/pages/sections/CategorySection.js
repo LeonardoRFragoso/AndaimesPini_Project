@@ -11,6 +11,7 @@ import {
   Select,
   TextField,
   Button,
+  useTheme,
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 
@@ -52,8 +53,18 @@ const CategorySection = ({
     }
   };
 
+  const theme = useTheme();
+
   return (
-    <Card variant="outlined" sx={{ width: "100%", mb: 2 }}>
+    <Card 
+      variant="outlined" 
+      sx={{ 
+        width: "100%", 
+        mb: 2,
+        backgroundColor: theme.palette.background.paper,
+        border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(0, 0, 0, 0.12)'
+      }}
+    >
       <CardContent>
         <Typography variant="h6">{title}</Typography>
 

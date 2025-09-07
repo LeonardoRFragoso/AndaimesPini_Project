@@ -54,8 +54,8 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
     <Box sx={{ 
       display: 'flex', 
       gap: 2, 
-      mb: 3, 
       flexWrap: 'wrap',
+      alignItems: 'flex-end',
       '& .MuiInputBase-root': {
         color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
       },
@@ -75,10 +75,20 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         displayEmpty
         sx={{ 
           minWidth: 200,
+          borderRadius: 2,
           backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
           '& .MuiSelect-select': {
             color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
           },
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#4caf50',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#4caf50',
+          }
         }}
       >
         <MenuItem value="overview">Visão Geral</MenuItem>
@@ -96,6 +106,16 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         sx={{
           '& .MuiOutlinedInput-root': {
             backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+            borderRadius: 2,
+            '& fieldset': {
+              borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
+            },
+            '&:hover fieldset': {
+              borderColor: '#4caf50',
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: '#4caf50',
+            }
           },
           '& input': {
             color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
@@ -112,6 +132,16 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         sx={{
           '& .MuiOutlinedInput-root': {
             backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+            borderRadius: 2,
+            '& fieldset': {
+              borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
+            },
+            '&:hover fieldset': {
+              borderColor: '#4caf50',
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: '#4caf50',
+            }
           },
           '& input': {
             color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
@@ -195,13 +225,22 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
       <Button
         variant="contained"
         onClick={applyFilters}
+        size="large"
         sx={{ 
-          alignSelf: 'center',
-          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.8)' : '#2c552d',
-          color: '#fff',
+          background: 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)',
+          color: 'white',
+          fontWeight: 600,
+          px: 4,
+          py: 1.5,
+          borderRadius: 2,
+          textTransform: 'none',
+          boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
           '&:hover': {
-            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.9)' : '#45a049',
-          }
+            background: 'linear-gradient(135deg, #1b3a1c 0%, #388e3c 100%)',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
+          },
+          transition: 'all 0.3s ease-in-out',
         }}
       >
         Aplicar Filtros
