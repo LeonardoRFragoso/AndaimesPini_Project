@@ -17,28 +17,27 @@ class Cliente:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    logger.info("Executando consulta para buscar todos os clientes.")
-                    cursor.execute("""
-                        SELECT id, nome, endereco, telefone, referencia
-                        FROM clientes
-                        ORDER BY nome
-                    """)
-                    clientes = cursor.fetchall()
-                    if not clientes:
-                        logger.info("Nenhum cliente encontrado no banco de dados.")
-                        return []
-                    return [
-                        {
-                            "id": cliente[0],
-                            "nome": cliente[1],
-                            "endereco": cliente[2],
-                            "telefone": cliente[3],
-                            "referencia": cliente[4],
-                        }
-                        for cliente in clientes
-                    ]
+            cursor = conn.cursor()
+            logger.info("Executando consulta para buscar todos os clientes.")
+            cursor.execute("""
+                SELECT id, nome, endereco, telefone, referencia
+                FROM clientes
+                ORDER BY nome
+            """)
+            clientes = cursor.fetchall()
+            if not clientes:
+                logger.info("Nenhum cliente encontrado no banco de dados.")
+                return []
+            return [
+                {
+                    "id": cliente[0],
+                    "nome": cliente[1],
+                    "endereco": cliente[2],
+                    "telefone": cliente[3],
+                    "referencia": cliente[4],
+                }
+                for cliente in clientes
+            ]
         except Exception as e:
             logger.error(f"Erro ao buscar clientes no banco de dados: {e}")
             return []
@@ -65,16 +64,16 @@ class Cliente:
 
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        INSERT INTO clientes (nome, endereco, telefone, referencia)
-                        VALUES (?, ?, ?, ?)
-                        RETURNING id
-                    """, (nome, endereco, telefone, referencia))
-                    cliente_id = cursor.fetchone()[0]
-                    logger.info(f"Cliente criado com sucesso: ID {cliente_id}")
-                    return cliente_id
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO clientes (nome, endereco, telefone, referencia)
+                VALUES (?, ?, ?, ?)
+                RETURNING id
+            """, (nome, endereco, telefone, referencia))
+            conn.commit()
+            cliente_id = cursor.fetchone()[0]
+            logger.info(f"Cliente criado com sucesso: ID {cliente_id}")
+            return cliente_id
         except Exception as e:
             logger.error(f"Erro ao criar cliente: {e}")
             return None
@@ -96,26 +95,25 @@ class Cliente:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    logger.info("Buscando cliente por nome, endereço e telefone.")
-                    cursor.execute("""
-                        SELECT id, nome, endereco, telefone, referencia
-                        FROM clientes
-                        WHERE nome = ? AND endereco = ? AND telefone = ?
-                    """, (nome, endereco, telefone))
-                    cliente = cursor.fetchone()
-                    if cliente:
-                        logger.info(f"Cliente encontrado: Nome {nome}, Endereço {endereco}, Telefone {telefone}")
-                        return {
-                            "id": cliente[0],
-                            "nome": cliente[1],
-                            "endereco": cliente[2],
-                            "telefone": cliente[3],
-                            "referencia": cliente[4],
-                        }
-                    logger.warning("Cliente não encontrado.")
-                    return None
+            cursor = conn.cursor()
+            logger.info("Buscando cliente por nome, endereço e telefone.")
+            cursor.execute("""
+                SELECT id, nome, endereco, telefone, referencia
+                FROM clientes
+                WHERE nome = ? AND endereco = ? AND telefone = ?
+            """, (nome, endereco, telefone))
+            cliente = cursor.fetchone()
+            if cliente:
+                logger.info(f"Cliente encontrado: Nome {nome}, Endereço {endereco}, Telefone {telefone}")
+                return {
+                    "id": cliente[0],
+                    "nome": cliente[1],
+                    "endereco": cliente[2],
+                    "telefone": cliente[3],
+                    "referencia": cliente[4],
+                }
+            logger.warning("Cliente não encontrado.")
+            return None
         except Exception as e:
             logger.error(f"Erro ao buscar cliente por dados: {e}")
             return None
@@ -135,25 +133,24 @@ class Cliente:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT id, nome, endereco, telefone, referencia
-                        FROM clientes
-                        WHERE id = ?
-                    """, (cliente_id,))
-                    cliente = cursor.fetchone()
-                    if cliente:
-                        logger.info(f"Cliente encontrado: ID {cliente_id}")
-                        return {
-                            "id": cliente[0],
-                            "nome": cliente[1],
-                            "endereco": cliente[2],
-                            "telefone": cliente[3],
-                            "referencia": cliente[4],
-                        }
-                    logger.warning(f"Cliente ID {cliente_id} não encontrado.")
-                    return None
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, nome, endereco, telefone, referencia
+                FROM clientes
+                WHERE id = ?
+            """, (cliente_id,))
+            cliente = cursor.fetchone()
+            if cliente:
+                logger.info(f"Cliente encontrado: ID {cliente_id}")
+                return {
+                    "id": cliente[0],
+                    "nome": cliente[1],
+                    "endereco": cliente[2],
+                    "telefone": cliente[3],
+                    "referencia": cliente[4],
+                }
+            logger.warning(f"Cliente ID {cliente_id} não encontrado.")
+            return None
         except Exception as e:
             logger.error(f"Erro ao buscar cliente por ID: {e}")
             return None
@@ -177,23 +174,22 @@ class Cliente:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        UPDATE clientes
-                        SET nome = COALESCE(?, nome),
-                            endereco = COALESCE(?, endereco),
-                            telefone = COALESCE(?, telefone),
-                            referencia = COALESCE(?, referencia)
-                        WHERE id = ?
-                    """, (nome, endereco, telefone, referencia, cliente_id))
-                    conn.commit()
-                    atualizado = cursor.rowcount > 0
-                    if atualizado:
-                        logger.info(f"Cliente ID {cliente_id} atualizado com sucesso.")
-                    else:
-                        logger.warning(f"Cliente ID {cliente_id} não encontrado para atualização.")
-                    return atualizado
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE clientes
+                SET nome = COALESCE(?, nome),
+                    endereco = COALESCE(?, endereco),
+                    telefone = COALESCE(?, telefone),
+                    referencia = COALESCE(?, referencia)
+                WHERE id = ?
+            """, (nome, endereco, telefone, referencia, cliente_id))
+            conn.commit()
+            atualizado = cursor.rowcount > 0
+            if atualizado:
+                logger.info(f"Cliente ID {cliente_id} atualizado com sucesso.")
+            else:
+                logger.warning(f"Cliente ID {cliente_id} não encontrado para atualização.")
+            return atualizado
         except Exception as e:
             logger.error(f"Erro ao atualizar cliente: {e}")
             return False
@@ -213,16 +209,15 @@ class Cliente:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("DELETE FROM clientes WHERE id = ?", (cliente_id,))
-                    conn.commit()
-                    excluido = cursor.rowcount > 0
-                    if excluido:
-                        logger.info(f"Cliente ID {cliente_id} excluído com sucesso.")
-                    else:
-                        logger.warning(f"Cliente ID {cliente_id} não encontrado para exclusão.")
-                    return excluido
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM clientes WHERE id = ?", (cliente_id,))
+            conn.commit()
+            excluido = cursor.rowcount > 0
+            if excluido:
+                logger.info(f"Cliente ID {cliente_id} excluído com sucesso.")
+            else:
+                logger.warning(f"Cliente ID {cliente_id} não encontrado para exclusão.")
+            return excluido
         except Exception as e:
             logger.error(f"Erro ao excluir cliente: {e}")
             return False
@@ -242,40 +237,39 @@ class Cliente:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT 
-                            l.id AS locacao_id,
-                            l.data_inicio,
-                            l.data_fim,
-                            l.valor_total,
-                            l.status,
-                            i.nome_item,
-                            i.tipo_item,
-                            il.quantidade AS quantidade_locada
-                        FROM locacoes AS l
-                        JOIN itens_locados AS il ON l.id = il.locacao_id
-                        JOIN inventario AS i ON il.item_id = i.id
-                        WHERE l.cliente_id = %s
-                    """, (cliente_id,))
-                    pedidos = cursor.fetchall()
-                    if not pedidos:
-                        logger.info(f"Nenhum pedido encontrado para o cliente ID {cliente_id}.")
-                        return []
-                    return [
-                        {
-                            "locacao_id": pedido[0],
-                            "data_inicio": pedido[1].strftime("%Y-%m-%d") if pedido[1] else None,
-                            "data_fim": pedido[2].strftime("%Y-%m-%d") if pedido[2] else None,
-                            "valor_total": float(pedido[3]) if pedido[3] else 0.0,
-                            "status": pedido[4],
-                            "nome_item": pedido[5],
-                            "tipo_item": pedido[6],
-                            "quantidade_locada": pedido[7],
-                        }
-                        for pedido in pedidos
-                    ]
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    l.id AS locacao_id,
+                    l.data_inicio,
+                    l.data_fim,
+                    l.valor_total,
+                    l.status,
+                    i.nome_item,
+                    i.tipo_item,
+                    il.quantidade AS quantidade_locada
+                FROM locacoes AS l
+                JOIN itens_locados AS il ON l.id = il.locacao_id
+                JOIN inventario AS i ON il.item_id = i.id
+                WHERE l.cliente_id = ?
+            """, (cliente_id,))
+            pedidos = cursor.fetchall()
+            if not pedidos:
+                logger.info(f"Nenhum pedido encontrado para o cliente ID {cliente_id}.")
+                return []
+            return [
+                {
+                    "locacao_id": pedido[0],
+                    "data_inicio": pedido[1].strftime("%Y-%m-%d") if pedido[1] else None,
+                    "data_fim": pedido[2].strftime("%Y-%m-%d") if pedido[2] else None,
+                    "valor_total": float(pedido[3]) if pedido[3] else 0.0,
+                    "status": pedido[4],
+                    "nome_item": pedido[5],
+                    "tipo_item": pedido[6],
+                    "quantidade_locada": pedido[7],
+                }
+                for pedido in pedidos
+            ]
         except Exception as e:
             logger.error(f"Erro ao buscar pedidos do cliente {cliente_id}: {e}")
             return []

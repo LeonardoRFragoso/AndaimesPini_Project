@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # Criação do blueprint para as rotas de clientes
 clientes_routes = Blueprint("clientes_routes", __name__)
 
-@clientes_routes.route("/clientes", methods=["GET"])
+@clientes_routes.route("/", methods=["GET"])
 def get_clientes():
     """
     Rota para listar todos os clientes.
@@ -26,7 +26,7 @@ def get_clientes():
         logger.error("Erro inesperado ao buscar clientes.", exc_info=True)
         return jsonify({"error": "Erro inesperado ao buscar clientes."}), 500
 
-@clientes_routes.route("/clientes", methods=["POST"])
+@clientes_routes.route("/", methods=["POST"])
 def add_cliente():
     """
     Rota para adicionar um novo cliente.
@@ -57,7 +57,7 @@ def add_cliente():
         logger.error("Erro inesperado ao adicionar cliente.", exc_info=True)
         return jsonify({"error": "Erro inesperado ao adicionar cliente."}), 500
 
-@clientes_routes.route("/clientes/<int:cliente_id>", methods=["PUT"])
+@clientes_routes.route("/<int:cliente_id>", methods=["PUT"])
 def update_cliente(cliente_id):
     """
     Rota para atualizar as informações de um cliente existente.
@@ -88,7 +88,7 @@ def update_cliente(cliente_id):
         logger.error("Erro inesperado ao atualizar cliente.", exc_info=True)
         return jsonify({"error": "Erro inesperado ao atualizar cliente."}), 500
 
-@clientes_routes.route("/clientes/<int:cliente_id>", methods=["DELETE"])
+@clientes_routes.route("/<int:cliente_id>", methods=["DELETE"])
 def delete_cliente(cliente_id):
     """
     Rota para excluir um cliente existente.
@@ -108,7 +108,7 @@ def delete_cliente(cliente_id):
         logger.error("Erro inesperado ao excluir cliente.", exc_info=True)
         return jsonify({"error": "Erro inesperado ao excluir cliente."}), 500
 
-@clientes_routes.route("/clientes/<int:cliente_id>/pedidos", methods=["GET"])
+@clientes_routes.route("/<int:cliente_id>/pedidos", methods=["GET"])
 def get_pedidos_cliente(cliente_id):
     """
     Rota para obter todos os pedidos de um cliente específico, incluindo detalhes dos itens locados.

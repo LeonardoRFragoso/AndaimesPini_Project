@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from models.inventario import Inventario  # Import específico para modularidade
 from helpers import handle_database_error
 import logging
-from psycopg2 import Error as DatabaseError  # Nome mais claro para erro de banco de dados
+import sqlite3
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -11,25 +11,38 @@ logger = logging.getLogger(__name__)
 # Criação do blueprint para as rotas de inventário
 inventario_routes = Blueprint('inventario_routes', __name__, url_prefix='/inventario')
 
-@inventario_routes.route('/', methods=['GET'])
+@inventario_routes.route('', methods=['GET'])
 def get_inventario():
     """
     Rota para listar todos os itens do inventário com quantidades atualizadas.
+    Suporta parâmetro ?disponivel=true para filtrar apenas itens disponíveis.
     """
     try:
-        inventario = Inventario.get_all()
+        # Verificar se o parâmetro disponivel=true foi passado
+        only_available = request.args.get('disponivel') == 'true'
+        
+        inventario = Inventario.get_all(only_available=only_available)
         if not inventario:
-            logger.info("Nenhum item encontrado no inventário.")
-            return jsonify({"message": "Nenhum item encontrado no inventário."}), 200
-        logger.info("Itens do inventário listados com sucesso.")
+            if only_available:
+                logger.info("Nenhum item disponível no inventário.")
+                return jsonify({"message": "Nenhum item disponível no inventário."}), 200
+            else:
+                logger.info("Nenhum item encontrado no inventário.")
+                return jsonify({"message": "Nenhum item encontrado no inventário."}), 200
+                
+        if only_available:
+            logger.info(f"Total de itens disponíveis: {len(inventario)}")
+        else:
+            logger.info("Itens do inventário listados com sucesso.")
+            
         return jsonify(inventario), 200
-    except DatabaseError as e:
+    except sqlite3.Error as e:
         return handle_database_error(e)
     except Exception as ex:
         logger.error(f"Erro inesperado ao buscar inventário: {ex}", exc_info=True)
         return jsonify({"error": "Erro inesperado ao buscar inventário."}), 500
 
-@inventario_routes.route('/', methods=['POST'])
+@inventario_routes.route('', methods=['POST'])
 def add_inventario():
     """
     Rota para adicionar um novo item ao inventário.
@@ -52,7 +65,7 @@ def add_inventario():
         
         inventario = Inventario.get_all()
         return jsonify({"message": "Item adicionado ao inventário com sucesso!", "inventario": inventario}), 201
-    except DatabaseError as e:
+    except sqlite3.Error as e:
         return handle_database_error(e)
     except Exception as ex:
         logger.error(f"Erro inesperado ao adicionar item ao inventário: {ex}", exc_info=True)
@@ -94,7 +107,7 @@ def update_item(item_id):
         
         inventario = Inventario.get_all()
         return jsonify({"message": "Quantidade do item atualizada com sucesso!", "inventario": inventario}), 200
-    except DatabaseError as e:
+    except sqlite3.Error as e:
         return handle_database_error(e)
     except Exception as ex:
         logger.error(f"Erro inesperado ao atualizar item: {ex}", exc_info=True)
@@ -114,7 +127,7 @@ def delete_item(item_id):
         
         inventario = Inventario.get_all()
         return jsonify({"message": "Item excluído com sucesso!", "inventario": inventario}), 200
-    except DatabaseError as e:
+    except sqlite3.Error as e:
         return handle_database_error(e)
     except Exception as ex:
         logger.error(f"Erro inesperado ao excluir item: {ex}", exc_info=True)

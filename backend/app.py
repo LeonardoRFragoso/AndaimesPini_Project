@@ -52,9 +52,16 @@ def log_request_info():
 # Configuração do after_request para adicionar cabeçalhos de CORS
 @app.after_request
 def after_request(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
     response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
     response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
     return response
+
+# Rota OPTIONS para lidar com preflight CORS
+@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def options_handler(path):
+    return jsonify({}), 200
 
 # Registrar os blueprints para rotas modularizadas
 try:
@@ -78,15 +85,24 @@ def proteger_rotas():
     # Lista de rotas que não requerem autenticação
     rotas_publicas = [
         '/auth/login',
-        '/auth/verificar'
+        '/auth/verificar',
+        '/clientes',
+        '/inventario',
+        '/inventario/disponiveis'
     ]
     
+    # Verificar se é uma requisição OPTIONS (CORS preflight)
+    if request.method == 'OPTIONS':
+        return None
+        
     # Verificar se a rota atual requer autenticação
-    if request.path not in rotas_publicas and not request.path.startswith('/static/'):
-        # Verificar se é uma requisição OPTIONS (CORS preflight)
-        if request.method != 'OPTIONS':
-            # Aplicar o decorador de autenticação
-            return requer_autenticacao(lambda: None)()
+    for rota in rotas_publicas:
+        if request.path.startswith(rota):
+            return None
+            
+    if not request.path.startswith('/static/'):
+        # Aplicar o decorador de autenticação
+        return requer_autenticacao(lambda: None)()
     return None
 
 # Middleware para tratar erros de requisição
