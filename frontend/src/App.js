@@ -107,6 +107,15 @@ function App() {
                     } 
                   />
                   
+                  <Route 
+                    path="/clients" 
+                    element={
+                      <ProtectedRoute>
+                        <ClientsPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
                   <Route
                     path="/clientes/:clientId/pedidos"
                     element={

@@ -1,6 +1,7 @@
 import sqlite3
 from database import get_connection, release_connection
 import logging
+from datetime import datetime
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -257,11 +258,30 @@ class Cliente:
             if not pedidos:
                 logger.info(f"Nenhum pedido encontrado para o cliente ID {cliente_id}.")
                 return []
+            def format_date(date_value):
+                """Helper function to safely format date values"""
+                if not date_value:
+                    return None
+                if isinstance(date_value, str):
+                    try:
+                        # Try to parse the string as datetime
+                        parsed_date = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
+                        return parsed_date.strftime("%Y-%m-%d")
+                    except (ValueError, AttributeError):
+                        # If parsing fails, return the string as is
+                        return date_value
+                elif hasattr(date_value, 'strftime'):
+                    # If it's already a datetime object
+                    return date_value.strftime("%Y-%m-%d")
+                else:
+                    # Return as string if it's neither
+                    return str(date_value)
+
             return [
                 {
-                    "locacao_id": pedido[0],
-                    "data_inicio": pedido[1].strftime("%Y-%m-%d") if pedido[1] else None,
-                    "data_fim": pedido[2].strftime("%Y-%m-%d") if pedido[2] else None,
+                    "id": pedido[0],  # Changed from locacao_id to id for frontend compatibility
+                    "data_inicio": format_date(pedido[1]),
+                    "data_fim": format_date(pedido[2]),
                     "valor_total": float(pedido[3]) if pedido[3] else 0.0,
                     "status": pedido[4],
                     "nome_item": pedido[5],

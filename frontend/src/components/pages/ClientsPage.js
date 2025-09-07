@@ -18,11 +18,14 @@ import {
   DialogTitle,
   IconButton,
   TextField,
+  useTheme,
 } from "@mui/material";
 import { Add, Edit, Delete, Visibility } from "@mui/icons-material"; // Ícones para ações
 import { listarClientes, criarCliente, atualizarCliente, excluirCliente, obterPedidosCliente } from "../../api/clientes";
 
 const ClientsPage = () => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   const [clients, setClients] = useState([]);
   const [orders, setOrders] = useState([]); // Armazena os pedidos do cliente selecionado
   const [openOrdersModal, setOpenOrdersModal] = useState(false); // Controle do modal de pedidos
@@ -147,15 +150,30 @@ const ClientsPage = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom align="center">
+    <Box sx={{ 
+      p: 3,
+      bgcolor: theme => theme.palette.mode === 'dark' ? '#121212' : '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      <Typography 
+        variant="h4" 
+        gutterBottom 
+        align="center"
+        sx={{ 
+          color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+          fontWeight: 'bold',
+          mb: 2
+        }}
+      >
         Clientes
       </Typography>
       <Typography
         variant="body1"
-        color="textSecondary"
         align="center"
-        sx={{ mb: 3 }}
+        sx={{ 
+          mb: 3,
+          color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)'
+        }}
       >
         Aqui você pode gerenciar todos os clientes cadastrados.
       </Typography>
@@ -166,21 +184,52 @@ const ClientsPage = () => {
           color="primary"
           startIcon={<Add />}
           onClick={() => handleDialogOpen("add")}
-          sx={{ borderRadius: 2 }}
+          sx={{ 
+            borderRadius: 2,
+            bgcolor: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#1976d2',
+            '&:hover': {
+              bgcolor: theme => theme.palette.mode === 'dark' ? '#45a049' : '#1565c0'
+            }
+          }}
         >
           Adicionar Novo Cliente
         </Button>
       </Box>
 
-      <TableContainer component={Paper} sx={{ boxShadow: 3, borderRadius: 2 }}>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          boxShadow: theme => theme.palette.mode === 'dark' ? '0px 4px 12px rgba(0, 0, 0, 0.5)' : 3,
+          borderRadius: 2,
+          bgcolor: theme => theme.palette.mode === 'dark' ? '#1e1e1e' : '#fff',
+          border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+        }}
+      >
         <Table>
-          <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+          <TableHead sx={{ 
+            backgroundColor: theme => theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5'
+          }}>
             <TableRow>
-              <TableCell>Nome</TableCell>
-              <TableCell>Endereço</TableCell>
-              <TableCell>Telefone</TableCell>
-              <TableCell>Referência</TableCell>
-              <TableCell align="center">Ações</TableCell>
+              <TableCell sx={{ 
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                fontWeight: 'bold'
+              }}>Nome</TableCell>
+              <TableCell sx={{ 
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                fontWeight: 'bold'
+              }}>Endereço</TableCell>
+              <TableCell sx={{ 
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                fontWeight: 'bold'
+              }}>Telefone</TableCell>
+              <TableCell sx={{ 
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                fontWeight: 'bold'
+              }}>Referência</TableCell>
+              <TableCell align="center" sx={{ 
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                fontWeight: 'bold'
+              }}>Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -188,29 +237,57 @@ const ClientsPage = () => {
               <TableRow
                 key={client.id}
                 sx={{
-                  "&:nth-of-type(odd)": { backgroundColor: "#f9f9f9" },
-                  "&:hover": { backgroundColor: "#e0f7fa" }, // Efeito de hover
+                  "&:nth-of-type(odd)": { 
+                    backgroundColor: theme => theme.palette.mode === 'dark' ? '#2a2a2a' : '#f9f9f9'
+                  },
+                  "&:hover": { 
+                    backgroundColor: theme => theme.palette.mode === 'dark' ? '#333' : '#e0f7fa'
+                  },
+                  borderBottom: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.12)'
                 }}
               >
-                <TableCell>{client.nome}</TableCell>
-                <TableCell>{client.endereco}</TableCell>
-                <TableCell>{client.telefone}</TableCell>
-                <TableCell>{client.referencia}</TableCell>
+                <TableCell sx={{ 
+                  color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                }}>{client.nome}</TableCell>
+                <TableCell sx={{ 
+                  color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                }}>{client.endereco}</TableCell>
+                <TableCell sx={{ 
+                  color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                }}>{client.telefone}</TableCell>
+                <TableCell sx={{ 
+                  color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                }}>{client.referencia}</TableCell>
                 <TableCell align="center">
                   <IconButton
-                    color="primary"
+                    sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#1976d2',
+                      '&:hover': {
+                        bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(25, 118, 210, 0.1)'
+                      }
+                    }}
                     onClick={() => handleDialogOpen("edit", client)}
                   >
                     <Edit />
                   </IconButton>
                   <IconButton
-                    color="error"
+                    sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#f44336' : '#d32f2f',
+                      '&:hover': {
+                        bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(244, 67, 54, 0.1)' : 'rgba(211, 47, 47, 0.1)'
+                      }
+                    }}
                     onClick={() => handleDeleteClient(client.id)}
                   >
                     <Delete />
                   </IconButton>
                   <IconButton
-                    color="info"
+                    sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#2196f3' : '#0288d1',
+                      '&:hover': {
+                        bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(2, 136, 209, 0.1)'
+                      }
+                    }}
                     onClick={() => handleOpenOrdersModal(client)}
                   >
                     <Visibility />
@@ -233,8 +310,20 @@ const ClientsPage = () => {
       </Snackbar>
 
       {/* Dialog para Adicionar/Editar Cliente */}
-      <Dialog open={openDialog} onClose={handleDialogClose}>
-        <DialogTitle>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleDialogClose}
+        PaperProps={{
+          sx: {
+            bgcolor: theme => theme.palette.mode === 'dark' ? '#1e1e1e' : '#fff',
+            border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+          borderBottom: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.12)'
+        }}>
           {dialogType === "add" ? "Adicionar Cliente" : "Editar Cliente"}
         </DialogTitle>
         <DialogContent>
@@ -246,6 +335,20 @@ const ClientsPage = () => {
             onChange={(e) =>
               setCurrentClient({ ...currentClient, nome: e.target.value })
             }
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)'
+              },
+              '& .MuiOutlinedInput-root': {
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : '#000',
+                '& fieldset': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)'
+                },
+                '&:hover fieldset': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.87)'
+                }
+              }
+            }}
           />
           <TextField
             margin="dense"
@@ -255,6 +358,20 @@ const ClientsPage = () => {
             onChange={(e) =>
               setCurrentClient({ ...currentClient, endereco: e.target.value })
             }
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)'
+              },
+              '& .MuiOutlinedInput-root': {
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : '#000',
+                '& fieldset': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)'
+                },
+                '&:hover fieldset': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.87)'
+                }
+              }
+            }}
           />
           <TextField
             margin="dense"
@@ -264,6 +381,20 @@ const ClientsPage = () => {
             onChange={(e) =>
               setCurrentClient({ ...currentClient, telefone: e.target.value })
             }
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)'
+              },
+              '& .MuiOutlinedInput-root': {
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : '#000',
+                '& fieldset': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)'
+                },
+                '&:hover fieldset': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.87)'
+                }
+              }
+            }}
           />
           <TextField
             margin="dense"
@@ -273,13 +404,44 @@ const ClientsPage = () => {
             onChange={(e) =>
               setCurrentClient({ ...currentClient, referencia: e.target.value })
             }
+            sx={{
+              '& .MuiInputLabel-root': {
+                color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)'
+              },
+              '& .MuiOutlinedInput-root': {
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : '#000',
+                '& fieldset': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)'
+                },
+                '&:hover fieldset': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.87)'
+                }
+              }
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose} color="secondary">
+        <DialogActions sx={{
+          borderTop: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.12)',
+          pt: 2
+        }}>
+          <Button 
+            onClick={handleDialogClose}
+            sx={{
+              color: theme => theme.palette.mode === 'dark' ? '#f44336' : '#d32f2f'
+            }}
+          >
             Cancelar
           </Button>
-          <Button onClick={handleDialogSave} color="primary">
+          <Button 
+            onClick={handleDialogSave}
+            variant="contained"
+            sx={{
+              bgcolor: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#1976d2',
+              '&:hover': {
+                bgcolor: theme => theme.palette.mode === 'dark' ? '#45a049' : '#1565c0'
+              }
+            }}
+          >
             {dialogType === "add" ? "Adicionar" : "Salvar"}
           </Button>
         </DialogActions>
@@ -289,50 +451,133 @@ const ClientsPage = () => {
         open={openOrdersModal}
         onClose={handleCloseOrdersModal}
         maxWidth="md"
+        PaperProps={{
+          sx: {
+            bgcolor: theme => theme.palette.mode === 'dark' ? '#1e1e1e' : '#fff',
+            border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+          }
+        }}
       >
-        <DialogTitle>Pedidos de {selectedClient?.nome}</DialogTitle>
+        <DialogTitle sx={{
+          color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+          borderBottom: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.12)'
+        }}>Pedidos de {selectedClient?.nome}</DialogTitle>
         <DialogContent>
           {orders.length > 0 ? (
-            <TableContainer component={Paper} sx={{ mt: 2 }}>
+            <TableContainer 
+              component={Paper} 
+              sx={{ 
+                mt: 2,
+                bgcolor: theme => theme.palette.mode === 'dark' ? '#2a2a2a' : '#fff',
+                border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+              }}
+            >
               <Table>
-                <TableHead>
+                <TableHead sx={{
+                  backgroundColor: theme => theme.palette.mode === 'dark' ? '#333' : '#f5f5f5'
+                }}>
                   <TableRow>
-                    <TableCell>Data de Início</TableCell>
-                    <TableCell>Data de Término</TableCell>
-                    <TableCell>Valor Total</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Nome do Item</TableCell>
-                    <TableCell>Tipo do Item</TableCell>
-                    <TableCell>Quantidade Locada</TableCell>
+                    <TableCell sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                      fontWeight: 'bold'
+                    }}>Data de Início</TableCell>
+                    <TableCell sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                      fontWeight: 'bold'
+                    }}>Data de Término</TableCell>
+                    <TableCell sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                      fontWeight: 'bold'
+                    }}>Valor Total</TableCell>
+                    <TableCell sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                      fontWeight: 'bold'
+                    }}>Status</TableCell>
+                    <TableCell sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                      fontWeight: 'bold'
+                    }}>Nome do Item</TableCell>
+                    <TableCell sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                      fontWeight: 'bold'
+                    }}>Tipo do Item</TableCell>
+                    <TableCell sx={{
+                      color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333',
+                      fontWeight: 'bold'
+                    }}>Quantidade Locada</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {orders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>
+                    <TableRow 
+                      key={order.id}
+                      sx={{
+                        "&:nth-of-type(odd)": { 
+                          backgroundColor: theme => theme.palette.mode === 'dark' ? '#2a2a2a' : '#f9f9f9'
+                        },
+                        "&:hover": { 
+                          backgroundColor: theme => theme.palette.mode === 'dark' ? '#333' : '#e0f7fa'
+                        },
+                        borderBottom: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.12)'
+                      }}
+                    >
+                      <TableCell sx={{
+                        color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                      }}>
                         {new Date(order.data_inicio).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{
+                        color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                      }}>
                         {new Date(order.data_fim).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>R$ {order.valor_total.toFixed(2)}</TableCell>
-                      <TableCell>{order.status}</TableCell>
-                      <TableCell>{order.nome_item}</TableCell>
-                      <TableCell>{order.tipo_item}</TableCell>
-                      <TableCell>{order.quantidade_locada}</TableCell>
+                      <TableCell sx={{
+                        color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                      }}>R$ {order.valor_total.toFixed(2)}</TableCell>
+                      <TableCell sx={{
+                        color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                      }}>{order.status}</TableCell>
+                      <TableCell sx={{
+                        color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                      }}>{order.nome_item}</TableCell>
+                      <TableCell sx={{
+                        color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                      }}>{order.tipo_item}</TableCell>
+                      <TableCell sx={{
+                        color: theme => theme.palette.mode === 'dark' ? '#fff' : '#333'
+                      }}>{order.quantidade_locada}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
           ) : (
-            <Typography variant="body2" color="textSecondary">
+            <Typography 
+              variant="body2" 
+              sx={{
+                color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
+                textAlign: 'center',
+                py: 3
+              }}
+            >
               Nenhum pedido encontrado para este cliente.
             </Typography>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseOrdersModal} color="primary">
+        <DialogActions sx={{
+          borderTop: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.12)',
+          pt: 2
+        }}>
+          <Button 
+            onClick={handleCloseOrdersModal}
+            variant="contained"
+            sx={{
+              bgcolor: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#1976d2',
+              '&:hover': {
+                bgcolor: theme => theme.palette.mode === 'dark' ? '#45a049' : '#1565c0'
+              }
+            }}
+          >
             Fechar
           </Button>
         </DialogActions>
