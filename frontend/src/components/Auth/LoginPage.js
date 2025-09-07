@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { 
   Box, 
@@ -24,6 +24,14 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const isMounted = useRef(true);
+  
+  // Cleanup function to prevent state updates after unmounting
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,20 +41,37 @@ const LoginPage = () => {
     try {
       const response = await login(email, senha);
       
+      // Verificar a estrutura da resposta e extrair token e dados do usuário
+      console.log('Resposta do login:', response);
+      
+      // Verificar se o token está disponível diretamente ou dentro de um objeto data
+      const token = response.token || (response.data && response.data.token);
+      const usuario = response.usuario || (response.data && response.data.usuario);
+      
+      if (!token) {
+        throw new Error('Token não encontrado na resposta');
+      }
+      
       // Salvar token e dados do usuário
-      localStorage.setItem('authToken', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.usuario));
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('user', JSON.stringify(usuario));
       
       // Redirecionar para a página inicial
       navigate('/');
     } catch (err) {
       console.error('Erro ao fazer login:', err);
-      setError(
-        err.response?.data?.error || 
-        'Erro ao fazer login. Verifique suas credenciais e tente novamente.'
-      );
+      // Só atualiza o estado se o componente ainda estiver montado
+      if (isMounted.current) {
+        setError(
+          err.response?.data?.error || err.message || 
+          'Erro ao fazer login. Verifique suas credenciais e tente novamente.'
+        );
+      }
     } finally {
-      setLoading(false);
+      // Só atualiza o estado se o componente ainda estiver montado
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   };
 

@@ -112,11 +112,40 @@ const HomePage = () => {
     loadInitialData();
   }, []);
 
-  // Get the active tab from localStorage
-  const getActiveTab = () => {
+  // State to track active tab
+  const [currentTab, setCurrentTab] = useState(() => {
     const savedTab = localStorage.getItem('activeTab');
     return savedTab ? parseInt(savedTab, 10) : 0;
-  };
+  });
+  
+  // Listen for tab change events
+  useEffect(() => {
+    const handleTabChange = (event) => {
+      setCurrentTab(event.detail.activeTab);
+    };
+    
+    window.addEventListener('tabChange', handleTabChange);
+    
+    return () => {
+      window.removeEventListener('tabChange', handleTabChange);
+    };
+  }, []);
+  
+  // Sync with localStorage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedTab = localStorage.getItem('activeTab');
+      if (savedTab && parseInt(savedTab, 10) !== currentTab) {
+        setCurrentTab(parseInt(savedTab, 10));
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [currentTab]);
   
   const handleRefresh = () => {
     fetchData();
@@ -135,7 +164,7 @@ const HomePage = () => {
 
       {/* Tabs are now in the VisaoGeral component */}
 
-      {getActiveTab() === 0 ? (
+      {currentTab === 0 ? (
         loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
             <CircularProgress size={60} thickness={4} sx={{ color: '#45a049' }} />

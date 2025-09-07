@@ -22,10 +22,25 @@ const VisaoGeral = ({
     return savedTab ? parseInt(savedTab, 10) : 0;
   });
   
+  // Sync activeTab with localStorage on component mount and when activeTab changes
+  useEffect(() => {
+    const savedTab = localStorage.getItem('activeTab');
+    if (savedTab && parseInt(savedTab, 10) !== activeTab) {
+      setActiveTab(parseInt(savedTab, 10));
+    }
+  }, []);
+  
+  // Update localStorage when activeTab changes
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab.toString());
+    
+    // Dispatch a custom event to notify other components about the tab change
+    const event = new CustomEvent('tabChange', { detail: { activeTab } });
+    window.dispatchEvent(event);
+  }, [activeTab]);
+  
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
-    // Save the active tab to localStorage
-    localStorage.setItem('activeTab', newValue.toString());
   };
   
   return (

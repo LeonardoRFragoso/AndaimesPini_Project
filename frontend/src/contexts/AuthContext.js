@@ -22,7 +22,20 @@ export const AuthProvider = ({ children }) => {
         try {
           // Verificar se o token é válido
           const response = await verificarToken();
-          setCurrentUser(response.data.usuario);
+          
+          // Verificar a estrutura da resposta e extrair dados do usuário
+          console.log('Resposta da verificação de token:', response);
+          
+          // Verificar se o usuário está disponível diretamente ou dentro de um objeto data
+          const usuario = response.usuario || (response.data && response.data.usuario);
+          
+          if (usuario) {
+            setCurrentUser(usuario);
+          } else {
+            console.error('Estrutura de resposta inválida na verificação de token');
+            limparSessao();
+            setCurrentUser(null);
+          }
         } catch (err) {
           console.error('Erro ao verificar token:', err);
           // Se o token for inválido, limpar a sessão

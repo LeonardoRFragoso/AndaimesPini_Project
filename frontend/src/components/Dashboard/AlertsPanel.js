@@ -311,24 +311,28 @@ const AlertsPanel = ({ inventory, rentals }) => {
           
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Tooltip title="Atualizar notificações">
-              <IconButton 
-                size="small" 
-                onClick={carregarNotificacoes}
-                disabled={loading}
-              >
-                {loading ? <CircularProgress size={20} /> : <RefreshIcon />}
-              </IconButton>
+              <span>
+                <IconButton 
+                  size="small" 
+                  onClick={carregarNotificacoes}
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={20} /> : <RefreshIcon />}
+                </IconButton>
+              </span>
             </Tooltip>
             
             {notificacoes.filter(n => !n.lida).length > 0 && (
               <Tooltip title="Marcar todas como lidas">
-                <IconButton 
-                  size="small" 
-                  onClick={marcarTodasComoLidas}
-                  disabled={loading}
-                >
-                  <DoneAllIcon />
-                </IconButton>
+                <span>
+                  <IconButton 
+                    size="small" 
+                    onClick={marcarTodasComoLidas}
+                    disabled={loading}
+                  >
+                    <DoneAllIcon />
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
             
