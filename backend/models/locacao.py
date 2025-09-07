@@ -81,10 +81,18 @@ class Locacao:
             # Criar ou buscar cliente
             cliente = Cliente.get_cliente_por_dados(nome=nome_cliente, endereco=endereco_cliente, telefone=telefone_cliente)
             if not cliente:
-                cliente_id = Cliente.criar_cliente(nome_cliente, endereco_cliente, telefone_cliente, referencia=None)
-                if not cliente_id:
-                    logger.error("Erro ao criar cliente para a locação.")
+                # Criar cliente dentro da mesma transação
+                if not nome_cliente or not telefone_cliente:
+                    logger.warning("Nome e telefone são obrigatórios para criar um cliente.")
                     return None
+                
+                cursor.execute("""
+                    INSERT INTO clientes (nome, endereco, telefone, referencia)
+                    VALUES (?, ?, ?, ?)
+                    RETURNING id
+                """, (nome_cliente, endereco_cliente, telefone_cliente, None))
+                cliente_id = cursor.fetchone()[0]
+                logger.info(f"Cliente criado com sucesso: ID {cliente_id}")
             else:
                 cliente_id = cliente['id']
 
@@ -94,7 +102,6 @@ class Locacao:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 RETURNING id
             ''', (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status, numero_nota))
-            conn.commit()
             locacao_id = cursor.fetchone()[0]
             logger.info(f"Locação criada com sucesso: ID {locacao_id}")
 
@@ -122,15 +129,16 @@ class Locacao:
                         raise ValueError(f"Estoque insuficiente para o item '{modelo}'.")
 
                     cursor.execute('''
-                        INSERT INTO itens_locados (locacao_id, item_id, quantidade, unidade)
-                        VALUES (?, ?, ?, ?)
-                    ''', (locacao_id, item_id, quantidade, unidade))
-                    conn.commit()
+                        INSERT INTO itens_locados (locacao_id, item_id, quantidade)
+                        VALUES (?, ?, ?)
+                    ''', (locacao_id, item_id, quantidade))
                     logger.debug(f"Item adicionado à locação: {modelo} (Qtd: {quantidade})")
 
-                    # Atualizar estoque
-                    atualizar_estoque(item_id, -quantidade)  # Chamada ajustada para aceitar dois argumentos
+                    # Atualizar estoque usando a mesma transação
+                    atualizar_estoque(item_id, -quantidade, cursor)
 
+            # Commit all changes at once
+            conn.commit()
             logger.info(f"Locação registrada com sucesso: ID {locacao_id}")
             return locacao_id
         except (sqlite3.Error, ValueError) as e:
@@ -328,7 +336,7 @@ class Locacao:
                     continue
 
                 # Atualiza o estoque (aumenta a quantidade disponível)
-                atualizar_estoque(item_id, quantidade)  # Chamada ajustada para aceitar dois argumentos
+                atualizar_estoque(item_id, quantidade, cursor)
 
                 logger.debug(f"Estoque restaurado para item ID {item_id} na locação ID {locacao_id}.")
 

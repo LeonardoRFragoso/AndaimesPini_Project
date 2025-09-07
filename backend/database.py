@@ -129,6 +129,7 @@ def create_tables():
                     locacao_id INTEGER NOT NULL,
                     item_id INTEGER NOT NULL,
                     quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+                    unidade TEXT DEFAULT 'peças',
                     data_alocacao DATE,
                     data_devolucao DATE,
                     FOREIGN KEY (locacao_id) REFERENCES locacoes (id) ON DELETE CASCADE,
