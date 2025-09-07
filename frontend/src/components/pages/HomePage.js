@@ -269,14 +269,23 @@ const HomePage = () => {
                         transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
                         "&:hover": {
                           transform: "translateY(-15px)",
-                          boxShadow: "0px 15px 30px rgba(0, 0, 0, 0.15)",
+                          boxShadow: theme => theme.palette.mode === 'dark'
+                            ? '0px 15px 30px rgba(0, 0, 0, 0.4)'
+                            : '0px 15px 30px rgba(0, 0, 0, 0.15)',
                         },
                         borderRadius: 4,
                         padding: 3,
                         mx: "auto",
                         maxWidth: 320,
-                        background: 'linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%)',
-                        border: '1px solid rgba(0,0,0,0.05)',
+                        background: theme => theme.palette.mode === 'dark' 
+                          ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
+                          : 'linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%)',
+                        border: theme => theme.palette.mode === 'dark'
+                          ? '1px solid rgba(255,255,255,0.05)'
+                          : '1px solid rgba(0,0,0,0.05)',
+                        boxShadow: theme => theme.palette.mode === 'dark'
+                          ? '0 4px 20px rgba(0,0,0,0.4)'
+                          : '0 4px 20px rgba(0,0,0,0.05)',
                         position: 'relative',
                         overflow: 'hidden',
                         '&::before': {
@@ -301,13 +310,17 @@ const HomePage = () => {
                             height: 80,
                             borderRadius: "24px",
                             background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}99 100%)`,
-                            boxShadow: `0 10px 20px ${item.color}33`,
+                            boxShadow: theme => theme.palette.mode === 'dark'
+                              ? `0 10px 20px ${item.color}50`
+                              : `0 10px 20px ${item.color}33`,
                             mb: 3,
                             mx: 'auto',
                             transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
                             "&:hover": {
                               transform: "scale(1.1) rotate(5deg)",
-                              boxShadow: `0 15px 30px ${item.color}40`,
+                              boxShadow: theme => theme.palette.mode === 'dark'
+                                ? `0 15px 30px ${item.color}60`
+                                : `0 15px 30px ${item.color}40`,
                             },
                           }}
                         >
@@ -317,14 +330,24 @@ const HomePage = () => {
                           variant="h5"
                           component="div"
                           gutterBottom
-                          sx={{ fontWeight: "600", color: item.color }}
+                          sx={{ 
+                            fontWeight: "600", 
+                            color: theme => theme.palette.mode === 'dark' 
+                              ? `${item.color}DD` // Slightly lighter in dark mode
+                              : item.color 
+                          }}
                         >
                           {item.title}
                         </Typography>
                         <Typography
                           variant="body2"
-                          color="text.secondary"
-                          sx={{ fontSize: "0.9rem", minHeight: '48px' }}
+                          sx={{ 
+                            fontSize: "0.9rem", 
+                            minHeight: '48px',
+                            color: theme => theme.palette.mode === 'dark' 
+                              ? 'rgba(255, 255, 255, 0.7)' 
+                              : 'rgba(0, 0, 0, 0.6)'
+                          }}
                         >
                           {item.description}
                         </Typography>
@@ -349,7 +372,9 @@ const HomePage = () => {
                             "&:hover": {
                               background: `linear-gradient(135deg, ${item.color}99 30%, ${item.color} 90%)`,
                               transform: "translateY(-5px)",
-                              boxShadow: `0 15px 30px ${item.color}40`,
+                              boxShadow: theme => theme.palette.mode === 'dark'
+                                ? `0 15px 30px ${item.color}60`
+                                : `0 15px 30px ${item.color}40`,
                             },
                             "&:active": {
                               transform: "translateY(2px)",

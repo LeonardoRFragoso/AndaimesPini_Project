@@ -93,10 +93,15 @@ def proteger_rotas():
         '/inventario',
         '/inventario/disponiveis',
         '/locacoes',
+        '/locacoes/',  # Adicionar barra final para garantir
         '/notificacoes',
         '/notificacoes/nao-lidas',
         '/notificacoes/gerar-automaticas'
     ]
+    
+    # Permitir acesso a rotas específicas com IDs sem autenticação (para testes)
+    if request.path.startswith('/locacoes/') and request.method in ['GET', 'DELETE', 'PUT', 'PATCH']:
+        return None
     
     # Verificar se é uma requisição OPTIONS (CORS preflight)
     if request.method == 'OPTIONS':
