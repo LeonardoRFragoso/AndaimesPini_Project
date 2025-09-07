@@ -39,7 +39,8 @@ const ReportsPage = () => {
       switch (filter) {
         case "overview":
           data = await fetchOverviewReport({ startDate, endDate });
-          setOverviewData(data.data);
+          console.log("Overview data received:", data);
+          setOverviewData(data);
           break;
         case "by-client":
           if (clientId) {

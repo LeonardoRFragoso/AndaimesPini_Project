@@ -51,6 +51,7 @@ const ReportsPage = () => {
             throw new Error(data.error);
           }
           console.log("Overview data:", data);
+          console.log("Setting overviewData to:", data || {});
           setOverviewData(data || {});
           break;
 

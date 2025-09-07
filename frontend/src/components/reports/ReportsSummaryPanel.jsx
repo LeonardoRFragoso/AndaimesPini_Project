@@ -4,6 +4,10 @@ import { Box, Typography, Grid, useTheme } from '@mui/material';
 const ReportsSummaryPanel = ({ overviewData }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
+  
+  // Debug log para verificar os dados recebidos
+  console.log("ReportsSummaryPanel received overviewData:", overviewData);
+  
   // Extrai e formata os dados do overview com valores padrão caso estejam ausentes
   const totalLocacoes = overviewData?.total_locacoes ?? "N/A";
   const receitaTotal = overviewData?.receita_total 

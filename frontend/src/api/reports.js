@@ -5,10 +5,23 @@ import api from './config';
 // Função para obter dados de visão geral com filtros de data opcionais
 export const fetchOverviewReport = async ({ startDate, endDate } = {}) => {
   try {
-    const response = await api.get(`/reports/overview`, {
-      params: { start_date: startDate, end_date: endDate },
-    });
-    return response.data;
+    console.log("Calling fetchOverviewReport with params:", { startDate, endDate });
+    
+    // Construir URL com parâmetros
+    let url = `/reports/overview`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    
+    console.log("Final URL:", url);
+    
+    const response = await api.get(url);
+    console.log("fetchOverviewReport raw response:", response);
+    console.log("fetchOverviewReport response type:", typeof response);
+    console.log("fetchOverviewReport response keys:", Object.keys(response || {}));
+    
+    return response;
   } catch (error) {
     console.error("Erro ao buscar dados de visão geral:", error);
     throw new Error("Erro ao buscar dados de visão geral. Tente novamente.");

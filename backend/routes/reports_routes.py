@@ -23,6 +23,7 @@ def overview_report():
             return jsonify(data), 400
 
         print(f"[DEBUG] Returning successful response")
+        print(f"[DEBUG] JSON response will be: {jsonify(data).get_json()}")
         return jsonify(data), 200
     except Exception as ex:
         print(f"[DEBUG] Exception caught: {str(ex)}")

@@ -15,6 +15,7 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../../api/auth';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage = () => {
   const theme = useTheme();
@@ -25,6 +26,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const isMounted = useRef(true);
+  const { login: authLogin } = useAuth();
   
   // Cleanup function to prevent state updates after unmounting
   useEffect(() => {
@@ -52,9 +54,8 @@ const LoginPage = () => {
         throw new Error('Token não encontrado na resposta');
       }
       
-      // Salvar token e dados do usuário
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(usuario));
+      // Usar a função de login do contexto para atualizar o estado imediatamente
+      authLogin(usuario, token);
       
       // Redirecionar para a página inicial
       navigate('/');

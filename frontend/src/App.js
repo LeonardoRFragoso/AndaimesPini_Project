@@ -60,8 +60,15 @@ function App() {
                   {/* Rota pública de login */}
                   <Route path="/login" element={<LoginPage />} />
                   
-                  {/* Rota inicial */}
-                  <Route path="/" element={<HomePage />} />
+                  {/* Rota inicial protegida */}
+                  <Route 
+                    path="/" 
+                    element={
+                      <ProtectedRoute>
+                        <HomePage />
+                      </ProtectedRoute>
+                    } 
+                  />
                   
                   {/* Rotas protegidas que requerem autenticação */}
                   <Route 

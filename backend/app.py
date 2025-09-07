@@ -94,7 +94,9 @@ def proteger_rotas():
         '/locacoes/',  # Adicionar barra final para garantir
         '/notificacoes',
         '/notificacoes/nao-lidas',
-        '/notificacoes/gerar-automaticas'
+        '/notificacoes/gerar-automaticas',
+        '/reports',
+        '/reports/'
     ]
     
     # Permitir acesso a rotas específicas com IDs sem autenticação (para testes)
