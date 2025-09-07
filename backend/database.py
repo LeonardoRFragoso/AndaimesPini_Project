@@ -117,6 +117,7 @@ def create_tables():
                     motivo_ajuste_valor TEXT,
                     data_prorrogacao DATE,
                     status TEXT DEFAULT 'ativo',
+                    numero_nota TEXT,
                     FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
                 )
             ''')

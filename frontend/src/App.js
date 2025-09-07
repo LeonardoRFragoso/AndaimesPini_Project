@@ -1,8 +1,9 @@
 // src/App.js
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { Box, CssBaseline } from "@mui/material";
+import { Box } from "@mui/material";
 import Navbar from "./components/layouts/Navbar";
+import ThemeToggleButton from "./components/ThemeToggleButton";
 import HomePage from "./components/pages/HomePage"; // Página inicial
 import RegisterPage from "./components/pages/RegisterPage"; // Página de registro de locação
 import OrdersPage from "./components/pages/OrdersPage"; // Página para visualizar pedidos
@@ -10,49 +11,118 @@ import InventoryPage from "./components/pages/inventory/InventoryPage"; // Pági
 import ClientsPage from "./components/pages/ClientsPage"; // Página para gerenciar clientes
 import ClientOrdersView from "./components/Orders/ClientOrdersView"; // Página para pedidos específicos de um cliente
 import ReportsPage from "./components/pages/ReportsPage"; // Página de relatórios
+import LoginPage from "./components/Auth/LoginPage"; // Página de login
+import ProtectedRoute from "./components/Auth/ProtectedRoute"; // Componente de proteção de rotas
+
+// Contextos
+import { AuthProvider } from "./contexts/AuthContext"; // Contexto de autenticação
+import { ThemeProvider } from "./contexts/ThemeContext"; // Contexto de tema
+
+// Estilos
 import "./App.css";
 
-// Exemplo de contexto para feedback global
+// Feedback global
 import { SnackbarProvider } from "notistack";
+
+// Import future flags configuration
+import "./router-config";
 
 function App() {
   return (
-    <SnackbarProvider maxSnack={3}>
-      <Router>
-        <CssBaseline /> {/* Reset de estilos do navegador */}
-        <Box sx={{ display: "flex", flexDirection: "column" }}>
-          <Navbar /> {/* Navbar fixa no topo */}
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              p: 3,
-              mt: 8, // Ajuste de margem para o conteúdo principal
-              transition: "margin-left 0.3s ease", // Transição suave (caso tenha sidebar)
-            }}
-          >
-            <Routes>
-              <Route path="/" element={<HomePage />} /> {/* Rota inicial */}
-              <Route path="/register" element={<RegisterPage />} />{" "}
-              {/* Formulário de registro */}
-              <Route path="/orders" element={<OrdersPage />} />{" "}
-              {/* Visualização de pedidos */}
-              <Route path="/inventory" element={<InventoryPage />} />{" "}
-              {/* Controle de estoque */}
-              <Route path="/clientes" element={<ClientsPage />} />{" "}
-              {/* Gerenciamento de clientes */}
-              <Route
-                path="/clientes/:clientId/pedidos"
-                element={<ClientOrdersView />}
-              />{" "}
-              {/* Pedidos específicos de um cliente */}
-              <Route path="/reports" element={<ReportsPage />} />{" "}
-              {/* Página de relatórios */}
-            </Routes>
-          </Box>
-        </Box>
-      </Router>
-    </SnackbarProvider>
+    <ThemeProvider>
+      <SnackbarProvider maxSnack={3}>
+        <AuthProvider>
+          <Router>
+            <Box 
+              sx={{ 
+                display: "flex", 
+                flexDirection: "column",
+                height: "100vh", // Full viewport height
+                overflow: "hidden" // Prevent double scrollbars
+              }}
+            >
+              <Navbar /> {/* Navbar fixa no topo */}
+              <Box
+                component="main"
+                sx={{
+                  flexGrow: 1,
+                  p: 3,
+                  mt: 8, // Ajuste de margem para o conteúdo principal
+                  transition: "margin-left 0.3s ease", // Transição suave (caso tenha sidebar)
+                  overflowY: "auto", // Single scrollbar for content
+                  height: "calc(100vh - 64px)" // Full height minus navbar
+                }}
+              >
+                {/* Theme toggle button */}
+                <ThemeToggleButton position="bottom-right" size="large" />
+                <Routes>
+                  {/* Rota pública de login */}
+                  <Route path="/login" element={<LoginPage />} />
+                  
+                  {/* Rota inicial */}
+                  <Route path="/" element={<HomePage />} />
+                  
+                  {/* Rotas protegidas que requerem autenticação */}
+                  <Route 
+                    path="/register" 
+                    element={
+                      <ProtectedRoute>
+                        <RegisterPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/orders" 
+                    element={
+                      <ProtectedRoute>
+                        <OrdersPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/inventory" 
+                    element={
+                      <ProtectedRoute>
+                        <InventoryPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/clientes" 
+                    element={
+                      <ProtectedRoute>
+                        <ClientsPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  <Route
+                    path="/clientes/:clientId/pedidos"
+                    element={
+                      <ProtectedRoute>
+                        <ClientOrdersView />
+                      </ProtectedRoute>
+                    }
+                  />
+                  
+                  <Route 
+                    path="/reports" 
+                    element={
+                      <ProtectedRoute>
+                        <ReportsPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+              </Routes>
+              </Box>
+            </Box>
+          </Router>
+        </AuthProvider>
+      </SnackbarProvider>
+    </ThemeProvider>
   );
 }
 

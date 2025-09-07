@@ -25,10 +25,12 @@ import {
   AccordionDetails,
   Badge,
   TextField,
+  Alert,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CategorySection from "../pages/sections/CategorySection";
+import InventoryCheck from "./InventoryCheck";
 
 const RegisterFormView = ({
   novaLocacao,
@@ -208,19 +210,56 @@ const RegisterFormView = ({
           {/* Seção de Itens do Inventário */}
           <Grid item xs={12}>
             <Accordion defaultExpanded>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h5">Itens do Inventário</Typography>
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="itens-content"
+                id="itens-header"
+              >
+                <Typography variant="h6">
+                  <Badge
+                    badgeContent={novaLocacao.itens.length}
+                    color="primary"
+                    showZero
+                  >
+                    Itens do Inventário
+                  </Badge>
+                </Typography>
               </AccordionSummary>
               <AccordionDetails>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Verifique a disponibilidade dos itens antes de adicioná-los à
+                  locação.
+                </Alert>
+
+                <InventoryCheck
+                  onItemSelect={(items) => {
+                    // Converter os itens selecionados para o formato esperado pelo formulário
+                    const formattedItems = items.map((item) => ({
+                      modelo: item.nome_item,
+                      quantidade: item.quantidade_solicitada,
+                      unidade: "peças",
+                    }));
+
+                    // Atualizar a lista de itens na locação
+                    novaLocacao.itens = formattedItems;
+                    setItensAdicionados(formattedItems);
+                  }}
+                />
+
+                <Divider sx={{ my: 2 }} />
+
+                <Typography variant="subtitle1" gutterBottom>
+                  Método tradicional de seleção:
+                </Typography>
+
                 <Grid container spacing={2}>
                   {Object.keys(CATEGORIES).map((category) => (
                     <Grid item xs={12} sm={6} md={4} key={category}>
                       <CategorySection
-                        title={category}
                         category={category}
-                        CATEGORIES={CATEGORIES}
+                        items={CATEGORIES[category]}
                         estoqueDisponivel={estoqueDisponivel}
-                        addItem={handleAddItem}
+                        onAddItem={handleAddItem}
                       />
                     </Grid>
                   ))}

@@ -6,6 +6,7 @@ from routes.inventario_routes import inventario_routes
 from routes.reports_routes import reports_bp
 from routes.itens_locados_routes import itens_locados_routes
 from routes.damages_routes import damages_routes
+from routes.notificacoes_routes import notificacoes_routes
 from routes.auth_routes import auth_routes, requer_autenticacao
 from database import create_tables, close_all_connections
 import logging
@@ -13,6 +14,9 @@ import atexit
 
 # Criação da aplicação Flask
 app = Flask(__name__)
+
+# Desabilitar redirecionamento de URLs com/sem barra final
+app.url_map.strict_slashes = False
 
 # Configuração do ambiente: "development" ou "production"
 ENVIRONMENT = "development"
@@ -25,10 +29,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuração de CORS
-if ENVIRONMENT == "development":
-    CORS(app, resources={r"/*": {"origins": "*"}})
-else:
-    CORS(app, resources={r"/*": {"origins": ["https://seu-dominio.com"]}})
+CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": True, "allow_headers": ["Content-Type", "Authorization"], "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]}})
+
 
 # Função para inicializar o banco de dados ao iniciar a aplicação
 def inicializar_banco():
@@ -75,6 +77,7 @@ try:
     app.register_blueprint(inventario_routes, url_prefix='/inventario')
     app.register_blueprint(reports_bp, url_prefix='/reports')
     app.register_blueprint(damages_routes, url_prefix='/danos')
+    app.register_blueprint(notificacoes_routes, url_prefix='/notificacoes')
     logger.info("Rotas registradas com sucesso.")
 except Exception as e:
     logger.error(f"Erro ao registrar rotas: {e}")
@@ -88,7 +91,11 @@ def proteger_rotas():
         '/auth/verificar',
         '/clientes',
         '/inventario',
-        '/inventario/disponiveis'
+        '/inventario/disponiveis',
+        '/locacoes',
+        '/notificacoes',
+        '/notificacoes/nao-lidas',
+        '/notificacoes/gerar-automaticas'
     ]
     
     # Verificar se é uma requisição OPTIONS (CORS preflight)

@@ -126,3 +126,41 @@ def remover_item_locado(locacao_id, item_id):
     except Exception as ex:
         logger.error(f"Erro ao remover item ID {item_id} da locação ID {locacao_id}: {ex}")
         return jsonify({"error": "Erro ao remover item locado."}), 500
+
+
+@itens_locados_routes.route('/<int:locacao_id>/<int:item_id>', methods=['PUT'])
+def atualizar_quantidade_item_locado(locacao_id, item_id):
+    """
+    Rota para atualizar a quantidade de um item locado específico.
+    """
+    try:
+        dados = request.get_json()
+        
+        # Validação dos dados enviados na requisição
+        if not dados or 'quantidade' not in dados:
+            logger.warning("Quantidade não fornecida para atualização.")
+            return jsonify({"error": "A quantidade é obrigatória para atualizar o item locado."}), 400
+        
+        nova_quantidade = dados["quantidade"]
+        
+        # Validação de quantidade
+        if nova_quantidade <= 0:
+            logger.warning("A quantidade deve ser maior que zero.")
+            return jsonify({"error": "A quantidade deve ser maior que zero."}), 400
+        
+        # Atualizar a quantidade do item locado
+        sucesso = ItensLocados.update_quantidade(locacao_id, item_id, nova_quantidade)
+        if not sucesso:
+            logger.error(f"Erro ao atualizar quantidade do item ID {item_id} na locação ID {locacao_id}.")
+            return jsonify({"error": "Erro ao atualizar quantidade do item locado."}), 500
+        
+        logger.info(f"Quantidade do item ID {item_id} na locação ID {locacao_id} atualizada para {nova_quantidade}.")
+        return jsonify({"message": "Quantidade do item locado atualizada com sucesso."}), 200
+        
+    except psycopg2.Error as e:
+        logger.error(f"Erro no banco de dados ao atualizar quantidade do item ID {item_id} na locação ID {locacao_id}: {e}")
+        return handle_database_error(e)
+        
+    except Exception as ex:
+        logger.error(f"Erro inesperado ao atualizar quantidade do item ID {item_id} na locação ID {locacao_id}: {ex}")
+        return jsonify({"error": "Erro inesperado ao atualizar quantidade do item locado."}), 500

@@ -230,3 +230,32 @@ def atualizar_status_locacao(locacao_id):
     except Exception as ex:
         logger.error(f"Erro inesperado ao atualizar status da locação ID {locacao_id}: {ex}")
         return jsonify({"error": "Erro inesperado ao atualizar status."}), 500
+
+
+@locacoes_routes.route('/<int:locacao_id>', methods=['DELETE'])
+def excluir_locacao(locacao_id):
+    """
+    Exclui uma locação do sistema.
+    """
+    try:
+        # Verificar se a locação existe
+        locacao = Locacao.obter_detalhes_por_id(locacao_id)
+        if not locacao:
+            logger.warning(f"Locação ID {locacao_id} não encontrada para exclusão.")
+            return jsonify({"error": "Locação não encontrada"}), 404
+        
+        # Excluir a locação
+        sucesso = Locacao.delete_locacao(locacao_id)
+        if not sucesso:
+            logger.error(f"Erro ao excluir locação ID {locacao_id}.")
+            return jsonify({"error": "Erro ao excluir locação."}), 500
+        
+        logger.info(f"Locação ID {locacao_id} excluída com sucesso.")
+        return jsonify({"message": "Locação excluída com sucesso."}), 200
+        
+    except psycopg2.Error as e:
+        logger.error(f"Erro no banco de dados ao excluir locação ID {locacao_id}: {e}")
+        return handle_database_error(e)
+    except Exception as ex:
+        logger.error(f"Erro inesperado ao excluir locação ID {locacao_id}: {ex}")
+        return jsonify({"error": "Erro inesperado ao excluir locação."}), 500

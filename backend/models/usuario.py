@@ -49,27 +49,27 @@ class Usuario:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    # Verificar se o email já está em uso
-                    cursor.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
-                    if cursor.fetchone():
-                        logger.warning(f"Email já cadastrado: {email}")
-                        return None
-                    
-                    # Hash da senha
-                    hash_senha, salt = Usuario._hash_senha(senha)
-                    
-                    # Inserir o usuário
-                    cursor.execute("""
-                        INSERT INTO usuarios (nome, email, hash_senha, salt, cargo)
-                        VALUES (?, ?, ?, ?, ?)
-                        RETURNING id
-                    """, (nome, email, hash_senha, salt, cargo))
-                    
-                    usuario_id = cursor.fetchone()[0]
-                    logger.info(f"Usuário criado com sucesso: ID {usuario_id}")
-                    return usuario_id
+            cursor = conn.cursor()
+            # Verificar se o email já está em uso
+            cursor.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
+            if cursor.fetchone():
+                logger.warning(f"Email já cadastrado: {email}")
+                return None
+            
+            # Hash da senha
+            hash_senha, salt = Usuario._hash_senha(senha)
+            
+            # Inserir o usuário
+            cursor.execute("""
+                INSERT INTO usuarios (nome, email, hash_senha, salt, cargo)
+                VALUES (?, ?, ?, ?, ?)
+                RETURNING id
+            """, (nome, email, hash_senha, salt, cargo))
+            conn.commit()
+            
+            usuario_id = cursor.fetchone()[0]
+            logger.info(f"Usuário criado com sucesso: ID {usuario_id}")
+            return usuario_id
         except Exception as e:
             logger.error(f"Erro ao criar usuário: {e}")
             return None
@@ -90,34 +90,33 @@ class Usuario:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT id, nome, email, hash_senha, salt, cargo
-                        FROM usuarios
-                        WHERE email = ?
-                    """, (email,))
-                    
-                    usuario = cursor.fetchone()
-                    if not usuario:
-                        logger.warning(f"Usuário não encontrado: {email}")
-                        return None
-                    
-                    id, nome, email, hash_senha, salt, cargo = usuario
-                    
-                    # Verificar a senha
-                    hash_verificacao, _ = Usuario._hash_senha(senha, salt)
-                    if hash_verificacao != hash_senha:
-                        logger.warning(f"Senha incorreta para o usuário: {email}")
-                        return None
-                    
-                    logger.info(f"Login bem-sucedido: {email}")
-                    return {
-                        "id": id,
-                        "nome": nome,
-                        "email": email,
-                        "cargo": cargo
-                    }
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, nome, email, hash_senha, salt, cargo
+                FROM usuarios
+                WHERE email = ?
+            """, (email,))
+            
+            usuario = cursor.fetchone()
+            if not usuario:
+                logger.warning(f"Usuário não encontrado: {email}")
+                return None
+            
+            id, nome, email, hash_senha, salt, cargo = usuario
+            
+            # Verificar a senha
+            hash_verificacao, _ = Usuario._hash_senha(senha, salt)
+            if hash_verificacao != hash_senha:
+                logger.warning(f"Senha incorreta para o usuário: {email}")
+                return None
+            
+            logger.info(f"Login bem-sucedido: {email}")
+            return {
+                "id": id,
+                "nome": nome,
+                "email": email,
+                "cargo": cargo
+            }
         except Exception as e:
             logger.error(f"Erro ao verificar credenciais: {e}")
             return None
@@ -137,27 +136,26 @@ class Usuario:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT id, nome, email, cargo
-                        FROM usuarios
-                        WHERE id = ?
-                    """, (usuario_id,))
-                    
-                    usuario = cursor.fetchone()
-                    if not usuario:
-                        logger.warning(f"Usuário ID {usuario_id} não encontrado.")
-                        return None
-                    
-                    id, nome, email, cargo = usuario
-                    
-                    return {
-                        "id": id,
-                        "nome": nome,
-                        "email": email,
-                        "cargo": cargo
-                    }
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, nome, email, cargo
+                FROM usuarios
+                WHERE id = ?
+            """, (usuario_id,))
+            
+            usuario = cursor.fetchone()
+            if not usuario:
+                logger.warning(f"Usuário ID {usuario_id} não encontrado.")
+                return None
+            
+            id, nome, email, cargo = usuario
+            
+            return {
+                "id": id,
+                "nome": nome,
+                "email": email,
+                "cargo": cargo
+            }
         except Exception as e:
             logger.error(f"Erro ao buscar usuário por ID: {e}")
             return None
@@ -174,23 +172,22 @@ class Usuario:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT id, nome, email, cargo
-                        FROM usuarios
-                    """)
-                    
-                    usuarios = cursor.fetchall()
-                    return [
-                        {
-                            "id": u[0],
-                            "nome": u[1],
-                            "email": u[2],
-                            "cargo": u[3]
-                        }
-                        for u in usuarios
-                    ]
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, nome, email, cargo
+                FROM usuarios
+            """)
+            
+            usuarios = cursor.fetchall()
+            return [
+                {
+                    "id": u[0],
+                    "nome": u[1],
+                    "email": u[2],
+                    "cargo": u[3]
+                }
+                for u in usuarios
+            ]
         except Exception as e:
             logger.error(f"Erro ao listar usuários: {e}")
             return []
@@ -218,57 +215,57 @@ class Usuario:
         
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    # Verificar se o usuário existe
-                    cursor.execute("SELECT id FROM usuarios WHERE id = ?", (usuario_id,))
-                    if not cursor.fetchone():
-                        logger.warning(f"Usuário ID {usuario_id} não encontrado.")
-                        return False
-                    
-                    # Verificar se o novo email já está em uso
-                    if email:
-                        cursor.execute("SELECT id FROM usuarios WHERE email = ? AND id != ?", (email, usuario_id))
-                        if cursor.fetchone():
-                            logger.warning(f"Email já cadastrado: {email}")
-                            return False
-                    
-                    # Construir a query de atualização
-                    campos = []
-                    valores = []
-                    
-                    if nome:
-                        campos.append("nome = ?")
-                        valores.append(nome)
-                    
-                    if email:
-                        campos.append("email = ?")
-                        valores.append(email)
-                    
-                    if senha:
-                        hash_senha, salt = Usuario._hash_senha(senha)
-                        campos.append("hash_senha = ?")
-                        valores.append(hash_senha)
-                        campos.append("salt = ?")
-                        valores.append(salt)
-                    
-                    if cargo:
-                        campos.append("cargo = ?")
-                        valores.append(cargo)
-                    
-                    # Adicionar o ID ao final dos valores
-                    valores.append(usuario_id)
-                    
-                    # Executar a query
-                    query = f"UPDATE usuarios SET {', '.join(campos)} WHERE id = ?"
-                    cursor.execute(query, valores)
-                    
-                    if cursor.rowcount > 0:
-                        logger.info(f"Usuário ID {usuario_id} atualizado com sucesso.")
-                        return True
-                    else:
-                        logger.warning(f"Nenhuma alteração feita para o usuário ID {usuario_id}.")
-                        return False
+            cursor = conn.cursor()
+            # Verificar se o usuário existe
+            cursor.execute("SELECT id FROM usuarios WHERE id = ?", (usuario_id,))
+            if not cursor.fetchone():
+                logger.warning(f"Usuário ID {usuario_id} não encontrado.")
+                return False
+            
+            # Verificar se o novo email já está em uso
+            if email:
+                cursor.execute("SELECT id FROM usuarios WHERE email = ? AND id != ?", (email, usuario_id))
+                if cursor.fetchone():
+                    logger.warning(f"Email já cadastrado: {email}")
+                    return False
+            
+            # Construir a query de atualização
+            campos = []
+            valores = []
+            
+            if nome:
+                campos.append("nome = ?")
+                valores.append(nome)
+            
+            if email:
+                campos.append("email = ?")
+                valores.append(email)
+            
+            if senha:
+                hash_senha, salt = Usuario._hash_senha(senha)
+                campos.append("hash_senha = ?")
+                valores.append(hash_senha)
+                campos.append("salt = ?")
+                valores.append(salt)
+            
+            if cargo:
+                campos.append("cargo = ?")
+                valores.append(cargo)
+            
+            # Adicionar o ID ao final dos valores
+            valores.append(usuario_id)
+            
+            # Executar a query
+            query = f"UPDATE usuarios SET {', '.join(campos)} WHERE id = ?"
+            cursor.execute(query, valores)
+            conn.commit()
+            
+            if cursor.rowcount > 0:
+                logger.info(f"Usuário ID {usuario_id} atualizado com sucesso.")
+                return True
+            else:
+                logger.warning(f"Nenhuma alteração feita para o usuário ID {usuario_id}.")
+                return False
         except Exception as e:
             logger.error(f"Erro ao atualizar usuário: {e}")
             return False
@@ -288,16 +285,16 @@ class Usuario:
         """
         conn = get_connection()
         try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
-                    
-                    if cursor.rowcount > 0:
-                        logger.info(f"Usuário ID {usuario_id} excluído com sucesso.")
-                        return True
-                    else:
-                        logger.warning(f"Usuário ID {usuario_id} não encontrado para exclusão.")
-                        return False
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
+            conn.commit()
+            
+            if cursor.rowcount > 0:
+                logger.info(f"Usuário ID {usuario_id} excluído com sucesso.")
+                return True
+            else:
+                logger.warning(f"Usuário ID {usuario_id} não encontrado para exclusão.")
+                return False
         except Exception as e:
             logger.error(f"Erro ao excluir usuário: {e}")
             return False
