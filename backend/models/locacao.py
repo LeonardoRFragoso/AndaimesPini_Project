@@ -376,6 +376,71 @@ class Locacao:
             release_connection(conn)
             
     @staticmethod
+    def obter_locacoes_atrasadas():
+        """
+        Obtém todas as locações com devolução atrasada (data_fim anterior à data atual e status ainda 'ativo').
+        
+        Retorna:
+            list: Lista de dicionários com detalhes das locações atrasadas, ou uma lista vazia se não houver locações atrasadas.
+        """
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            data_atual = datetime.now().strftime('%Y-%m-%d')
+            
+            cursor.execute('''
+                SELECT locacoes.id, locacoes.data_inicio, locacoes.data_fim, locacoes.valor_total,
+                       locacoes.valor_pago_entrega, locacoes.valor_receber_final, locacoes.status,
+                       clientes.nome, clientes.endereco, clientes.telefone, locacoes.numero_nota
+                FROM locacoes
+                JOIN clientes ON locacoes.cliente_id = clientes.id
+                WHERE locacoes.data_fim < ? AND locacoes.status = 'ativo'
+                ORDER BY locacoes.data_fim ASC
+            ''', (data_atual,))
+            
+            locacoes = cursor.fetchall()
+            
+            if not locacoes:
+                logger.info("Nenhuma locação atrasada encontrada.")
+                return []
+            
+            resultado = []
+            for locacao in locacoes:
+                locacao_id = locacao[0]
+                itens_locados = ItensLocados.obter_por_locacao(locacao_id)
+                
+                # Calcular dias de atraso
+                data_fim = datetime.strptime(locacao[2], '%Y-%m-%d').date() if isinstance(locacao[2], str) else locacao[2]
+                data_atual = date.today()
+                dias_atraso = (data_atual - data_fim).days
+                
+                resultado.append({
+                    "id": locacao_id,
+                    "data_inicio": locacao[1],
+                    "data_fim": locacao[2],
+                    "valor_total": float(locacao[3]) if locacao[3] is not None else 0.0,
+                    "valor_pago_entrega": float(locacao[4]) if locacao[4] is not None else 0.0,
+                    "valor_receber_final": float(locacao[5]) if locacao[5] is not None else 0.0,
+                    "status": locacao[6],
+                    "dias_atraso": dias_atraso,
+                    "cliente": {
+                        "nome": locacao[7],
+                        "endereco": locacao[8],
+                        "telefone": locacao[9]
+                    },
+                    "numero_nota": locacao[10],
+                    "itens": itens_locados
+                })
+            
+            logger.info(f"{len(resultado)} locações atrasadas encontradas.")
+            return resultado
+        except sqlite3.Error as e:
+            logger.error(f"Erro ao buscar locações atrasadas: {e}")
+            return []
+        finally:
+            release_connection(conn)
+    
+    @staticmethod
     def delete_locacao(locacao_id):
         """
         Exclui uma locação do banco de dados.

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Typography, CircularProgress } from "@mui/material";
+import { Box, Typography, CircularProgress, useTheme } from "@mui/material";
 import ReportsFilterForm from "../../components/reports/ReportsFilterForm";
 import ReportsSummaryPanel from "../../components/reports/ReportsSummaryPanel";
 import ReportsDataTable from "../../components/reports/ReportsDataTable";
@@ -13,6 +13,8 @@ import {
 } from "../../api/reports";
 
 const ReportsPage = () => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   const [overviewData, setOverviewData] = useState({});
   const [clientData, setClientData] = useState([]);
   const [statusData, setStatusData] = useState([]);
@@ -45,7 +47,7 @@ const ReportsPage = () => {
       switch (filter) {
         case "overview":
           data = await fetchOverviewReport({ startDate, endDate });
-          if (data.error) {
+          if (data && data.error) {
             throw new Error(data.error);
           }
           console.log("Overview data:", data);
@@ -55,7 +57,7 @@ const ReportsPage = () => {
         case "by-client":
           if (clientId) {
             data = await fetchClientReport(clientId, { startDate, endDate });
-            if (data.error) {
+            if (data && data.error) {
               throw new Error(data.error);
             }
             console.log("Client data:", data);
@@ -68,7 +70,7 @@ const ReportsPage = () => {
         case "by-item":
           if (itemId) {
             data = await fetchItemReport(itemId, { startDate, endDate });
-            if (data.error) {
+            if (data && data.error) {
               throw new Error(data.error);
             }
             console.log("Item data:", data);
@@ -80,7 +82,7 @@ const ReportsPage = () => {
 
         case "by-status":
           data = await fetchStatusReport({ startDate, endDate });
-          if (data.error) {
+          if (data && data.error) {
             throw new Error(data.error);
           }
           console.log("Status data:", data);
@@ -112,8 +114,21 @@ const ReportsPage = () => {
   }, [filter, clientId, itemId, startDate, endDate]);
 
   return (
-    <Box sx={{ p: 4, bgcolor: "#f5f5f5", minHeight: "100vh" }}>
-      <Typography variant="h4" gutterBottom align="center">
+    <Box sx={{ 
+      p: 4, 
+      bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : '#f5f5f5', 
+      minHeight: "100vh",
+      color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+    }}>
+      <Typography 
+        variant="h4" 
+        gutterBottom 
+        align="center"
+        sx={{ 
+          color: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d',
+          fontWeight: "bold"
+        }}
+      >
         Relatórios
       </Typography>
 

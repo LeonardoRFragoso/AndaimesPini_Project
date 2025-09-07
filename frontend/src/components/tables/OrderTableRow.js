@@ -1,33 +1,33 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { TableRow, TableCell, Chip } from "@mui/material";
+import { TableRow, TableCell, Chip, useTheme } from "@mui/material";
 import { Check, WarningAmber } from "@mui/icons-material";
 import OrderActions from "./OrderActions";
 
-// Configurações de exibição para o status
-const statusChipConfig = {
+// Configurações de exibição para o status (serão ajustadas com base no tema)
+const getStatusChipConfig = (isDarkMode) => ({
   ativo: {
     label: "Ativo",
     color: "error",
-    backgroundColor: "#ffebee",
-    textColor: "#d32f2f",
+    backgroundColor: isDarkMode ? "rgba(255, 0, 0, 0.15)" : "#ffebee",
+    textColor: isDarkMode ? "#ff6b6b" : "#d32f2f",
     icon: <WarningAmber />,
   },
   concluido: {
     label: "Concluído",
     color: "success",
-    backgroundColor: "#d1f7d1",
-    textColor: "#388e3c",
+    backgroundColor: isDarkMode ? "rgba(0, 255, 0, 0.15)" : "#d1f7d1",
+    textColor: isDarkMode ? "#69f0ae" : "#388e3c",
     icon: <Check />,
   },
   indefinido: {
     label: "Indefinido",
     color: "default",
-    backgroundColor: "#f0f0f0",
-    textColor: "#000",
+    backgroundColor: isDarkMode ? "rgba(128, 128, 128, 0.15)" : "#f0f0f0",
+    textColor: isDarkMode ? "#bdbdbd" : "#000",
     icon: null,
   },
-};
+});
 
 // Função para normalizar o status
 const normalizeStatus = (status) =>
@@ -59,6 +59,10 @@ const OrderTableRow = React.memo(
     onReactivateOrder,
     onCompleteOrder,
   }) => {
+    const theme = useTheme();
+    const isDarkMode = theme.palette.mode === 'dark';
+    const statusChipConfig = getStatusChipConfig(isDarkMode);
+    
     const normalizedStatus = normalizeStatus(order.status);
 
     const currentStatus =
@@ -84,17 +88,27 @@ const OrderTableRow = React.memo(
       <TableRow
         key={order.id}
         sx={{
-          "&:nth-of-type(odd)": { backgroundColor: "#f9f9f9" },
-          "&:hover": { backgroundColor: "#e0f7fa", cursor: "pointer" },
+          "&:nth-of-type(odd)": { 
+            backgroundColor: theme => theme.palette.mode === 'dark' 
+              ? 'rgba(50, 50, 50, 0.5)' 
+              : '#f9f9f9' 
+          },
+          "&:hover": { 
+            backgroundColor: theme => theme.palette.mode === 'dark' 
+              ? 'rgba(70, 70, 70, 0.7)' 
+              : '#e0f7fa', 
+            cursor: "pointer" 
+          },
+          color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
         }}
         aria-label={`Pedido ${order.id}`} // Acessibilidade
       >
-        <TableCell>{order.id}</TableCell>
-        <TableCell>{formatDate(order.data_inicio)}</TableCell>
-        <TableCell>{terminoMessage}</TableCell>
-        <TableCell>{order.cliente?.nome || "Não informado"}</TableCell>
-        <TableCell>{formatCurrency(order.valor_total)}</TableCell>
-        <TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{order.id}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{formatDate(order.data_inicio)}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{terminoMessage}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{order.cliente?.nome || "Não informado"}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{formatCurrency(order.valor_total)}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>
           {formatCurrency(order.novo_valor_total || order.valor_receber_final)}
         </TableCell>
         <TableCell>
@@ -109,12 +123,12 @@ const OrderTableRow = React.memo(
             icon={currentStatus.icon}
           />
         </TableCell>
-        <TableCell>{formatCurrency(order.abatimento)}</TableCell>
-        <TableCell>{formatDate(order.data_fim_original)}</TableCell>
-        <TableCell>{devolucaoMessage}</TableCell>
-        <TableCell>{order.motivo_ajuste || "Não informado"}</TableCell>
-        <TableCell>{formatDate(order.data_prorrogacao)}</TableCell>
-        <TableCell>{formatCurrency(order.novo_valor_total)}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{formatCurrency(order.abatimento)}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{formatDate(order.data_fim_original)}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{devolucaoMessage}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{order.motivo_ajuste || "Não informado"}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{formatDate(order.data_prorrogacao)}</TableCell>
+        <TableCell sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>{formatCurrency(order.novo_valor_total)}</TableCell>
         <TableCell>
           <OrderActions
             order={order}

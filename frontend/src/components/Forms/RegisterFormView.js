@@ -256,10 +256,11 @@ const RegisterFormView = ({
                   {Object.keys(CATEGORIES).map((category) => (
                     <Grid item xs={12} sm={6} md={4} key={category}>
                       <CategorySection
+                        title={category.charAt(0).toUpperCase() + category.slice(1)}
                         category={category}
-                        items={CATEGORIES[category]}
+                        CATEGORIES={CATEGORIES}
                         estoqueDisponivel={estoqueDisponivel}
-                        onAddItem={handleAddItem}
+                        addItem={handleAddItem}
                       />
                     </Grid>
                   ))}

@@ -88,6 +88,20 @@ def confirmar_devolucao(locacao_id):
         logger.error(f"Erro inesperado: {ex}")
         return jsonify({"error": "Erro ao confirmar devolução."}), 500
 
+@locacoes_routes.route('/atrasadas', methods=['GET'])
+def listar_locacoes_atrasadas():
+    """Rota para listar todas as locações com devolução atrasada."""
+    try:
+        locacoes_atrasadas = Locacao.obter_locacoes_atrasadas()
+        logger.info(f"{len(locacoes_atrasadas)} locações atrasadas encontradas.")
+        return jsonify(locacoes_atrasadas), 200
+    except sqlite3.Error as e:
+        logger.error(f"Erro no banco de dados: {e}")
+        return handle_database_error(e)
+    except Exception as ex:
+        logger.error(f"Erro inesperado: {ex}")
+        return jsonify({"error": "Erro ao listar locações atrasadas."}), 500
+
 @locacoes_routes.route('/<int:locacao_id>/status', methods=['PATCH'])
 def atualizar_status(locacao_id):
     """Rota para atualizar o status de uma locação."""

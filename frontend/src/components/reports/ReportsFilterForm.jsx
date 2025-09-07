@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Box, TextField, Select, MenuItem, Button, Autocomplete } from '@mui/material';
+import { Box, TextField, Select, MenuItem, Button, Autocomplete, useTheme } from '@mui/material';
 import { fetchClients, fetchItems } from '../../api/reports'; // Funções para buscar clientes e itens
 
 const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdChange, onDateChange, onExportFormatChange }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [clientOptions, setClientOptions] = useState([]);
@@ -49,12 +51,35 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
   };
 
   return (
-    <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      gap: 2, 
+      mb: 3, 
+      flexWrap: 'wrap',
+      '& .MuiInputBase-root': {
+        color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+      },
+      '& .MuiInputLabel-root': {
+        color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'inherit',
+      },
+      '& .MuiOutlinedInput-notchedOutline': {
+        borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
+      },
+      '& .MuiSelect-icon': {
+        color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+      },
+    }}>
       <Select
         value={filter}
         onChange={(e) => onFilterChange(e.target.value)}
         displayEmpty
-        sx={{ minWidth: 200 }}
+        sx={{ 
+          minWidth: 200,
+          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+          '& .MuiSelect-select': {
+            color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+          },
+        }}
       >
         <MenuItem value="overview">Visão Geral</MenuItem>
         <MenuItem value="by-client">Por Cliente</MenuItem>
@@ -68,6 +93,14 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         value={startDate}
         onChange={(e) => handleDateChange('start', e.target.value)}
         InputLabelProps={{ shrink: true }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+          },
+          '& input': {
+            color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+          }
+        }}
       />
       
       <TextField
@@ -76,6 +109,14 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         value={endDate}
         onChange={(e) => handleDateChange('end', e.target.value)}
         InputLabelProps={{ shrink: true }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+          },
+          '& input': {
+            color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+          }
+        }}
       />
 
       {filter === "by-client" && (
@@ -84,7 +125,24 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
           getOptionLabel={(option) => option.name || ""}
           onInputChange={(event, value) => handleClientSearch(value)}
           onChange={(event, newValue) => setSelectedClient(newValue)}
-          renderInput={(params) => <TextField {...params} label="Nome do Cliente" />}
+          renderInput={(params) => <TextField 
+            {...params} 
+            label="Nome do Cliente" 
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+              },
+              '& input': {
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+              }
+            }}
+          />}
+          sx={{
+            '& .MuiAutocomplete-paper': {
+              backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(40, 40, 40, 0.95)' : '#fff',
+              color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+            }
+          }}
         />
       )}
 
@@ -94,7 +152,24 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
           getOptionLabel={(option) => option.name || ""}
           onInputChange={(event, value) => handleItemSearch(value)}
           onChange={(event, newValue) => setSelectedItem(newValue)}
-          renderInput={(params) => <TextField {...params} label="Nome ou Tipo do Item" />}
+          renderInput={(params) => <TextField 
+            {...params} 
+            label="Nome ou Tipo do Item" 
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+              },
+              '& input': {
+                color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+              }
+            }}
+          />}
+          sx={{
+            '& .MuiAutocomplete-paper': {
+              backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(40, 40, 40, 0.95)' : '#fff',
+              color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+            }
+          }}
         />
       )}
 
@@ -103,7 +178,13 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
           value={exportFormat}
           onChange={(e) => setExportFormat(e.target.value)}
           displayEmpty
-          sx={{ minWidth: 180 }}
+          sx={{ 
+            minWidth: 180,
+            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+            '& .MuiSelect-select': {
+              color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+            },
+          }}
         >
           <MenuItem value="csv">Exportar CSV</MenuItem>
           <MenuItem value="excel">Exportar Excel</MenuItem>
@@ -114,7 +195,14 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
       <Button
         variant="contained"
         onClick={applyFilters}
-        sx={{ alignSelf: 'center' }}
+        sx={{ 
+          alignSelf: 'center',
+          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.8)' : '#2c552d',
+          color: '#fff',
+          '&:hover': {
+            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.9)' : '#45a049',
+          }
+        }}
       >
         Aplicar Filtros
       </Button>

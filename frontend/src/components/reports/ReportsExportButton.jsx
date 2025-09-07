@@ -1,9 +1,11 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button, useTheme } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import { downloadStatusExcel, downloadStatusChart } from '../../api/reports'; // Importa funções de download da API
 
 const ReportsExportButton = ({ data, filename, exportFormat = "csv", filter }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   const exportToCSV = () => {
     if (!data || data.length === 0) {
       console.warn("Nenhum dado disponível para exportar.");
@@ -78,7 +80,14 @@ const ReportsExportButton = ({ data, filename, exportFormat = "csv", filter }) =
       variant="contained"
       startIcon={<Download />}
       onClick={handleExport}
-      sx={{ mt: 2 }}
+      sx={{ 
+        mt: 2,
+        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.8)' : '#2c552d',
+        color: '#fff',
+        '&:hover': {
+          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.9)' : '#45a049',
+        }
+      }}
     >
       {exportFormat === "excel" ? "Exportar Excel" : exportFormat === "chart" ? "Exportar Gráfico" : "Exportar CSV"}
     </Button>

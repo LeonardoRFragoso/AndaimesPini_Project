@@ -1,9 +1,10 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { TableHead, TableRow, TableCell } from "@mui/material";
+import { TableHead, TableRow, TableCell, useTheme } from "@mui/material";
 import { ArrowUpward, ArrowDownward } from "@mui/icons-material";
 
 const TableHeader = ({ orderBy, onSort }) => {
+  const theme = useTheme();
   // Definição das colunas da tabela
   const columns = [
     { id: "id", label: "ID do Pedido", align: "center" },
@@ -22,7 +23,9 @@ const TableHeader = ({ orderBy, onSort }) => {
   ];
 
   return (
-    <TableHead sx={{ backgroundColor: "#e0f2f1" }}>
+    <TableHead sx={{ 
+      backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(40, 40, 40, 0.9)' : '#e0f2f1' 
+    }}>
       <TableRow>
         {columns.map((column) => (
           <TableCell
@@ -33,7 +36,8 @@ const TableHeader = ({ orderBy, onSort }) => {
               cursor: "pointer",
               fontWeight: "bold",
               textAlign: column.align || "left",
-              "&:hover": { color: "#00796b" },
+              color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+              "&:hover": { color: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#00796b' },
             }}
             aria-label={`Ordenar por ${column.label}`}
           >
@@ -58,7 +62,10 @@ const TableHeader = ({ orderBy, onSort }) => {
         {/* Célula adicional para ações */}
         <TableCell
           align="center"
-          sx={{ fontWeight: "bold" }}
+          sx={{ 
+            fontWeight: "bold",
+            color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit'
+          }}
           aria-label="Ações"
         >
           Ações

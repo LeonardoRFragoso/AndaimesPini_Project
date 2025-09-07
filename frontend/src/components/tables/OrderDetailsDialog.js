@@ -12,6 +12,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  useTheme,
 } from "@mui/material";
 
 // Funções utilitárias
@@ -26,26 +27,34 @@ const formatDate = (date, fallbackMessage = "Não disponível") => {
 };
 
 // Subcomponente: Renderização dos itens locados
-const RenderItensLocados = ({ itens }) => (
-  <Table size="small" sx={{ marginTop: 2 }}>
+const RenderItensLocados = ({ itens }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  return (
+  <Table size="small" sx={{ marginTop: 2, backgroundColor: isDarkMode ? 'rgba(40, 40, 40, 0.8)' : 'inherit' }}>
     <TableBody>
       {itens?.length > 0 ? (
         itens.map((item, index) => (
-          <TableRow key={index}>
-            <TableCell>
+          <TableRow key={index} sx={{ 
+            backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.5)' : 'inherit',
+            '&:nth-of-type(odd)': {
+              backgroundColor: isDarkMode ? 'rgba(60, 60, 60, 0.5)' : '#f9f9f9',
+            },
+          }}>
+            <TableCell sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Item:</strong> {item.nome_item || "N/A"}
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Quantidade:</strong> {item.quantidade || "0"}
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Tipo:</strong> {item.tipo_item || "Não especificado"}
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Data de Alocação:</strong>{" "}
               {formatDate(item.data_alocacao)}
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Data de Devolução:</strong>{" "}
               {item.data_devolucao
                 ? formatDate(item.data_devolucao)
@@ -54,15 +63,16 @@ const RenderItensLocados = ({ itens }) => (
           </TableRow>
         ))
       ) : (
-        <TableRow>
-          <TableCell colSpan={5} align="center">
+        <TableRow sx={{ backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.5)' : 'inherit' }}>
+          <TableCell colSpan={5} align="center" sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
             Nenhum item locado.
           </TableCell>
         </TableRow>
       )}
     </TableBody>
   </Table>
-);
+  );
+};
 
 RenderItensLocados.propTypes = {
   itens: PropTypes.arrayOf(
@@ -77,11 +87,15 @@ RenderItensLocados.propTypes = {
 };
 
 // Subcomponente: Renderização dos detalhes financeiros
-const RenderFinanceDetails = ({ label, value }) => (
-  <Typography>
+const RenderFinanceDetails = ({ label, value }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  return (
+  <Typography sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
     <strong>{label}:</strong> {formatCurrency(value)}
   </Typography>
-);
+  );
+};
 
 RenderFinanceDetails.propTypes = {
   label: PropTypes.string.isRequired,
@@ -89,59 +103,81 @@ RenderFinanceDetails.propTypes = {
 };
 
 // Componente principal
-const OrderDetailsDialog = ({ open, selectedOrder, onClose }) => (
-  <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-    <DialogTitle>Detalhes do Pedido #{selectedOrder?.id || "N/A"}</DialogTitle>
-    <DialogContent dividers>
+const OrderDetailsDialog = ({ open, selectedOrder, onClose }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  return (
+  <Dialog 
+    open={open} 
+    onClose={onClose} 
+    maxWidth="md" 
+    fullWidth
+    PaperProps={{
+      sx: {
+        backgroundColor: isDarkMode ? 'rgba(30, 30, 30, 0.95)' : '#fff',
+        color: isDarkMode ? '#fff' : 'inherit',
+      }
+    }}
+  >
+    <DialogTitle sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
+      Detalhes do Pedido #{selectedOrder?.id || "N/A"}
+    </DialogTitle>
+    <DialogContent 
+      dividers 
+      sx={{ 
+        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'inherit',
+        backgroundColor: isDarkMode ? 'rgba(30, 30, 30, 0.95)' : '#fff',
+      }}
+    >
       {selectedOrder ? (
         <>
           {/* Informações do Cliente */}
-          <Typography variant="h6">Cliente</Typography>
+          <Typography variant="h6" sx={{ color: isDarkMode ? '#4caf50' : '#2c552d' }}>Cliente</Typography>
           <Box sx={{ marginBottom: 2 }}>
-            <Typography>
+            <Typography sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Nome:</strong>{" "}
               {selectedOrder.cliente?.nome || "Não informado"}
             </Typography>
-            <Typography>
+            <Typography sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Endereço:</strong>{" "}
               {selectedOrder.cliente?.endereco || "Não informado"}
             </Typography>
-            <Typography>
+            <Typography sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Telefone:</strong>{" "}
               {selectedOrder.cliente?.telefone || "Não informado"}
             </Typography>
           </Box>
 
           {/* Detalhes do Pedido */}
-          <Typography variant="h6" sx={{ marginTop: 2 }}>
+          <Typography variant="h6" sx={{ marginTop: 2, color: isDarkMode ? '#4caf50' : '#2c552d' }}>
             Detalhes do Pedido
           </Typography>
           <Box sx={{ marginBottom: 2 }}>
-            <Typography>
+            <Typography sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Data de Início:</strong>{" "}
               {formatDate(selectedOrder.data_inicio)}
             </Typography>
-            <Typography>
+            <Typography sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Data de Término Original:</strong>{" "}
               {formatDate(selectedOrder.data_fim_original)}
             </Typography>
-            <Typography>
+            <Typography sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Nova Data de Término:</strong>{" "}
               {formatDate(selectedOrder.data_fim)}
             </Typography>
-            <Typography>
+            <Typography sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               <strong>Status:</strong> {selectedOrder.status || "Indefinido"}
             </Typography>
           </Box>
 
           {/* Itens Locados */}
-          <Typography variant="h6" sx={{ marginTop: 2 }}>
+          <Typography variant="h6" sx={{ marginTop: 2, color: isDarkMode ? '#4caf50' : '#2c552d' }}>
             Itens Locados
           </Typography>
           <RenderItensLocados itens={selectedOrder.itens} />
 
           {/* Dados Financeiros */}
-          <Typography variant="h6" sx={{ marginTop: 2 }}>
+          <Typography variant="h6" sx={{ marginTop: 2, color: isDarkMode ? '#4caf50' : '#2c552d' }}>
             Dados Financeiros
           </Typography>
           <Box>
@@ -182,16 +218,24 @@ const OrderDetailsDialog = ({ open, selectedOrder, onClose }) => (
           </Box>
         </>
       ) : (
-        <Typography>Detalhes do pedido não disponíveis.</Typography>
+        <Typography sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>Detalhes do pedido não disponíveis.</Typography>
       )}
     </DialogContent>
-    <DialogActions>
-      <Button onClick={onClose} color="primary">
+    <DialogActions sx={{ backgroundColor: isDarkMode ? 'rgba(30, 30, 30, 0.95)' : '#fff' }}>
+      <Button 
+        onClick={onClose} 
+        color="primary"
+        sx={{ 
+          color: isDarkMode ? '#4caf50' : 'primary',
+          '&:hover': { backgroundColor: isDarkMode ? 'rgba(76, 175, 80, 0.1)' : '' } 
+        }}
+      >
         Fechar
       </Button>
     </DialogActions>
   </Dialog>
-);
+  );
+};
 
 OrderDetailsDialog.propTypes = {
   open: PropTypes.bool.isRequired,

@@ -1,35 +1,35 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { Button } from "@mui/material";
+import { Button, useTheme } from "@mui/material";
 import { Restore } from "@mui/icons-material";
 import CompleteButton from "../common/CompleteButton";
 import DetailsButton from "../common/DetailsButton";
 import ExtendButton from "../common/ExtendButton";
 import ReturnButton from "../common/ReturnButton";
 
-// Estilos para hover nos botões
-const hoverStyles = {
+// Estilos para hover nos botões com suporte a tema escuro
+const getHoverStyles = (isDarkMode) => ({
   details: {
-    backgroundColor: "#e3f2fd",
-    color: "#1e88e5",
+    backgroundColor: isDarkMode ? "rgba(25, 118, 210, 0.2)" : "#e3f2fd",
+    color: isDarkMode ? "#90caf9" : "#1e88e5",
   },
   return: {
-    backgroundColor: "#ffb74d",
-    color: "#000",
+    backgroundColor: isDarkMode ? "rgba(255, 152, 0, 0.2)" : "#ffb74d",
+    color: isDarkMode ? "#ffb74d" : "#000",
   },
   extend: {
-    backgroundColor: "#81c784",
-    color: "#000",
+    backgroundColor: isDarkMode ? "rgba(76, 175, 80, 0.2)" : "#81c784",
+    color: isDarkMode ? "#81c784" : "#000",
   },
   complete: {
-    backgroundColor: "#66bb6a",
-    color: "#fff",
+    backgroundColor: isDarkMode ? "rgba(76, 175, 80, 0.3)" : "#66bb6a",
+    color: isDarkMode ? "#a5d6a7" : "#fff",
   },
   reactivate: {
-    backgroundColor: "#ffeb3b",
-    color: "#000",
+    backgroundColor: isDarkMode ? "rgba(255, 235, 59, 0.2)" : "#ffeb3b",
+    color: isDarkMode ? "#fff176" : "#000",
   },
-};
+});
 
 // Função para normalizar o status
 const normalizeStatus = (status) =>
@@ -46,6 +46,10 @@ const OrderActions = ({
   onReactivateOrder,
   onCompleteOrder,
 }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  const hoverStyles = getHoverStyles(isDarkMode);
+  
   // Normaliza o status do pedido para evitar problemas de formatação
   const normalizedStatus = normalizeStatus(order.status);
 
@@ -57,6 +61,7 @@ const OrderActions = ({
         justifyContent: "center",
         alignItems: "center",
         flexWrap: "wrap", // Exibição responsiva para dispositivos menores
+        color: theme.palette.mode === 'dark' ? '#fff' : 'inherit',
       }}
     >
       {/* Botão para abrir os detalhes do pedido (sempre visível) */}
@@ -83,6 +88,8 @@ const OrderActions = ({
             fontWeight: "bold",
             padding: "6px 12px",
             fontSize: "0.875rem",
+            color: theme => theme.palette.mode === 'dark' ? '#fff176' : 'inherit',
+            borderColor: theme => theme.palette.mode === 'dark' ? '#fff176' : 'inherit',
             "&:hover": hoverStyles.reactivate,
           }}
         >

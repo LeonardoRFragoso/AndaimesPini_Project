@@ -4,6 +4,7 @@ import {
   Divider, Box, Chip, Badge, Collapse, IconButton, useTheme, 
   useMediaQuery, Fade, Grow, Paper, Tooltip, CircularProgress, Button
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
 import InfoIcon from '@mui/icons-material/Info';
@@ -21,6 +22,7 @@ import { useSnackbar } from 'notistack';
 
 const AlertsPanel = ({ inventory, rentals }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [expanded, setExpanded] = useState({});
   const [animate, setAnimate] = useState(false);
@@ -110,7 +112,7 @@ const AlertsPanel = ({ inventory, rentals }) => {
     }));
   };
 
-  const renderNotificacaoItem = (notificacao) => {
+  const renderNotificacaoItem = (notificacao, tipo = null) => {
     const isExpanded = expanded[notificacao.id] || false;
     let icon, color;
     
@@ -132,6 +134,9 @@ const AlertsPanel = ({ inventory, rentals }) => {
         icon = <NotificationsIcon />;
         color = 'primary';
     }
+    
+    // Verificar se é uma notificação de devolução atrasada para adicionar funcionalidade de clique
+    const isDevolucoesAtrasadas = tipo === 'devolucao_atrasada';
     
     return (
       <Grow 
@@ -160,7 +165,13 @@ const AlertsPanel = ({ inventory, rentals }) => {
                 cursor: 'pointer',
                 '&:hover': { bgcolor: `${theme.palette[color].light}10` }
               }}
-              onClick={() => handleExpandClick(notificacao.id.toString())}
+              onClick={(e) => {
+                if (isDevolucoesAtrasadas) {
+                  navigateToOverdueOrders();
+                } else {
+                  handleExpandClick(notificacao.id.toString());
+                }
+              }}
             >
               <ListItemIcon sx={{ mt: 0.5 }}>
                 <Badge 
@@ -256,21 +267,43 @@ const AlertsPanel = ({ inventory, rentals }) => {
     );
   };
   
+  // Navegar para a página de pedidos atrasados
+  const navigateToOverdueOrders = () => {
+    navigate('/overdue-orders');
+  };
+
   // Agrupar notificações por tipo para exibição
-  const renderNotificacaoGrupo = (notificacoes, titulo, descricao = null) => {
+  const renderNotificacaoGrupo = (notificacoes, titulo, descricao = null, tipo = null) => {
     if (notificacoes.length === 0) return null;
+    
+    // Verificar se é o grupo de devoluções atrasadas para adicionar botão de ação
+    const isDevolucoesAtrasadas = tipo === 'devolucao_atrasada';
     
     return (
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 1, fontWeight: 500, color: 'text.primary' }}>
-          {titulo} <Chip label={notificacoes.length} size="small" color="primary" sx={{ ml: 1 }} />
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
+              {titulo} <Chip label={notificacoes.length} size="small" color="primary" sx={{ ml: 1 }} />
+            </Typography>
+          </Box>
+          {isDevolucoesAtrasadas && (
+            <Button 
+              variant="outlined" 
+              color="warning" 
+              size="small"
+              onClick={navigateToOverdueOrders}
+            >
+              Ver Todos
+            </Button>
+          )}
+        </Box>
         {descricao && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {descricao}
           </Typography>
         )}
-        {notificacoes.map(notificacao => renderNotificacaoItem(notificacao))}
+        {notificacoes.map(notificacao => renderNotificacaoItem(notificacao, tipo))}
       </Box>
     );
   };
@@ -363,18 +396,22 @@ const AlertsPanel = ({ inventory, rentals }) => {
                   {renderNotificacaoGrupo(
                     notificacoesDevolucaoAtrasada,
                     "Devoluções Atrasadas",
-                    "Locações que já deveriam ter sido devolvidas"
+                    "Locações que já deveriam ter sido devolvidas",
+                    "devolucao_atrasada"
                   )}
                   
                   {renderNotificacaoGrupo(
                     notificacoesEstoqueCritico,
                     "Itens com Estoque Crítico",
-                    "Itens com níveis baixos de estoque disponível"
+                    "Itens com níveis baixos de estoque disponível",
+                    "estoque_critico"
                   )}
                   
                   {renderNotificacaoGrupo(
                     notificacoesSistema,
-                    "Notificações do Sistema"
+                    "Notificações do Sistema",
+                    null,
+                    "sistema"
                   )}
                   
                   {/* Outras notificações que não se encaixam nas categorias acima */}

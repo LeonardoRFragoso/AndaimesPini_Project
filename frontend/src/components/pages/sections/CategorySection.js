@@ -17,8 +17,8 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 const CategorySection = ({
   title,
   category,
-  CATEGORIES,
-  estoqueDisponivel,
+  CATEGORIES = {},
+  estoqueDisponivel = {},
   addItem,
 }) => {
   const [itemState, setItemState] = useState({
@@ -64,7 +64,7 @@ const CategorySection = ({
             value={itemState.modelo}
             onChange={(e) => handleModelChange(e.target.value)}
           >
-            {CATEGORIES[category]?.map((modelo) => (
+            {(CATEGORIES[category] || []).map((modelo) => (
               <MenuItem key={modelo} value={modelo}>
                 {modelo} - {estoqueDisponivel[modelo] || 0} disponíveis
               </MenuItem>

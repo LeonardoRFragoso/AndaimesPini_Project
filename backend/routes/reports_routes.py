@@ -14,13 +14,20 @@ def overview_report():
     end_date = request.args.get("end_date")
 
     try:
+        print(f"[DEBUG] Overview endpoint called with start_date={start_date}, end_date={end_date}")
         data = Relatorios.obter_dados_resumo_com_filtros(start_date, end_date)
+        print(f"[DEBUG] Data returned: {data}")
 
-        if "error" in data:
+        if isinstance(data, dict) and "error" in data:
+            print(f"[DEBUG] Error in data: {data}")
             return jsonify(data), 400
 
+        print(f"[DEBUG] Returning successful response")
         return jsonify(data), 200
     except Exception as ex:
+        print(f"[DEBUG] Exception caught: {str(ex)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": f"Erro ao gerar relatório de visão geral: {str(ex)}"}), 500
 
 # Endpoint de relatório detalhado de locações de um cliente específico

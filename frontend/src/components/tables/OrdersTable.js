@@ -11,6 +11,7 @@ import {
   Button,
   Typography,
   Snackbar,
+  useTheme,
 } from "@mui/material";
 import TableHeader from "./TableHeader";
 import OrderTableRow from "./OrderTableRow";
@@ -22,7 +23,8 @@ import {
   reactivateOrder,
 } from "../../api/orders";
 
-const OrdersTable = () => {
+const OrdersTable = ({ orders: initialOrders = [], onReactivateOrder: externalReactivateOrder, onExtendOrder, onCompleteOrder, onConfirmReturn }) => {
+  const theme = useTheme();
   const [orders, setOrders] = useState([]);
   const [openDetails, setOpenDetails] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -38,26 +40,29 @@ const OrdersTable = () => {
 
   // Carregar pedidos no carregamento inicial
   useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        const data = await fetchOrders();
-        if (isMounted.current) {
-          setOrders(data);
-          console.log("Pedidos carregados com sucesso:", data);
+    if (initialOrders && initialOrders.length > 0) {
+      setOrders(initialOrders);
+    } else {
+      const loadOrders = async () => {
+        try {
+          const data = await fetchOrders();
+          if (isMounted.current) {
+            setOrders(data);
+            console.log("Pedidos carregados com sucesso:", data);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar pedidos:", error);
+          openSnackbar("Erro ao carregar pedidos. Tente novamente.", "error");
         }
-      } catch (error) {
-        console.error("Erro ao carregar pedidos:", error);
-        openSnackbar("Erro ao carregar pedidos. Tente novamente.", "error");
-      }
-    };
+      };
 
-    isMounted.current = true;
-    loadOrders();
+      loadOrders();
+    }
 
     return () => {
       isMounted.current = false;
     };
-  }, []);
+  }, [initialOrders]);
 
   // Abrir snackbar com mensagens de sucesso/erro
   const openSnackbar = (message, type = "info") => {
@@ -134,6 +139,12 @@ const OrdersTable = () => {
   // Reativar pedido
   const handleReactivateOrder = async (orderId) => {
     try {
+      if (externalReactivateOrder) {
+        // Use the external handler if provided
+        await externalReactivateOrder(orderId);
+        return;
+      }
+      
       const response = await reactivateOrder(orderId);
       if (response) {
         openSnackbar("Pedido reativado com sucesso!", "success");
@@ -154,7 +165,18 @@ const OrdersTable = () => {
 
   return (
     <>
-      <TableContainer component={Paper} sx={{ mt: 3 }}>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          mt: 3,
+          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.8)' : '#fff',
+          borderRadius: 2,
+          boxShadow: theme => theme.palette.mode === 'dark' 
+            ? '0px 4px 12px rgba(0, 0, 0, 0.3)' 
+            : '0px 4px 12px rgba(0, 0, 0, 0.1)',
+          border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+        }}
+      >
         <Table>
           <TableHeader orderBy={orderBy} onSort={handleSort} />
           <TableBody>
@@ -163,10 +185,10 @@ const OrdersTable = () => {
                 key={order.id}
                 order={order}
                 onOpenDetails={handleOpenDetails}
-                onConfirmReturn={handleConfirmReturn}
-                onExtendOrder={() => {}}
+                onConfirmReturn={onConfirmReturn || handleConfirmReturn}
+                onExtendOrder={onExtendOrder || (() => {})}
                 onReactivateOrder={handleReactivateOrder}
-                onCompleteOrder={() => {}}
+                onCompleteOrder={onCompleteOrder || (() => {})}
               />
             ))}
           </TableBody>
@@ -182,10 +204,20 @@ const OrdersTable = () => {
       <Dialog
         open={confirmDialogOpen}
         onClose={() => setConfirmDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(40, 40, 40, 0.95)' : '#fff',
+            color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+            borderRadius: 2,
+            boxShadow: theme => theme.palette.mode === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.5)' : '0 8px 32px rgba(0, 0, 0, 0.1)',
+          }
+        }}
       >
-        <DialogTitle>Confirmar Devolução</DialogTitle>
+        <DialogTitle sx={{ color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit' }}>
+          Confirmar Devolução
+        </DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography sx={{ color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'inherit' }}>
             Tem certeza de que deseja confirmar a devolução deste pedido?
           </Typography>
         </DialogContent>

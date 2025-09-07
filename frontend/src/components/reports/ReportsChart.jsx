@@ -1,8 +1,10 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, useTheme } from '@mui/material';
 import { Bar, Pie, Line } from 'react-chartjs-2';
 
 const ReportsChart = ({ data, filter, chartType = "bar" }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   // Mapeia labels e valores para o gráfico, tratando a estrutura dos dados conforme o filtro
   const labels = data.map((item) => 
     filter === "by-client" ? item.nome_cliente :
@@ -30,11 +32,17 @@ const ReportsChart = ({ data, filter, chartType = "bar" }) => {
           "Visão Geral",
         data: values,
         backgroundColor: chartType === "pie" ? 
-          ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] : 
-          'rgba(75, 192, 192, 0.2)',
+          isDarkMode ? 
+            ['rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 
+             'rgba(75, 192, 192, 0.7)', 'rgba(153, 102, 255, 0.7)', 'rgba(255, 159, 64, 0.7)'] :
+            ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] : 
+          isDarkMode ? 'rgba(76, 175, 80, 0.5)' : 'rgba(75, 192, 192, 0.2)',
         borderColor: chartType === "pie" ? 
-          ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] :
-          'rgba(75, 192, 192, 1)',
+          isDarkMode ? 
+            ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 
+             'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)', 'rgba(255, 159, 64, 1)'] :
+            ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] :
+          isDarkMode ? 'rgba(76, 175, 80, 1)' : 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
       },
     ],
@@ -46,12 +54,23 @@ const ReportsChart = ({ data, filter, chartType = "bar" }) => {
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          color: isDarkMode ? '#fff' : '#333',
+          font: {
+            size: 12
+          }
+        }
       },
       title: {
         display: true,
         text: `Gráfico do Relatório (${filter === "by-client" ? "Cliente" :
                             filter === "by-item" ? "Item" :
                             filter === "by-status" ? "Status" : "Visão Geral"})`,
+        color: isDarkMode ? '#fff' : '#333',
+        font: {
+          size: 16,
+          weight: 'bold'
+        }
       },
     },
     scales: chartType === "pie" ? {} : { // Pie chart does not require scales
@@ -63,14 +82,28 @@ const ReportsChart = ({ data, filter, chartType = "bar" }) => {
             filter === "by-item" ? "Itens" :
             filter === "by-status" ? "Status" :
             "Categorias",
+          color: isDarkMode ? '#fff' : '#333',
         },
+        ticks: {
+          color: isDarkMode ? '#fff' : '#333',
+        },
+        grid: {
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        }
       },
       y: {
         beginAtZero: true,
         title: {
           display: true,
           text: 'Valores',
+          color: isDarkMode ? '#fff' : '#333',
         },
+        ticks: {
+          color: isDarkMode ? '#fff' : '#333',
+        },
+        grid: {
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        }
       },
     },
   };
@@ -90,8 +123,22 @@ const ReportsChart = ({ data, filter, chartType = "bar" }) => {
   };
 
   return (
-    <Box sx={{ mt: 4 }}>
-      <Typography variant="h6" gutterBottom>
+    <Box sx={{ 
+      mt: 4,
+      backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(40, 40, 40, 0.9)' : 'transparent',
+      padding: 2,
+      borderRadius: '8px',
+      boxShadow: theme => theme.palette.mode === 'dark' ? '0px 4px 12px rgba(0, 0, 0, 0.3)' : 'none',
+      border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+    }}>
+      <Typography 
+        variant="h6" 
+        gutterBottom
+        sx={{ 
+          color: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d',
+          fontWeight: "bold"
+        }}
+      >
         Gráfico do Relatório ({filter === "by-client" ? "Cliente" :
                             filter === "by-item" ? "Item" :
                             filter === "by-status" ? "Status" : "Visão Geral"})
@@ -99,7 +146,11 @@ const ReportsChart = ({ data, filter, chartType = "bar" }) => {
       {data.length > 0 ? (
         renderChart()
       ) : (
-        <Typography variant="body2" color="textSecondary" align="center">
+        <Typography 
+          variant="body2" 
+          align="center"
+          sx={{ color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)' }}
+        >
           Nenhum dado disponível para exibição no gráfico.
         </Typography>
       )}

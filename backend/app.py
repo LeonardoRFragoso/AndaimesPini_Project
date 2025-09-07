@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuração de CORS
-CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": True, "allow_headers": ["Content-Type", "Authorization"], "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]}})
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000", "supports_credentials": True, "allow_headers": ["Content-Type", "Authorization"], "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]}}, expose_headers=["Content-Type", "Authorization"])
 
 
 # Função para inicializar o banco de dados ao iniciar a aplicação
@@ -51,12 +51,10 @@ def log_request_info():
         else:
             logger.debug("Nenhum dado recebido.")
 
-# Configuração do after_request para adicionar cabeçalhos de CORS
+# Configuração do after_request para logging e outros processamentos
 @app.after_request
 def after_request(response):
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-    response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    # Não adicionamos mais cabeçalhos CORS aqui, pois o Flask-CORS já cuida disso
     return response
 
 # Rota OPTIONS para lidar com preflight CORS

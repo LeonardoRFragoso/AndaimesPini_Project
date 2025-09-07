@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Paper, Typography, Grid, Box } from "@mui/material";
+import { Paper, Typography, Grid, Box, useTheme } from "@mui/material";
 import OrdersFilter from "./OrdersFilter";
 import OrdersActionsDialog from "./OrdersActionsDialog";
 import OrdersExtendDialog from "./OrdersExtendDialog";
@@ -22,6 +22,7 @@ const normalizeStatus = (status) =>
     .replace(/[\u0300-\u036f]/g, "");
 
 const OrdersListView = ({ showTitle = true }) => {
+  const theme = useTheme();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -194,9 +195,12 @@ const OrdersListView = ({ showTitle = true }) => {
         padding: 4,
         maxWidth: "90%",
         margin: "20px auto",
-        backgroundColor: "#f5f5f5",
+        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : '#f5f5f5',
         borderRadius: "8px",
-        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+        boxShadow: theme => theme.palette.mode === 'dark' 
+          ? '0px 4px 12px rgba(0, 0, 0, 0.3)' 
+          : '0px 4px 12px rgba(0, 0, 0, 0.1)',
+        border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
       }}
     >
       {showTitle && (
@@ -205,7 +209,10 @@ const OrdersListView = ({ showTitle = true }) => {
             variant="h4"
             align="center"
             gutterBottom
-            sx={{ color: "#2c552d", fontWeight: "bold" }}
+            sx={{ 
+              color: theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d', 
+              fontWeight: "bold" 
+            }}
           >
             Pedidos
           </Typography>
@@ -213,7 +220,10 @@ const OrdersListView = ({ showTitle = true }) => {
             variant="body1"
             align="center"
             gutterBottom
-            sx={{ color: "#666", marginBottom: "20px" }}
+            sx={{ 
+              color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : '#666', 
+              marginBottom: "20px" 
+            }}
           >
             Aqui você pode visualizar e gerenciar todos os pedidos realizados.
           </Typography>

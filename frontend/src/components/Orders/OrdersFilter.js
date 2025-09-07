@@ -8,16 +8,19 @@ import {
   MenuItem,
   Button,
   CircularProgress,
+  useTheme,
 } from "@mui/material";
 import { Refresh } from "@mui/icons-material";
 
 const OrdersFilter = ({ filter, onFilterChange, onRefresh, loading }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   return (
     <Grid container spacing={2} alignItems="center">
       {/* Filtro de Pedidos */}
       <Grid item xs={12} sm={6} md={4}>
         <FormControl variant="outlined" fullWidth>
-          <InputLabel id="orders-filter-label">Filtrar Pedidos</InputLabel>
+          <InputLabel id="orders-filter-label" sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>Filtrar Pedidos</InputLabel>
           <Select
             id="orders-filter"
             labelId="orders-filter-label"
@@ -25,28 +28,36 @@ const OrdersFilter = ({ filter, onFilterChange, onRefresh, loading }) => {
             onChange={(e) => onFilterChange(e.target.value)}
             label="Filtrar Pedidos"
             sx={{
-              backgroundColor: "#fff",
-              "&:focus": {
+              backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+              color: isDarkMode ? '#fff' : 'inherit',
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)',
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: isDarkMode ? '#4caf50' : '#45a049',
+              },
+              "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
                 borderColor: "#45a049",
               },
             }}
             aria-labelledby="orders-filter-label"
           >
-            <MenuItem value="all" aria-label="Todos os pedidos">
+            <MenuItem value="all" aria-label="Todos os pedidos" sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               Todos
             </MenuItem>
-            <MenuItem value="active" aria-label="Pedidos ativos">
+            <MenuItem value="active" aria-label="Pedidos ativos" sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               Ativos
             </MenuItem>
-            <MenuItem value="expired" aria-label="Pedidos expirados">
+            <MenuItem value="expired" aria-label="Pedidos expirados" sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               Expirados (não devolvidos)
             </MenuItem>
-            <MenuItem value="completed" aria-label="Pedidos concluídos">
+            <MenuItem value="completed" aria-label="Pedidos concluídos" sx={{ color: isDarkMode ? '#fff' : 'inherit' }}>
               Concluídos
             </MenuItem>
             <MenuItem
               value="awaiting_return"
               aria-label="Pedidos aguardando devolução"
+              sx={{ color: isDarkMode ? '#fff' : 'inherit' }}
             >
               Aguardando Devolução
             </MenuItem>
@@ -62,15 +73,20 @@ const OrdersFilter = ({ filter, onFilterChange, onRefresh, loading }) => {
           startIcon={loading ? <CircularProgress size={20} /> : <Refresh />}
           onClick={onRefresh}
           sx={{
-            backgroundColor: loading ? "#d4e157" : "#45a049",
+            backgroundColor: loading 
+              ? (isDarkMode ? "rgba(212, 225, 87, 0.7)" : "#d4e157") 
+              : (isDarkMode ? "rgba(69, 160, 73, 0.8)" : "#45a049"),
             "&:hover": {
-              backgroundColor: loading ? "#c0ca33" : "#388e3c",
+              backgroundColor: loading 
+                ? (isDarkMode ? "rgba(192, 202, 51, 0.8)" : "#c0ca33") 
+                : (isDarkMode ? "rgba(56, 142, 60, 0.9)" : "#388e3c"),
             },
             width: "100%",
             padding: "10px",
             borderRadius: "8px",
             fontWeight: "bold",
             transition: "all 0.3s ease",
+            color: isDarkMode ? '#fff' : 'inherit',
           }}
           aria-label={loading ? "Atualizando pedidos" : "Atualizar pedidos"}
           disabled={loading}
@@ -90,11 +106,19 @@ const OrdersFilter = ({ filter, onFilterChange, onRefresh, loading }) => {
             padding: "10px",
             borderRadius: "8px",
             fontWeight: "bold",
-            borderColor: filter === "all" ? "#d6d6d6" : "#ff5252",
-            color: filter === "all" ? "#d6d6d6" : "#ff5252",
+            borderColor: filter === "all" 
+              ? (isDarkMode ? "rgba(214, 214, 214, 0.3)" : "#d6d6d6") 
+              : (isDarkMode ? "rgba(255, 82, 82, 0.7)" : "#ff5252"),
+            color: filter === "all" 
+              ? (isDarkMode ? "rgba(214, 214, 214, 0.3)" : "#d6d6d6") 
+              : (isDarkMode ? "rgba(255, 82, 82, 0.9)" : "#ff5252"),
             "&:hover": {
-              backgroundColor: filter === "all" ? "transparent" : "#ffebee",
-              borderColor: filter === "all" ? "#d6d6d6" : "#ff5252",
+              backgroundColor: filter === "all" 
+                ? "transparent" 
+                : (isDarkMode ? "rgba(255, 82, 82, 0.1)" : "#ffebee"),
+              borderColor: filter === "all" 
+                ? (isDarkMode ? "rgba(214, 214, 214, 0.3)" : "#d6d6d6") 
+                : (isDarkMode ? "rgba(255, 82, 82, 0.7)" : "#ff5252"),
             },
             transition: "all 0.3s ease",
           }}

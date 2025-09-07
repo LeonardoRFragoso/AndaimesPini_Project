@@ -7,6 +7,11 @@ export const listarLocacoes = () => {
   return api.get('/locacoes');
 };
 
+// Listar locações com devolução atrasada
+export const listarLocacoesAtrasadas = () => {
+  return api.get('/locacoes/atrasadas');
+};
+
 // Obter uma locação específica pelo ID
 export const obterLocacao = (id) => {
   return api.get(`/locacoes/${id}`);
