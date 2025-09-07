@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import RegisterFormView from "./RegisterFormView";
+import { listarClientes } from "../../api/clientes";
+import { listarItens } from "../../api/inventario";
+import { criarLocacao } from "../../api/locacoes";
 
 const RegisterFormContainer = () => {
   const [clientes, setClientes] = useState([]);
@@ -25,8 +27,8 @@ const RegisterFormContainer = () => {
   // Função para buscar clientes
   const fetchClientes = useCallback(async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:5000/clientes");
-      setClientes(response.data);
+      const data = await listarClientes();
+      setClientes(data);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
       alert("Erro ao buscar clientes. Tente novamente mais tarde.");
@@ -39,17 +41,15 @@ const RegisterFormContainer = () => {
     setIsFetched(true);
 
     try {
-      const response = await axios.get(
-        "http://127.0.0.1:5000/inventario/disponiveis"
-      );
-      if (response.data) {
-        const estoqueMap = response.data.reduce((acc, item) => {
+      const data = await listarItens(true); // true para buscar apenas itens disponíveis
+      if (data) {
+        const estoqueMap = data.reduce((acc, item) => {
           acc[item.nome_item] = item.quantidade_disponivel || 0;
           return acc;
         }, {});
         setEstoqueDisponivel(estoqueMap);
 
-        const categoriasMap = response.data.reduce((acc, item) => {
+        const categoriasMap = data.reduce((acc, item) => {
           if (!acc[item.tipo_item]) {
             acc[item.tipo_item] = [];
           }
@@ -219,16 +219,8 @@ const RegisterFormContainer = () => {
     };
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:5000/locacoes/criar",
-        locacaoData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (response.status === 201 || response.status === 200) {
+      const response = await criarLocacao(locacaoData);
+      if (response) {
         alert("Locação registrada com sucesso!");
 
         setIsFetched(false);

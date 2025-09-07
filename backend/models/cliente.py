@@ -1,4 +1,4 @@
-import psycopg2
+import sqlite3
 from database import get_connection, release_connection
 import logging
 
@@ -39,7 +39,7 @@ class Cliente:
                         }
                         for cliente in clientes
                     ]
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao buscar clientes no banco de dados: {e}")
             return []
         finally:
@@ -69,13 +69,13 @@ class Cliente:
                 with conn.cursor() as cursor:
                     cursor.execute("""
                         INSERT INTO clientes (nome, endereco, telefone, referencia)
-                        VALUES (%s, %s, %s, %s)
+                        VALUES (?, ?, ?, ?)
                         RETURNING id
                     """, (nome, endereco, telefone, referencia))
                     cliente_id = cursor.fetchone()[0]
                     logger.info(f"Cliente criado com sucesso: ID {cliente_id}")
                     return cliente_id
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao criar cliente: {e}")
             return None
         finally:
@@ -102,7 +102,7 @@ class Cliente:
                     cursor.execute("""
                         SELECT id, nome, endereco, telefone, referencia
                         FROM clientes
-                        WHERE nome = %s AND endereco = %s AND telefone = %s
+                        WHERE nome = ? AND endereco = ? AND telefone = ?
                     """, (nome, endereco, telefone))
                     cliente = cursor.fetchone()
                     if cliente:
@@ -116,7 +116,7 @@ class Cliente:
                         }
                     logger.warning("Cliente não encontrado.")
                     return None
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao buscar cliente por dados: {e}")
             return None
         finally:
@@ -140,7 +140,7 @@ class Cliente:
                     cursor.execute("""
                         SELECT id, nome, endereco, telefone, referencia
                         FROM clientes
-                        WHERE id = %s
+                        WHERE id = ?
                     """, (cliente_id,))
                     cliente = cursor.fetchone()
                     if cliente:
@@ -154,7 +154,7 @@ class Cliente:
                         }
                     logger.warning(f"Cliente ID {cliente_id} não encontrado.")
                     return None
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao buscar cliente por ID: {e}")
             return None
         finally:
@@ -181,11 +181,11 @@ class Cliente:
                 with conn.cursor() as cursor:
                     cursor.execute("""
                         UPDATE clientes
-                        SET nome = COALESCE(%s, nome),
-                            endereco = COALESCE(%s, endereco),
-                            telefone = COALESCE(%s, telefone),
-                            referencia = COALESCE(%s, referencia)
-                        WHERE id = %s
+                        SET nome = COALESCE(?, nome),
+                            endereco = COALESCE(?, endereco),
+                            telefone = COALESCE(?, telefone),
+                            referencia = COALESCE(?, referencia)
+                        WHERE id = ?
                     """, (nome, endereco, telefone, referencia, cliente_id))
                     conn.commit()
                     atualizado = cursor.rowcount > 0
@@ -194,7 +194,7 @@ class Cliente:
                     else:
                         logger.warning(f"Cliente ID {cliente_id} não encontrado para atualização.")
                     return atualizado
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao atualizar cliente: {e}")
             return False
         finally:
@@ -215,7 +215,7 @@ class Cliente:
         try:
             with conn:
                 with conn.cursor() as cursor:
-                    cursor.execute("DELETE FROM clientes WHERE id = %s", (cliente_id,))
+                    cursor.execute("DELETE FROM clientes WHERE id = ?", (cliente_id,))
                     conn.commit()
                     excluido = cursor.rowcount > 0
                     if excluido:
@@ -223,7 +223,7 @@ class Cliente:
                     else:
                         logger.warning(f"Cliente ID {cliente_id} não encontrado para exclusão.")
                     return excluido
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao excluir cliente: {e}")
             return False
         finally:
@@ -276,7 +276,7 @@ class Cliente:
                         }
                         for pedido in pedidos
                     ]
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao buscar pedidos do cliente {cliente_id}: {e}")
             return []
         finally:

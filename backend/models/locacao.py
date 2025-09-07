@@ -1,4 +1,4 @@
-import psycopg2
+import sqlite3
 from database import get_connection, release_connection
 from models.itens_locados import ItensLocados
 from models.cliente import Cliente
@@ -92,7 +92,7 @@ class Locacao:
                     # Criar a locação
                     cursor.execute('''
                         INSERT INTO locacoes (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status, numero_nota)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         RETURNING id
                     ''', (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status, numero_nota))
                     locacao_id = cursor.fetchone()[0]
@@ -123,7 +123,7 @@ class Locacao:
 
                             cursor.execute('''
                                 INSERT INTO itens_locados (locacao_id, item_id, quantidade, unidade)
-                                VALUES (%s, %s, %s, %s)
+                                VALUES (?, ?, ?, ?)
                             ''', (locacao_id, item_id, quantidade, unidade))
                             logger.debug(f"Item adicionado à locação: {modelo} (Qtd: {quantidade})")
 
@@ -132,7 +132,7 @@ class Locacao:
 
             logger.info(f"Locação registrada com sucesso: ID {locacao_id}")
             return locacao_id
-        except (psycopg2.Error, ValueError) as e:
+        except (sqlite3.Error, ValueError) as e:
             logger.error(f"Erro ao criar locação: {e}")
             return None
         finally:
@@ -187,7 +187,7 @@ class Locacao:
 
                     logger.info(f"{len(resultado)} locações processadas com sucesso.")
                     return resultado
-        except psycopg2.Error as e:
+        except sqlite3.Error as e:
             logger.error(f"Erro ao buscar locações detalhadas: {e}")
             return []
         finally:
@@ -212,7 +212,7 @@ class Locacao:
                     cursor.execute('''
                         SELECT status
                         FROM locacoes
-                        WHERE id = %s
+                        WHERE id = ?
                     ''', (locacao_id,))
                     locacao = cursor.fetchone()
 
@@ -234,8 +234,8 @@ class Locacao:
                     data_devolucao = datetime.now()
                     cursor.execute('''
                         UPDATE locacoes
-                        SET status = 'concluido', data_devolucao_efetiva = %s
-                        WHERE id = %s
+                        SET status = 'concluido', data_devolucao_efetiva = ?
+                        WHERE id = ?
                     ''', (data_devolucao, locacao_id))
                     logger.debug(f"Status da locação ID {locacao_id} atualizado para 'concluido'.")
 
@@ -250,7 +250,7 @@ class Locacao:
                 "mensagem": "Devolução confirmada com sucesso.",
                 "data_devolucao": data_devolucao.strftime('%Y-%m-%d %H:%M:%S')
             }
-        except (psycopg2.Error, ValueError) as e:
+        except (sqlite3.Error, ValueError) as e:
             logger.error(f"Erro ao confirmar devolução para locação ID {locacao_id}: {e}")
             return {"sucesso": False, "mensagem": "Erro ao confirmar devolução."}
         finally:
@@ -292,7 +292,7 @@ class Locacao:
 
             logger.info(f"Estoque restaurado para todos os itens da locação ID {locacao_id}.")
             return True
-        except (psycopg2.Error, ValueError) as e:
+        except (sqlite3.Error, ValueError) as e:
             logger.error(f"Erro ao restaurar estoque para locação ID {locacao_id}: {e}")
             return False
         finally:
@@ -316,8 +316,8 @@ class Locacao:
                 with conn.cursor() as cursor:
                     cursor.execute('''
                         UPDATE locacoes
-                        SET status = %s
-                        WHERE id = %s
+                        SET status = ?
+                        WHERE id = ?
                     ''', (novo_status, locacao_id))
 
                     # Confirmar que a atualização foi aplicada
@@ -327,7 +327,7 @@ class Locacao:
                     else:
                         logger.warning(f"Não foi possível atualizar o status da locação ID {locacao_id}.")
                         return False
-        except psycopg2.Error as e:
+        except sqlite3.Error as e:
             logger.error(f"Erro no banco de dados ao atualizar status da locação ID {locacao_id}: {e}")
             return False
         finally:

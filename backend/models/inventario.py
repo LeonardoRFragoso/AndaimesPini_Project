@@ -1,4 +1,4 @@
-import psycopg2
+import sqlite3
 from database import get_connection, release_connection
 import logging
 
@@ -26,13 +26,13 @@ class Inventario:
                 with conn.cursor() as cursor:
                     cursor.execute("""
                         INSERT INTO inventario (nome_item, quantidade, quantidade_disponivel, tipo_item)
-                        VALUES (%s, %s, %s, %s)
+                        VALUES (?, ?, ?, ?)
                         RETURNING id
                     """, (nome_item, quantidade, quantidade, tipo_item))
                     item_id = cursor.fetchone()[0]
                     logger.info(f"Item '{nome_item}' adicionado ao inventário com ID {item_id}.")
                     return item_id
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao adicionar item ao inventário: {e}")
             return None
         finally:
@@ -80,7 +80,7 @@ class Inventario:
                         }
                         for item in items
                     ]
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao buscar itens do inventário: {e}")
             return []
         finally:
@@ -123,7 +123,7 @@ class Inventario:
                     cursor.execute("""
                         SELECT id, nome_item, quantidade_disponivel, tipo_item
                         FROM inventario
-                        WHERE nome_item = %s
+                        WHERE nome_item = ?
                     """, (modelo,))
                     item = cursor.fetchone()
                     if item:
@@ -136,7 +136,7 @@ class Inventario:
                         }
                     logger.warning(f"Item com modelo '{modelo}' não encontrado no inventário.")
                     return None
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao buscar item no inventário: {e}")
             return None
         finally:
@@ -160,7 +160,7 @@ class Inventario:
             with conn:
                 with conn.cursor() as cursor:
                     cursor.execute("""
-                        SELECT quantidade_disponivel, quantidade FROM inventario WHERE id = %s FOR UPDATE
+                        SELECT quantidade_disponivel, quantidade FROM inventario WHERE id = ?
                     """, (item_id,))
                     item = cursor.fetchone()
 
@@ -185,13 +185,13 @@ class Inventario:
 
                     cursor.execute("""
                         UPDATE inventario
-                        SET quantidade_disponivel = %s
-                        WHERE id = %s
+                        SET quantidade_disponivel = ?
+                        WHERE id = ?
                     """, (new_quantity, item_id))
                     conn.commit()
                     logger.info(f"Estoque do item ID {item_id} atualizado com sucesso. Nova quantidade disponível: {new_quantity}")
                     return True
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao atualizar estoque do item ID {item_id}: {e}")
             return False
         finally:

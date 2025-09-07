@@ -1,11 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from routes.rotas_locacoes import locacoes_routes
-from routes.rotas_clientes import clientes_routes
+from routes.locacoes_routes import locacoes_routes
+from routes.clientes_routes import clientes_routes
 from routes.inventario_routes import inventario_routes
 from routes.reports_routes import reports_bp
-from routes.rotas_itens_locados import itens_locados_routes
+from routes.itens_locados_routes import itens_locados_routes
 from routes.damages_routes import damages_routes
+from routes.auth_routes import auth_routes, requer_autenticacao
 from database import create_tables, close_all_connections
 import logging
 import atexit
@@ -57,6 +58,10 @@ def after_request(response):
 
 # Registrar os blueprints para rotas modularizadas
 try:
+    # Registrar rotas de autenticação (não requerem autenticação)
+    app.register_blueprint(auth_routes)
+    
+    # Registrar rotas protegidas (requerem autenticação)
     app.register_blueprint(locacoes_routes, url_prefix='/locacoes')
     app.register_blueprint(clientes_routes, url_prefix='/clientes')
     app.register_blueprint(itens_locados_routes, url_prefix='/itens-locados')
@@ -66,6 +71,23 @@ try:
     logger.info("Rotas registradas com sucesso.")
 except Exception as e:
     logger.error(f"Erro ao registrar rotas: {e}")
+
+# Middleware para proteção de rotas (exceto rotas de autenticação)
+@app.before_request
+def proteger_rotas():
+    # Lista de rotas que não requerem autenticação
+    rotas_publicas = [
+        '/auth/login',
+        '/auth/verificar'
+    ]
+    
+    # Verificar se a rota atual requer autenticação
+    if request.path not in rotas_publicas and not request.path.startswith('/static/'):
+        # Verificar se é uma requisição OPTIONS (CORS preflight)
+        if request.method != 'OPTIONS':
+            # Aplicar o decorador de autenticação
+            return requer_autenticacao(lambda: None)()
+    return None
 
 # Middleware para tratar erros de requisição
 @app.errorhandler(Exception)

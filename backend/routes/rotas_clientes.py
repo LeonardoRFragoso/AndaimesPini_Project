@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models.cliente import Cliente
 from helpers import handle_database_error
-import psycopg2
+import sqlite3
 import logging
 
 # Configuração de logging
@@ -39,7 +39,7 @@ def add_cliente():
         logger.info(f"Cliente criado com sucesso: ID {cliente_id}")
         return jsonify({"message": "Cliente criado com sucesso!", "id": cliente_id}), 201
 
-    except psycopg2.Error as e:
+    except sqlite3.Error as e:
         logger.error(f"Erro no banco de dados ao criar cliente: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -58,7 +58,7 @@ def get_cliente(cliente_id):
 
         logger.info(f"Cliente encontrado: ID {cliente_id}")
         return jsonify(cliente), 200
-    except psycopg2.Error as e:
+    except sqlite3.Error as e:
         logger.error(f"Erro no banco de dados ao buscar cliente ID {cliente_id}: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -77,7 +77,7 @@ def get_todos_clientes():
 
         logger.info(f"{len(clientes)} clientes encontrados.")
         return jsonify(clientes), 200
-    except psycopg2.Error as e:
+    except sqlite3.Error as e:
         logger.error(f"Erro no banco de dados ao buscar todos os clientes: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -108,7 +108,7 @@ def update_cliente(cliente_id):
 
         logger.info(f"Cliente ID {cliente_id} atualizado com sucesso.")
         return jsonify({"message": "Cliente atualizado com sucesso!"}), 200
-    except psycopg2.Error as e:
+    except sqlite3.Error as e:
         logger.error(f"Erro no banco de dados ao atualizar cliente ID {cliente_id}: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -127,7 +127,7 @@ def delete_cliente(cliente_id):
 
         logger.info(f"Cliente ID {cliente_id} deletado com sucesso.")
         return jsonify({"message": "Cliente deletado com sucesso!"}), 200
-    except psycopg2.Error as e:
+    except sqlite3.Error as e:
         logger.error(f"Erro no banco de dados ao deletar cliente ID {cliente_id}: {e}")
         return handle_database_error(e)
     except Exception as ex:

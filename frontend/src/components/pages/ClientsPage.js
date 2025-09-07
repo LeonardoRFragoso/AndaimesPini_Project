@@ -20,6 +20,7 @@ import {
   TextField,
 } from "@mui/material";
 import { Add, Edit, Delete, Visibility } from "@mui/icons-material"; // Ícones para ações
+import { listarClientes, criarCliente, atualizarCliente, excluirCliente, obterPedidosCliente } from "../../api/clientes";
 
 const ClientsPage = () => {
   const [clients, setClients] = useState([]);
@@ -44,9 +45,7 @@ const ClientsPage = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch("http://localhost:5000/clientes");
-      if (!response.ok) throw new Error("Erro ao buscar clientes");
-      const data = await response.json();
+      const data = await listarClientes();
       setClients(data);
     } catch (error) {
       console.error(error);
@@ -56,11 +55,7 @@ const ClientsPage = () => {
 
   const fetchClientOrders = async (clientId) => {
     try {
-      const response = await fetch(
-        `http://localhost:5000/clientes/${clientId}/pedidos`
-      );
-      if (!response.ok) throw new Error("Erro ao buscar pedidos do cliente");
-      const data = await response.json();
+      const data = await obterPedidosCliente(clientId);
       setOrders(data);
       setOpenOrdersModal(true);
     } catch (error) {
@@ -105,17 +100,9 @@ const ClientsPage = () => {
 
   const handleAddClient = async () => {
     try {
-      const response = await fetch("http://localhost:5000/clientes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(currentClient),
-      });
-      if (response.ok) {
-        fetchClients();
-        showSnackbar("Cliente adicionado com sucesso!");
-      } else {
-        throw new Error("Erro ao adicionar cliente");
-      }
+      await criarCliente(currentClient);
+      fetchClients();
+      showSnackbar("Cliente adicionado com sucesso!");
     } catch (error) {
       console.error(error);
       showSnackbar("Erro ao adicionar cliente.", "error");
@@ -124,17 +111,9 @@ const ClientsPage = () => {
 
   const handleEditClient = async (id) => {
     try {
-      const response = await fetch(`http://localhost:5000/clientes/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(currentClient),
-      });
-      if (response.ok) {
-        fetchClients();
-        showSnackbar("Cliente editado com sucesso!");
-      } else {
-        throw new Error("Erro ao editar cliente");
-      }
+      await atualizarCliente(id, currentClient);
+      fetchClients();
+      showSnackbar("Cliente editado com sucesso!");
     } catch (error) {
       console.error(error);
       showSnackbar("Erro ao editar cliente.", "error");
@@ -144,15 +123,9 @@ const ClientsPage = () => {
   const handleDeleteClient = async (id) => {
     if (!window.confirm("Tem certeza que deseja remover este cliente?")) return;
     try {
-      const response = await fetch(`http://localhost:5000/clientes/${id}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        fetchClients();
-        showSnackbar("Cliente removido com sucesso!");
-      } else {
-        throw new Error("Erro ao remover cliente");
-      }
+      await excluirCliente(id);
+      fetchClients();
+      showSnackbar("Cliente removido com sucesso!");
     } catch (error) {
       console.error(error);
       showSnackbar("Erro ao remover cliente.", "error");

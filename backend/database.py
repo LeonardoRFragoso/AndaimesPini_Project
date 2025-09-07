@@ -1,69 +1,61 @@
-import psycopg2
-from psycopg2 import pool, Error
+import sqlite3
 import logging
+import os
 
 # Configuração do logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuração global do pool de conexões
-connection_pool = None
+# Caminho para o banco de dados SQLite
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'db.sqlite3')
 
-def initialize_connection_pool():
-    global connection_pool
+# Variável global para controlar a conexão
+connection = None
+
+def initialize_connection():
+    global connection
     try:
-        if connection_pool is None:
-            connection_pool = pool.SimpleConnectionPool(
-                1, 20,  # mínimo e máximo de conexões
-                dbname="projetopai",
-                user="usuarioprojeto",
-                password="senhaforte",
-                host="localhost",
-                port="5432"
-            )
-            if connection_pool:
-                logger.info("Pool de conexões criado com sucesso.")
+        if connection is None:
+            connection = sqlite3.connect(DB_PATH, check_same_thread=False)
+            connection.row_factory = sqlite3.Row
+            logger.info(f"Conexão com SQLite criada com sucesso. Banco: {DB_PATH}")
     except Exception as e:
-        logger.error("Erro ao criar o pool de conexões.", exc_info=True)
+        logger.error("Erro ao criar conexão com SQLite.", exc_info=True)
+        connection = None
 
-# Inicialize o pool ao carregar o módulo
-initialize_connection_pool()
+# Inicialize a conexão ao carregar o módulo
+initialize_connection()
 
-# Função para obter uma conexão do pool
+# Função para obter uma conexão
 def get_connection():
-    global connection_pool
+    global connection
     try:
-        if connection_pool:
-            conn = connection_pool.getconn()
-            if conn:
-                logger.debug("Conexão obtida do pool com sucesso.")
-            return conn
+        if connection:
+            return connection
         else:
-            logger.error("O pool de conexões foi fechado ou não foi inicializado.")
-            return None
-    except Error as e:
-        logger.error("Erro ao obter conexão do pool.", exc_info=True)
+            logger.error("A conexão não foi inicializada.")
+            # Tentar inicializar novamente
+            initialize_connection()
+            return connection
+    except Exception as e:
+        logger.error("Erro ao obter conexão.", exc_info=True)
         return None
 
-# Função para liberar a conexão de volta para o pool
+# Função para liberar a conexão (não necessária para SQLite, mas mantida para compatibilidade)
 def release_connection(conn):
-    try:
-        if conn and connection_pool:
-            connection_pool.putconn(conn)
-            logger.debug("Conexão retornada ao pool.")
-    except Error as e:
-        logger.error("Erro ao retornar conexão ao pool.", exc_info=True)
+    # No SQLite não precisamos liberar a conexão
+    pass
 
-# Função para fechar todo o pool de conexões (para uso em encerramento de aplicação)
+# Função para fechar a conexão (para uso em encerramento de aplicação)
 def close_all_connections():
-    global connection_pool
+    global connection
     try:
-        if connection_pool:
-            connection_pool.closeall()
-            logger.info("Todas as conexões do pool foram fechadas.")
-            connection_pool = None
-    except Error as e:
-        logger.error("Erro ao fechar todas as conexões do pool.", exc_info=True)
+        if connection:
+            connection.close()
+            logger.info("Conexão com SQLite fechada.")
+            connection = None
+    except Exception as e:
+        logger.error("Erro ao fechar a conexão.", exc_info=True)
 
 # Função para criar as tabelas necessárias
 def create_tables():
@@ -72,47 +64,59 @@ def create_tables():
     if conn is not None:
         try:
             cursor = conn.cursor()
+            
+            # Tabela de Usuários
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nome TEXT NOT NULL,
+                    email TEXT NOT NULL UNIQUE,
+                    hash_senha TEXT NOT NULL,
+                    salt TEXT NOT NULL,
+                    cargo TEXT NOT NULL DEFAULT 'operador'
+                )
+            ''')
 
             # Tabela de Clientes
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS clientes (
-                    id SERIAL PRIMARY KEY,
-                    nome VARCHAR(255) NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nome TEXT NOT NULL,
                     endereco TEXT,
-                    telefone VARCHAR(20) NOT NULL,
+                    telefone TEXT NOT NULL,
                     referencia TEXT,
-                    email VARCHAR(255)
+                    email TEXT
                 )
             ''')
 
             # Tabela de Itens/Inventário
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS inventario (
-                    id SERIAL PRIMARY KEY,
-                    nome_item VARCHAR(255) NOT NULL UNIQUE,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nome_item TEXT NOT NULL UNIQUE,
                     quantidade INTEGER NOT NULL CHECK (quantidade >= 0),
                     quantidade_disponivel INTEGER NOT NULL CHECK (quantidade_disponivel >= 0),
-                    tipo_item VARCHAR(50) NOT NULL
+                    tipo_item TEXT NOT NULL
                 )
             ''')
 
             # Tabela de Locações
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS locacoes (
-                    id SERIAL PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     cliente_id INTEGER NOT NULL,
                     data_inicio DATE NOT NULL,
                     data_fim DATE NOT NULL,
                     data_fim_original DATE,
-                    valor_total NUMERIC(10, 2) NOT NULL CHECK (valor_total >= 0),
-                    valor_pago_entrega NUMERIC(10, 2) CHECK (valor_pago_entrega >= 0),
-                    valor_receber_final NUMERIC(10, 2) CHECK (valor_receber_final >= 0),
-                    novo_valor_total NUMERIC(10, 2) CHECK (novo_valor_total >= 0),
-                    abatimento NUMERIC(10, 2) CHECK (abatimento >= 0),
+                    valor_total REAL NOT NULL CHECK (valor_total >= 0),
+                    valor_pago_entrega REAL CHECK (valor_pago_entrega >= 0),
+                    valor_receber_final REAL CHECK (valor_receber_final >= 0),
+                    novo_valor_total REAL CHECK (novo_valor_total >= 0),
+                    abatimento REAL CHECK (abatimento >= 0),
                     data_devolucao_efetiva DATE,
                     motivo_ajuste_valor TEXT,
                     data_prorrogacao DATE,
-                    status VARCHAR(20) DEFAULT 'ativo',
+                    status TEXT DEFAULT 'ativo',
                     FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
                 )
             ''')
@@ -120,7 +124,7 @@ def create_tables():
             # Tabela de Itens Locados
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS itens_locados (
-                    id SERIAL PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     locacao_id INTEGER NOT NULL,
                     item_id INTEGER NOT NULL,
                     quantidade INTEGER NOT NULL CHECK (quantidade > 0),
@@ -134,7 +138,7 @@ def create_tables():
             # Tabela para Registro de Danos
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS registro_danos (
-                    id SERIAL PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     item_id INTEGER NOT NULL,
                     locacao_id INTEGER NOT NULL,
                     descricao_problema TEXT NOT NULL,
@@ -146,13 +150,12 @@ def create_tables():
 
             conn.commit()
             logger.info("Tabelas criadas ou atualizadas com sucesso!")
-        except Error as e:
+        except Exception as e:
             logger.error("Erro ao criar as tabelas.", exc_info=True)
             conn.rollback()
         finally:
             if 'cursor' in locals() and cursor is not None:
                 cursor.close()
-            release_connection(conn)
     else:
         logger.error("Erro! Não foi possível estabelecer a conexão com o banco de dados.")
 
@@ -165,16 +168,15 @@ def execute_query(query, params=None):
         return None
     try:
         cursor = conn.cursor()
-        cursor.execute(query, params)
+        cursor.execute(query, params or ())
         results = cursor.fetchall()
         return results
-    except Error as e:
+    except Exception as e:
         logger.error("Erro ao executar a consulta de fetch.", exc_info=True)
         return None
     finally:
         if 'cursor' in locals() and cursor is not None:
             cursor.close()
-        release_connection(conn)
 
 # Função para executar um comando (commit)
 def execute_command(query, params=None):
@@ -185,17 +187,16 @@ def execute_command(query, params=None):
         return False
     try:
         cursor = conn.cursor()
-        cursor.execute(query, params)
+        cursor.execute(query, params or ())
         conn.commit()
         return True
-    except Error as e:
+    except Exception as e:
         logger.error("Erro ao executar o comando no banco de dados.", exc_info=True)
         conn.rollback()
         return False
     finally:
         if 'cursor' in locals() and cursor is not None:
             cursor.close()
-        release_connection(conn)
 
 # Executa a função de criação das tabelas apenas se este arquivo for executado diretamente
 if __name__ == "__main__":

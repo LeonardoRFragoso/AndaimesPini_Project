@@ -1,7 +1,7 @@
 // src/components/pages/inventory/InventoryPageContainer.js
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import InventoryPageView from "./InventoryPageView";
+import { listarItens, criarItem, atualizarItem, excluirItem } from "../../../api/inventario";
 
 const InventoryPageContainer = () => {
   const [items, setItems] = useState([]);
@@ -19,8 +19,8 @@ const InventoryPageContainer = () => {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://127.0.0.1:5000/inventario");
-      setItems(response.data); // Atualiza o estado com os dados retornados
+      const data = await listarItens();
+      setItems(data); // Atualiza o estado com os dados retornados
     } catch (error) {
       console.error("Erro ao buscar itens do inventário:", error);
       setFeedback({
@@ -82,7 +82,7 @@ const InventoryPageContainer = () => {
   const handleDeleteItem = async (id) => {
     if (window.confirm("Tem certeza de que deseja excluir este item?")) {
       try {
-        await axios.delete(`http://127.0.0.1:5000/inventario/${id}`);
+        await excluirItem(id);
         fetchItems(); // Atualiza a lista do inventário
         setFeedback({ open: true, message: "Item excluído com sucesso!" });
       } catch (error) {
@@ -96,14 +96,11 @@ const InventoryPageContainer = () => {
     try {
       if (currentItem) {
         // Atualiza o item existente
-        await axios.put(
-          `http://127.0.0.1:5000/inventario/${currentItem.id}`,
-          item
-        );
+        await atualizarItem(currentItem.id, item);
         setFeedback({ open: true, message: "Item atualizado com sucesso!" });
       } else {
         // Adiciona um novo item
-        await axios.post("http://127.0.0.1:5000/inventario", item);
+        await criarItem(item);
         setFeedback({ open: true, message: "Item adicionado com sucesso!" });
       }
       setIsEditing(false);

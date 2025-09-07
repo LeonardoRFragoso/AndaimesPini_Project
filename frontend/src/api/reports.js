@@ -1,11 +1,11 @@
-import axios from "axios";
+import api from './config';
 
-const API_URL = "http://127.0.0.1:5000/reports";
+// Endpoint base para relatórios
 
 // Função para obter dados de visão geral com filtros de data opcionais
 export const fetchOverviewReport = async ({ startDate, endDate } = {}) => {
   try {
-    const response = await axios.get(`${API_URL}/overview`, {
+    const response = await api.get(`/reports/overview`, {
       params: { start_date: startDate, end_date: endDate },
     });
     return response.data;
@@ -21,7 +21,7 @@ export const fetchClientReport = async (
   { startDate, endDate } = {}
 ) => {
   try {
-    const response = await axios.get(`${API_URL}/client/${clientId}`, {
+    const response = await api.get(`/reports/client/${clientId}`, {
       params: { start_date: startDate, end_date: endDate },
     });
     return response.data;
@@ -34,7 +34,7 @@ export const fetchClientReport = async (
 // Função para obter dados de relatório por item com filtros de data opcionais
 export const fetchItemReport = async (itemId, { startDate, endDate } = {}) => {
   try {
-    const response = await axios.get(`${API_URL}/inventory/${itemId}`, {
+    const response = await api.get(`/reports/inventory/${itemId}`, {
       params: { start_date: startDate, end_date: endDate },
     });
     return response.data;
@@ -47,7 +47,7 @@ export const fetchItemReport = async (itemId, { startDate, endDate } = {}) => {
 // Função para obter dados de relatório por status com filtros de data opcionais
 export const fetchStatusReport = async ({ startDate, endDate } = {}) => {
   try {
-    const response = await axios.get(`${API_URL}/status`, {
+    const response = await api.get(`/reports/status`, {
       params: { start_date: startDate, end_date: endDate },
     });
     return response.data;
@@ -60,7 +60,7 @@ export const fetchStatusReport = async ({ startDate, endDate } = {}) => {
 // Função para buscar clientes com base no termo de pesquisa
 export const fetchClients = async (searchTerm) => {
   try {
-    const response = await axios.get(`${API_URL}/clients`, {
+    const response = await api.get(`/reports/clients`, {
       params: { search: searchTerm },
     });
     return response.data; // Supondo que a resposta seja uma lista de clientes
@@ -73,7 +73,7 @@ export const fetchClients = async (searchTerm) => {
 // Função para buscar itens com base no termo de pesquisa
 export const fetchItems = async (searchTerm) => {
   try {
-    const response = await axios.get(`${API_URL}/items`, {
+    const response = await api.get(`/reports/items`, {
       params: { search: searchTerm },
     });
     return response.data; // Supondo que a resposta seja uma lista de itens
@@ -86,7 +86,7 @@ export const fetchItems = async (searchTerm) => {
 // Função para exportar relatório de status como gráfico (imagem PNG)
 export const downloadStatusChart = async () => {
   try {
-    const response = await axios.get(`${API_URL}/status`, {
+    const response = await api.get(`/reports/status`, {
       params: { export_format: "chart" },
       responseType: "blob",
     });
@@ -110,7 +110,7 @@ export const downloadStatusChart = async () => {
 // Função para exportar relatório de status como arquivo Excel
 export const downloadStatusExcel = async () => {
   try {
-    const response = await axios.get(`${API_URL}/status`, {
+    const response = await api.get(`/reports/status`, {
       params: { export_format: "excel" },
       responseType: "blob",
     });
@@ -138,8 +138,8 @@ export const downloadStatusExcel = async () => {
 // Função para download do relatório em CSV
 export const downloadReportCSV = async (reportData, filename = "relatorio") => {
   try {
-    const response = await axios.post(
-      `${API_URL}/download`,
+    const response = await api.post(
+      `/reports/download`,
       { report_data: reportData },
       { responseType: "blob" }
     );

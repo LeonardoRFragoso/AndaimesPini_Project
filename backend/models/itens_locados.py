@@ -1,4 +1,4 @@
-import psycopg2
+import sqlite3
 from database import get_connection, release_connection
 from models.inventario import Inventario
 from datetime import date, datetime
@@ -43,7 +43,7 @@ class ItensLocados:
                     # Inserir o item na tabela itens_locados
                     cursor.execute('''
                         INSERT INTO itens_locados (locacao_id, item_id, quantidade, data_alocacao)
-                        VALUES (%s, %s, %s, %s)
+                        VALUES (?, ?, ?, ?)
                     ''', (locacao_id, item_id, quantidade, date.today()))
                     logger.info(f"Item ID {item_id} adicionado à locação ID {locacao_id} com quantidade {quantidade} em {date.today()}.")
 
@@ -51,10 +51,10 @@ class ItensLocados:
                     sucesso_estoque = Inventario.atualizar_estoque(item_id, -quantidade)
                     if not sucesso_estoque:
                         logger.error(f"Erro ao atualizar estoque para o item ID {item_id}.")
-                        raise psycopg2.Error(f"Erro ao atualizar estoque para o item ID {item_id}.")
+                        raise Exception(f"Erro ao atualizar estoque para o item ID {item_id}.")
 
             return True
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao adicionar item locado: {e}")
             return False
         finally:
@@ -83,8 +83,8 @@ class ItensLocados:
                         # Atualizar apenas um item específico
                         cursor.execute('''
                             UPDATE itens_locados
-                            SET data_devolucao = %s
-                            WHERE locacao_id = %s AND item_id = %s AND data_devolucao IS NULL
+                            SET data_devolucao = ?
+                            WHERE locacao_id = ? AND item_id = ? AND data_devolucao IS NULL
                         ''', (data_devolucao_dt, locacao_id, item_id))
                         if cursor.rowcount == 0:
                             logger.warning(f"Item ID {item_id} na locação ID {locacao_id} já está devolvido ou não existe.")
@@ -94,15 +94,15 @@ class ItensLocados:
                         # Atualizar todos os itens da locação
                         cursor.execute('''
                             UPDATE itens_locados
-                            SET data_devolucao = %s
-                            WHERE locacao_id = %s AND data_devolucao IS NULL
+                            SET data_devolucao = ?
+                            WHERE locacao_id = ? AND data_devolucao IS NULL
                         ''', (data_devolucao_dt, locacao_id))
                         if cursor.rowcount == 0:
                             logger.warning(f"Todos os itens na locação ID {locacao_id} já estão devolvidos ou não existem.")
                             return False
                         logger.info(f"Todos os itens da locação ID {locacao_id} marcados como devolvidos em {data_devolucao_dt}.")
             return True
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao marcar itens como devolvidos: {e}")
             return False
         finally:
@@ -135,7 +135,7 @@ class ItensLocados:
                         FROM itens_locados il
                         JOIN inventario inv ON il.item_id = inv.id
                         JOIN locacoes loc ON il.locacao_id = loc.id
-                        WHERE il.locacao_id = %s
+                        WHERE il.locacao_id = ?
                     ''', (locacao_id,))
                     items = cursor.fetchall()
                     logger.info(f"Itens obtidos para locação ID {locacao_id}.")
@@ -162,7 +162,7 @@ class ItensLocados:
                             "status": status
                         })
             return items_list
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao buscar itens locados: {e}")
             return []
         finally:
@@ -191,11 +191,11 @@ class ItensLocados:
                 with conn.cursor() as cursor:
                     cursor.execute('''
                         INSERT INTO registro_danos (locacao_id, item_id, descricao_problema, data_registro)
-                        VALUES (%s, %s, %s, %s)
+                        VALUES (?, ?, ?, ?)
                     ''', (locacao_id, item_id, descricao_problema, date.today()))
                     logger.info(f"Problema registrado para item ID {item_id} na locação ID {locacao_id}.")
             return True
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao registrar problema para item: {e}")
             return False
         finally:
@@ -224,8 +224,8 @@ class ItensLocados:
                     # Atualiza a data_fim na tabela locacoes
                     cursor.execute('''
                         UPDATE locacoes
-                        SET data_fim = data_fim + INTERVAL '%s days'
-                        WHERE id = %s
+                        SET data_fim = date(data_fim, '+' || ? || ' days')
+                        WHERE id = ?
                     ''', (dias_adicionais, locacao_id))
                     if cursor.rowcount == 0:
                         logger.warning(f"Locação ID {locacao_id} não encontrada para prorrogação.")
@@ -233,7 +233,7 @@ class ItensLocados:
                     logger.info(f"Data de fim da locação ID {locacao_id} prorrogada em {dias_adicionais} dias.")
 
             return True
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao prorrogar locação ID {locacao_id}: {e}")
             return False
         finally:
@@ -253,13 +253,13 @@ class ItensLocados:
                 with conn.cursor() as cursor:
                     cursor.execute('''
                         UPDATE itens_locados
-                        SET data_alocacao = %s
+                        SET data_alocacao = ?
                         WHERE data_alocacao IS NULL
                     ''', (date.today(),))
                     registros_atualizados = cursor.rowcount
             logger.info(f"data_alocacao atualizada para {registros_atualizados} registros com valor NULL.")
             return registros_atualizados
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Erro ao atualizar data_alocacao para registros NULL: {e}")
             return 0
         finally:
