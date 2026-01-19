@@ -104,11 +104,15 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         onChange={(e) => handleDateChange('start', e.target.value)}
         InputLabelProps={{ shrink: true }}
         sx={{
+          minWidth: 160,
+          '& .MuiInputLabel-root': {
+            whiteSpace: 'nowrap',
+          },
           '& .MuiOutlinedInput-root': {
-            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+            backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.8)' : '#fff',
             borderRadius: 2,
             '& fieldset': {
-              borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
+              borderColor: isDarkMode ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
             },
             '&:hover fieldset': {
               borderColor: '#4caf50',
@@ -118,7 +122,7 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
             }
           },
           '& input': {
-            color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+            color: isDarkMode ? '#fff' : 'inherit',
           }
         }}
       />
@@ -130,11 +134,15 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         onChange={(e) => handleDateChange('end', e.target.value)}
         InputLabelProps={{ shrink: true }}
         sx={{
+          minWidth: 160,
+          '& .MuiInputLabel-root': {
+            whiteSpace: 'nowrap',
+          },
           '& .MuiOutlinedInput-root': {
-            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+            backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.8)' : '#fff',
             borderRadius: 2,
             '& fieldset': {
-              borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
+              borderColor: isDarkMode ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
             },
             '&:hover fieldset': {
               borderColor: '#4caf50',
@@ -144,7 +152,7 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
             }
           },
           '& input': {
-            color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+            color: isDarkMode ? '#fff' : 'inherit',
           }
         }}
       />
