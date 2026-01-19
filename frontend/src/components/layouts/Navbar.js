@@ -15,35 +15,29 @@ import {
   Badge,
   useMediaQuery,
   useTheme,
-  alpha
+  Chip
 } from "@mui/material";
 import {
-  AddCircle,
-  Visibility,
-  Inventory,
-  Assessment,
-  PersonAdd,
   Dashboard as DashboardIcon,
-  Refresh as RefreshIcon,
   NightsStay as DarkModeIcon,
   LightMode as LightModeIcon,
   Notifications as NotificationsIcon,
-  TrendingUp,
-  BarChart,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Construction as ConstructionIcon,
+  Home as HomeIcon,
+  AddBox as AddBoxIcon,
+  ListAlt as ListAltIcon,
+  Inventory2 as InventoryIcon,
+  People as PeopleIcon,
+  Assessment as AssessmentIcon,
+  Logout as LogoutIcon,
+  KeyboardArrowDown as ArrowDownIcon
 } from "@mui/icons-material";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useThemeMode } from "../../contexts/ThemeContext";
 import { logout } from "../../api/auth";
 import { NotificacoesService } from "../../api/notificacoes";
-import HomeIcon from "@mui/icons-material/Home";
-import ListIcon from "@mui/icons-material/List";
-import WarehouseIcon from "@mui/icons-material/Warehouse"; // Ícone para o estoque
-import PeopleIcon from "@mui/icons-material/People"; // Ícone para clientes
-import LoginIcon from "@mui/icons-material/Login"; // Ícone para login
-import LogoutIcon from "@mui/icons-material/Logout"; // Ícone para logout
-import AccountCircleIcon from "@mui/icons-material/AccountCircle"; // Ícone para usuário
 
 const Navbar = () => {
   const { currentUser, logout: authLogout, isAuthenticated } = useAuth();
@@ -107,348 +101,463 @@ const Navbar = () => {
   
   // Verificar se a rota atual está ativa
   const isActive = (path) => {
-    return location.pathname === path;
+    if (path === '/dashboard' && location.pathname === '/') return false;
+    if (path === '/' && location.pathname === '/dashboard') return false;
+    return location.pathname === path || location.pathname.startsWith(path + '/');
   };
+
+  // Cores do tema profissional
+  const colors = {
+    primary: '#1B5E20',
+    primaryLight: '#2E7D32',
+    primaryDark: '#0D3D12',
+    accent: '#4CAF50',
+  };
+
+  // Itens de navegação - Dashboard para autenticados, Landing para visitantes
+  const navItems = isAuthenticated ? [
+    { path: '/dashboard', label: 'Dashboard', icon: <HomeIcon fontSize="small" /> },
+    { path: '/register', label: 'Nova Locação', icon: <AddBoxIcon fontSize="small" /> },
+    { path: '/orders', label: 'Pedidos', icon: <ListAltIcon fontSize="small" /> },
+    { path: '/inventory', label: 'Estoque', icon: <InventoryIcon fontSize="small" /> },
+    { path: '/clients', label: 'Clientes', icon: <PeopleIcon fontSize="small" /> },
+    { path: '/reports', label: 'Relatórios', icon: <AssessmentIcon fontSize="small" /> },
+  ] : [
+    { path: '/', label: 'Início', icon: <HomeIcon fontSize="small" /> },
+  ];
 
   return (
     <AppBar 
       position="fixed" 
       sx={{ 
-        backgroundColor: mode === 'light' ? '#2c552d' : '#1e1e1e',
+        background: mode === 'light' 
+          ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`
+          : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         boxShadow: mode === 'light' 
-          ? '0 4px 20px rgba(0,0,0,0.1)' 
-          : '0 4px 20px rgba(0,0,0,0.3)',
+          ? '0 4px 20px rgba(27, 94, 32, 0.3)' 
+          : '0 4px 20px rgba(0,0,0,0.4)',
         backdropFilter: 'blur(10px)',
-        borderBottom: mode === 'light' 
-          ? '1px solid rgba(0,0,0,0.05)' 
-          : '1px solid rgba(255,255,255,0.05)',
       }}
       elevation={0}
     >
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
+      <Toolbar sx={{ justifyContent: 'space-between', py: 0.5 }}>
         {/* Logo e título */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography
-            variant="h6"
-            component={Link}
-            to="/"
-            sx={{ 
-              fontWeight: "bold", 
-              color: '#fff',
-              textDecoration: 'none',
+        <Box 
+          component={Link}
+          to={isAuthenticated ? "/dashboard" : "/"}
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            textDecoration: 'none',
+            gap: 1.5,
+          }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '10px',
+              background: 'rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(10px)',
               display: 'flex',
               alignItems: 'center',
-              gap: 1
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             }}
           >
-            <DashboardIcon />
-            {!isMobile && "Andaimes Pini"}
-          </Typography>
+            <ConstructionIcon sx={{ fontSize: 24, color: '#fff' }} />
+          </Box>
+          {!isMobile && (
+            <Typography
+              variant="h6"
+              sx={{ 
+                fontWeight: 700, 
+                color: '#fff',
+                letterSpacing: '-0.5px',
+              }}
+            >
+              Andaimes Pini
+            </Typography>
+          )}
         </Box>
 
         {/* Navegação para desktop */}
         {!isMobile && (
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            <Button
-              color="inherit"
-              component={Link}
-              to="/"
-              sx={{ 
-                textTransform: "none",
-                fontWeight: isActive('/') ? 'bold' : 'normal',
-                borderBottom: isActive('/') ? '2px solid white' : 'none',
-                borderRadius: 0,
-                px: 2
-              }}
-            >
-              Início
-            </Button>
-            
-            {isAuthenticated && (
-              <>
+          <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+            {navItems.map((item) => {
+              if (item.auth && !isAuthenticated) return null;
+              const active = isActive(item.path);
+              return (
                 <Button
-                  color="inherit"
+                  key={item.path}
                   component={Link}
-                  to="/register"
+                  to={item.path}
+                  startIcon={item.icon}
                   sx={{ 
                     textTransform: "none",
-                    fontWeight: isActive('/register') ? 'bold' : 'normal',
-                    borderBottom: isActive('/register') ? '2px solid white' : 'none',
-                    borderRadius: 0,
-                    px: 2
+                    color: '#fff',
+                    fontWeight: active ? 600 : 400,
+                    fontSize: '0.875rem',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    position: 'relative',
+                    backgroundColor: active ? 'rgba(255,255,255,0.15)' : 'transparent',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                    },
+                    transition: 'all 0.2s ease',
                   }}
                 >
-                  Registrar
+                  {item.label}
                 </Button>
-                <Button
-                  color="inherit"
-                  component={Link}
-                  to="/orders"
-                  sx={{ 
-                    textTransform: "none",
-                    fontWeight: isActive('/orders') ? 'bold' : 'normal',
-                    borderBottom: isActive('/orders') ? '2px solid white' : 'none',
-                    borderRadius: 0,
-                    px: 2
-                  }}
-                >
-                  Pedidos
-                </Button>
-                <Button
-                  color="inherit"
-                  component={Link}
-                  to="/inventory"
-                  sx={{ 
-                    textTransform: "none",
-                    fontWeight: isActive('/inventory') ? 'bold' : 'normal',
-                    borderBottom: isActive('/inventory') ? '2px solid white' : 'none',
-                    borderRadius: 0,
-                    px: 2
-                  }}
-                >
-                  Estoque
-                </Button>
-                <Button
-                  color="inherit"
-                  component={Link}
-                  to="/clients"
-                  sx={{ 
-                    textTransform: "none",
-                    fontWeight: isActive('/clients') ? 'bold' : 'normal',
-                    borderBottom: isActive('/clients') ? '2px solid white' : 'none',
-                    borderRadius: 0,
-                    px: 2
-                  }}
-                >
-                  Clientes
-                </Button>
-                <Button
-                  color="inherit"
-                  component={Link}
-                  to="/reports"
-                  sx={{ 
-                    textTransform: "none",
-                    fontWeight: isActive('/reports') ? 'bold' : 'normal',
-                    borderBottom: isActive('/reports') ? '2px solid white' : 'none',
-                    borderRadius: 0,
-                    px: 2
-                  }}
-                >
-                  Relatórios
-                </Button>
-              </>
-            )}
+              );
+            })}
           </Box>
         )}
           
-          {/* Ações e perfil */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Botões de ação */}
-            {!isMobile && (
-              <>
-                <Tooltip title="Alternar tema">
-                  <IconButton onClick={toggleTheme} color="inherit" size="small">
-                    {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
-                  </IconButton>
-                </Tooltip>
-                
-                <Tooltip title="Notificações">
-                  <IconButton 
-                    color="inherit" 
-                    size="small"
-                    component={Link}
-                    to="/"
-                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                  >
-                    <Badge badgeContent={notifications.length} color="error">
-                      <NotificationsIcon />
-                    </Badge>
-                  </IconButton>
-                </Tooltip>
-              </>
-            )}
-            
-            {/* Botão de Login/Logout */}
-            {isAuthenticated ? (
-              <>
-                <Tooltip title="Conta de usuário">
-                  <IconButton onClick={handleMenu} sx={{ color: "white" }}>
-                    <Badge
-                      overlap="circular"
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                      badgeContent={
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            backgroundColor: mode === 'light' ? '#45a049' : '#4caf50', 
-                            color: 'white',
-                            borderRadius: '4px',
-                            px: 0.5,
-                            fontSize: '0.6rem'
-                          }}
-                        >
-                          {currentUser?.cargo || 'usuário'}
-                        </Typography>
-                      }
-                    >
-                      <Avatar sx={{ 
-                        bgcolor: mode === 'light' ? '#45a049' : '#4caf50',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-                      }}>
-                        {currentUser?.nome?.charAt(0) || 'U'}
-                      </Avatar>
-                    </Badge>
-                  </IconButton>
-                </Tooltip>
-                <Menu
-                  id="menu-appbar"
-                  anchorEl={anchorEl}
-                  anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'right',
-                  }}
-                  keepMounted
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  open={Boolean(anchorEl)}
-                  onClose={handleClose}
-                  PaperProps={{
-                    elevation: 3,
-                    sx: {
-                      mt: 1.5,
-                      borderRadius: 2,
-                      minWidth: 180,
-                      boxShadow: mode === 'light' 
-                        ? '0 8px 16px rgba(0,0,0,0.1)' 
-                        : '0 8px 16px rgba(0,0,0,0.4)',
-                    }
-                  }}
-                >
-                  <Box sx={{ p: 2, textAlign: 'center' }}>
-                    <Avatar 
-                      sx={{ 
-                        width: 60, 
-                        height: 60, 
-                        mx: 'auto', 
-                        mb: 1,
-                        bgcolor: mode === 'light' ? '#45a049' : '#4caf50',
-                      }}
-                    >
-                      {currentUser?.nome?.charAt(0) || 'U'}
-                    </Avatar>
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {currentUser?.nome || 'Usuário'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {currentUser?.cargo || 'Usuário'}
-                    </Typography>
-                  </Box>
-                  <Divider />
-                  <MenuItem onClick={toggleTheme}>
-                    {mode === 'light' ? <DarkModeIcon fontSize="small" sx={{ mr: 1 }} /> : <LightModeIcon fontSize="small" sx={{ mr: 1 }} />}
-                    {mode === 'light' ? 'Modo Escuro' : 'Modo Claro'}
-                  </MenuItem>
-                  <MenuItem onClick={handleLogout}>
-                    <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
-                    Sair
-                  </MenuItem>
-                </Menu>
-              </>
-            ) : (
-              <Button
-                variant="contained"
-                color="secondary"
-                component={Link}
-                to="/login"
-                sx={{ 
-                  textTransform: "none",
-                  fontWeight: 'medium',
-                  borderRadius: 8,
-                  px: 2,
-                  py: 0.5,
-                  boxShadow: mode === 'light' ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.3)',
-                }}
-              >
-                Login
-              </Button>
-            )}
-            
-            {/* Menu para dispositivos móveis */}
-            {isMobile && (
-              <>
+        {/* Ações e perfil */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Botões de ação */}
+          {!isMobile && (
+            <>
+              <Tooltip title={mode === 'light' ? 'Modo Escuro' : 'Modo Claro'}>
                 <IconButton 
-                  edge="end" 
-                  color="inherit" 
-                  onClick={handleMobileMenuOpen}
-                  sx={{ ml: 1 }}
+                  onClick={toggleTheme} 
+                  sx={{ 
+                    color: '#fff',
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                    },
+                    width: 40,
+                    height: 40,
+                  }}
                 >
-                  <MenuIcon />
+                  {mode === 'light' ? <DarkModeIcon fontSize="small" /> : <LightModeIcon fontSize="small" />}
                 </IconButton>
-                
-                <Menu
-                  anchorEl={mobileMenuAnchorEl}
-                  anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'right',
-                  }}
-                  keepMounted
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  open={Boolean(mobileMenuAnchorEl)}
-                  onClose={handleMobileMenuClose}
-                  PaperProps={{
-                    elevation: 3,
-                    sx: {
-                      mt: 1.5,
-                      width: 200,
-                      borderRadius: 2,
-                    }
+              </Tooltip>
+              
+              <Tooltip title="Notificações">
+                <IconButton 
+                  component={Link}
+                  to="/"
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  sx={{ 
+                    color: '#fff',
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                    },
+                    width: 40,
+                    height: 40,
                   }}
                 >
-                  <MenuItem component={Link} to="/" onClick={handleMobileMenuClose}>
-                    Início
-                  </MenuItem>
-                  
-                  {isAuthenticated && (
+                  <Badge 
+                    badgeContent={notifications.length} 
+                    color="error"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        backgroundColor: '#f44336',
+                        boxShadow: '0 2px 8px rgba(244, 67, 54, 0.4)',
+                      }
+                    }}
+                  >
+                    <NotificationsIcon fontSize="small" />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+          
+          {/* Botão de Login/Logout */}
+          {isAuthenticated ? (
+            <>
+              <Tooltip title="Minha conta">
+                <Button
+                  onClick={handleMenu}
+                  sx={{ 
+                    color: '#fff',
+                    textTransform: 'none',
+                    borderRadius: 3,
+                    px: 1.5,
+                    py: 0.75,
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                    },
+                    gap: 1,
+                  }}
+                >
+                  <Avatar 
+                    sx={{ 
+                      width: 32, 
+                      height: 32,
+                      bgcolor: colors.accent,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {currentUser?.nome?.charAt(0) || 'U'}
+                  </Avatar>
+                  {!isMobile && (
                     <>
-                      <MenuItem component={Link} to="/register" onClick={handleMobileMenuClose}>
-                        Registrar Locação
-                      </MenuItem>
-                      <MenuItem component={Link} to="/orders" onClick={handleMobileMenuClose}>
-                        Visualizar Pedidos
-                      </MenuItem>
-                      <MenuItem component={Link} to="/inventory" onClick={handleMobileMenuClose}>
-                        Estoque
-                      </MenuItem>
-                      <MenuItem component={Link} to="/reports" onClick={handleMobileMenuClose}>
-                        Relatórios
-                      </MenuItem>
-                      <MenuItem component={Link} to="/clients" onClick={handleMobileMenuClose}>
-                        Clientes
-                      </MenuItem>
+                      <Box sx={{ textAlign: 'left' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                          {currentUser?.nome?.split(' ')[0] || 'Usuário'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.8, lineHeight: 1 }}>
+                          {currentUser?.cargo || 'Admin'}
+                        </Typography>
+                      </Box>
+                      <ArrowDownIcon fontSize="small" sx={{ opacity: 0.7 }} />
                     </>
                   )}
-                  
-                  <Divider />
-                  
-                  <MenuItem onClick={toggleTheme}>
-                    {mode === 'light' ? <DarkModeIcon fontSize="small" sx={{ mr: 1 }} /> : <LightModeIcon fontSize="small" sx={{ mr: 1 }} />}
-                    {mode === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+                </Button>
+              </Tooltip>
+              <Menu
+                id="menu-appbar"
+                anchorEl={anchorEl}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+                PaperProps={{
+                  elevation: 0,
+                  sx: {
+                    mt: 1.5,
+                    borderRadius: 3,
+                    minWidth: 220,
+                    overflow: 'visible',
+                    boxShadow: mode === 'light' 
+                      ? '0 10px 40px rgba(0,0,0,0.12)' 
+                      : '0 10px 40px rgba(0,0,0,0.5)',
+                    border: mode === 'light' 
+                      ? '1px solid rgba(0,0,0,0.05)'
+                      : '1px solid rgba(255,255,255,0.1)',
+                    '&:before': {
+                      content: '""',
+                      display: 'block',
+                      position: 'absolute',
+                      top: 0,
+                      right: 20,
+                      width: 12,
+                      height: 12,
+                      bgcolor: 'background.paper',
+                      transform: 'translateY(-50%) rotate(45deg)',
+                      zIndex: 0,
+                      borderLeft: mode === 'light' 
+                        ? '1px solid rgba(0,0,0,0.05)'
+                        : '1px solid rgba(255,255,255,0.1)',
+                      borderTop: mode === 'light' 
+                        ? '1px solid rgba(0,0,0,0.05)'
+                        : '1px solid rgba(255,255,255,0.1)',
+                    },
+                  }
+                }}
+              >
+                <Box sx={{ p: 2.5, textAlign: 'center' }}>
+                  <Avatar 
+                    sx={{ 
+                      width: 64, 
+                      height: 64, 
+                      mx: 'auto', 
+                      mb: 1.5,
+                      bgcolor: colors.primary,
+                      fontSize: '1.5rem',
+                      fontWeight: 700,
+                      boxShadow: `0 4px 14px rgba(27, 94, 32, 0.3)`,
+                    }}
+                  >
+                    {currentUser?.nome?.charAt(0) || 'U'}
+                  </Avatar>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    {currentUser?.nome || 'Usuário'}
+                  </Typography>
+                  <Chip 
+                    label={currentUser?.cargo || 'Administrador'} 
+                    size="small"
+                    sx={{ 
+                      mt: 0.5,
+                      backgroundColor: mode === 'light' 
+                        ? 'rgba(27, 94, 32, 0.1)' 
+                        : 'rgba(76, 175, 80, 0.2)',
+                      color: mode === 'light' ? colors.primary : colors.accent,
+                      fontWeight: 500,
+                      fontSize: '0.75rem',
+                    }}
+                  />
+                </Box>
+                <Divider />
+                <Box sx={{ py: 1 }}>
+                  <MenuItem 
+                    onClick={toggleTheme}
+                    sx={{ 
+                      py: 1.5, 
+                      px: 2.5,
+                      gap: 1.5,
+                      '&:hover': {
+                        backgroundColor: mode === 'light' 
+                          ? 'rgba(27, 94, 32, 0.05)' 
+                          : 'rgba(76, 175, 80, 0.1)',
+                      }
+                    }}
+                  >
+                    {mode === 'light' ? <DarkModeIcon fontSize="small" /> : <LightModeIcon fontSize="small" />}
+                    <Typography variant="body2">
+                      {mode === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+                    </Typography>
                   </MenuItem>
-                  
-                  {isAuthenticated && (
-                    <MenuItem onClick={handleLogout}>
-                      <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
-                      Sair
+                  <MenuItem 
+                    onClick={handleLogout}
+                    sx={{ 
+                      py: 1.5, 
+                      px: 2.5,
+                      gap: 1.5,
+                      color: '#f44336',
+                      '&:hover': {
+                        backgroundColor: 'rgba(244, 67, 54, 0.08)',
+                      }
+                    }}
+                  >
+                    <LogoutIcon fontSize="small" />
+                    <Typography variant="body2">Sair</Typography>
+                  </MenuItem>
+                </Box>
+              </Menu>
+            </>
+          ) : (
+            <Button
+              variant="contained"
+              component={Link}
+              to="/login"
+              sx={{ 
+                textTransform: "none",
+                fontWeight: 600,
+                borderRadius: 2,
+                px: 3,
+                py: 1,
+                backgroundColor: '#fff',
+                color: colors.primary,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                '&:hover': {
+                  backgroundColor: '#f5f5f5',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
+                },
+              }}
+            >
+              Entrar
+            </Button>
+          )}
+          
+          {/* Menu para dispositivos móveis */}
+          {isMobile && (
+            <>
+              <IconButton 
+                edge="end" 
+                onClick={handleMobileMenuOpen}
+                sx={{ 
+                  ml: 1,
+                  color: '#fff',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                  },
+                }}
+              >
+                <MenuIcon />
+              </IconButton>
+              
+              <Menu
+                anchorEl={mobileMenuAnchorEl}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                open={Boolean(mobileMenuAnchorEl)}
+                onClose={handleMobileMenuClose}
+                PaperProps={{
+                  elevation: 0,
+                  sx: {
+                    mt: 1.5,
+                    width: 240,
+                    borderRadius: 3,
+                    boxShadow: mode === 'light' 
+                      ? '0 10px 40px rgba(0,0,0,0.12)' 
+                      : '0 10px 40px rgba(0,0,0,0.5)',
+                    border: mode === 'light' 
+                      ? '1px solid rgba(0,0,0,0.05)'
+                      : '1px solid rgba(255,255,255,0.1)',
+                  }
+                }}
+              >
+                {navItems.map((item) => {
+                  if (item.auth && !isAuthenticated) return null;
+                  const active = isActive(item.path);
+                  return (
+                    <MenuItem 
+                      key={item.path}
+                      component={Link} 
+                      to={item.path} 
+                      onClick={handleMobileMenuClose}
+                      sx={{
+                        py: 1.5,
+                        px: 2.5,
+                        gap: 1.5,
+                        backgroundColor: active 
+                          ? (mode === 'light' ? 'rgba(27, 94, 32, 0.08)' : 'rgba(76, 175, 80, 0.15)')
+                          : 'transparent',
+                        color: active ? colors.primary : 'inherit',
+                        fontWeight: active ? 600 : 400,
+                      }}
+                    >
+                      {item.icon}
+                      <Typography variant="body2">{item.label}</Typography>
                     </MenuItem>
-                  )}
-                </Menu>
-              </>
-            )}
+                  );
+                })}
+                
+                <Divider sx={{ my: 1 }} />
+                
+                <MenuItem 
+                  onClick={toggleTheme}
+                  sx={{ py: 1.5, px: 2.5, gap: 1.5 }}
+                >
+                  {mode === 'light' ? <DarkModeIcon fontSize="small" /> : <LightModeIcon fontSize="small" />}
+                  <Typography variant="body2">
+                    {mode === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+                  </Typography>
+                </MenuItem>
+                
+                {isAuthenticated && (
+                  <MenuItem 
+                    onClick={handleLogout}
+                    sx={{ 
+                      py: 1.5, 
+                      px: 2.5,
+                      gap: 1.5,
+                      color: '#f44336',
+                    }}
+                  >
+                    <LogoutIcon fontSize="small" />
+                    <Typography variant="body2">Sair</Typography>
+                  </MenuItem>
+                )}
+              </Menu>
+            </>
+          )}
         </Box>
       </Toolbar>
     </AppBar>

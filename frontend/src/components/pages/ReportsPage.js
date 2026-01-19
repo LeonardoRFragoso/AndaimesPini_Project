@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Typography, CircularProgress, useTheme } from "@mui/material";
+import { Box, Typography, CircularProgress, useTheme, Container, Paper } from "@mui/material";
 import ReportsFilterForm from "../../components/reports/ReportsFilterForm";
 import ReportsSummaryPanel from "../../components/reports/ReportsSummaryPanel";
 import ReportsDataTable from "../../components/reports/ReportsDataTable";
@@ -114,26 +114,74 @@ const ReportsPage = () => {
     }
   }, [filter, clientId, itemId, startDate, endDate]);
 
+  const colors = {
+    primary: '#1B5E20',
+    primaryDark: '#0D3D12',
+  };
+
   return (
     <Box sx={{ 
-      p: 4, 
-      bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.9)' : '#f5f5f5', 
-      minHeight: "100vh",
-      color: theme => theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+      bgcolor: isDarkMode ? '#0a0a0a' : '#f5f7fa',
+      minHeight: '100vh',
+      pb: 4
     }}>
-      <Typography 
-        variant="h4" 
-        gutterBottom 
-        align="center"
-        sx={{ 
-          color: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d',
-          fontWeight: "bold"
+      {/* Header */}
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+          pt: 3,
+          pb: 8,
+          px: { xs: 2, md: 4 },
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        Relatórios
-      </Typography>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.1,
+            background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
+        <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              color: '#fff', 
+              fontWeight: 700,
+              mb: 1,
+              fontSize: { xs: '1.5rem', md: '2rem' },
+            }}
+          >
+            Relatórios
+          </Typography>
+          <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>
+            Visualize relatórios detalhados sobre locações e desempenho
+          </Typography>
+        </Container>
+      </Box>
 
-      <ReportsFilterForm
+      <Container maxWidth="xl" sx={{ mt: -5 }}>
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            borderRadius: 4, 
+            overflow: 'hidden',
+            border: isDarkMode 
+              ? '1px solid rgba(255,255,255,0.1)' 
+              : '1px solid rgba(0,0,0,0.08)',
+            boxShadow: isDarkMode
+              ? '0 4px 20px rgba(0,0,0,0.3)'
+              : '0 4px 20px rgba(0,0,0,0.08)',
+            bgcolor: isDarkMode ? '#1a1a2e' : '#fff',
+            p: 4,
+          }}
+        >
+          <ReportsFilterForm
         filter={filter}
         onFilterChange={handleFilterChange}
         onClientIdChange={handleClientIdChange}
@@ -191,10 +239,12 @@ const ReportsPage = () => {
                 : []
             }
             filter={filter}
-            chartType={chartType} // Adiciona o tipo de gráfico
+            chartType={chartType}
           />
         </>
       )}
+        </Paper>
+      </Container>
     </Box>
   );
 };

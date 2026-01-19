@@ -1,6 +1,6 @@
 // frontend/src/components/Forms/RegisterFormView.js
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Typography,
   Paper,
@@ -34,6 +34,11 @@ import {
   StepLabel,
   Container,
   useTheme,
+  InputAdornment,
+  Fade,
+  Slide,
+  Grow,
+  Chip,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -41,6 +46,19 @@ import PersonIcon from "@mui/icons-material/Person";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import InventoryIcon from "@mui/icons-material/Inventory";
+import PhoneIcon from "@mui/icons-material/Phone";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import EventIcon from "@mui/icons-material/Event";
+import TimerIcon from "@mui/icons-material/Timer";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import PaymentIcon from "@mui/icons-material/Payment";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CategorySection from "../pages/sections/CategorySection";
 import InventoryCheck from "./InventoryCheck";
 
@@ -58,6 +76,73 @@ const RegisterFormView = ({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [touched, setTouched] = useState({});
+
+  const steps = ['Dados do Cliente', 'Datas e Valores', 'Itens do Inventário'];
+
+  const colors = {
+    primary: '#1B5E20',
+    primaryLight: '#2E7D32',
+    primaryDark: '#0D3D12',
+  };
+
+  // Validação em tempo real
+  const validations = useMemo(() => ({
+    nome_cliente: novaLocacao.nome_cliente?.trim().length >= 3,
+    telefone_cliente: novaLocacao.telefone_cliente?.trim().length >= 8,
+    endereco_cliente: novaLocacao.endereco_cliente?.trim().length >= 5,
+    numero_nota: novaLocacao.numero_nota?.trim().length >= 1,
+    data_inicio: !!novaLocacao.data_inicio,
+    dias_combinados: novaLocacao.dias_combinados > 0,
+    data_fim: !!novaLocacao.data_fim,
+    valor_total: novaLocacao.valor_total > 0,
+    valor_pago_entrega: novaLocacao.valor_pago_entrega >= 0,
+  }), [novaLocacao]);
+
+  // Verificar se a etapa está completa
+  const isStepComplete = (step) => {
+    switch (step) {
+      case 0:
+        return validations.nome_cliente && 
+               validations.telefone_cliente && 
+               validations.endereco_cliente && 
+               validations.numero_nota;
+      case 1:
+        return validations.data_inicio && 
+               validations.dias_combinados && 
+               validations.data_fim && 
+               validations.valor_total;
+      case 2:
+        return novaLocacao.itens?.length > 0 || itensAdicionados.length > 0;
+      default:
+        return false;
+    }
+  };
+
+  // Verificar se pode avançar para próxima etapa
+  const canProceed = isStepComplete(activeStep);
+
+  // Handler para marcar campo como tocado
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
+
+  // Verificar se campo tem erro
+  const hasError = (field) => touched[field] && !validations[field];
+
+  // Navegação do stepper
+  const handleNext = () => {
+    if (activeStep < steps.length - 1 && canProceed) {
+      setActiveStep(prev => prev + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (activeStep > 0) {
+      setActiveStep(prev => prev - 1);
+    }
+  };
 
   const handleAddItem = (category, modelo, quantidade, unidade) => {
     addItem(category, modelo, quantidade, unidade);
@@ -81,55 +166,248 @@ const RegisterFormView = ({
     setIsLoading(false);
   };
 
-  const steps = ['Dados do Cliente', 'Datas e Valores', 'Itens do Inventário'];
-  const [activeStep, setActiveStep] = useState(0);
+  // Estilos melhorados para inputs
+  const inputStyles = {
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: theme.palette.mode === 'dark' 
+        ? 'rgba(255, 255, 255, 0.05)' 
+        : '#fff',
+      borderRadius: 2,
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        backgroundColor: theme.palette.mode === 'dark' 
+          ? 'rgba(255, 255, 255, 0.08)' 
+          : '#fafafa',
+      },
+      '&.Mui-focused': {
+        backgroundColor: theme.palette.mode === 'dark' 
+          ? 'rgba(255, 255, 255, 0.1)' 
+          : '#fff',
+        boxShadow: `0 0 0 2px ${colors.primaryLight}40`,
+      },
+    },
+    '& .MuiOutlinedInput-input': {
+      color: theme.palette.mode === 'dark' ? '#fff' : 'inherit',
+    },
+    '& .MuiInputLabel-root': {
+      color: theme.palette.mode === 'dark' 
+        ? 'rgba(255, 255, 255, 0.7)' 
+        : 'rgba(0, 0, 0, 0.6)',
+    },
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: theme.palette.mode === 'dark' 
+        ? 'rgba(255, 255, 255, 0.23)' 
+        : 'rgba(0, 0, 0, 0.23)',
+    },
+  };
+
+  const errorInputStyles = {
+    ...inputStyles,
+    '& .MuiOutlinedInput-root': {
+      ...inputStyles['& .MuiOutlinedInput-root'],
+      '& .MuiOutlinedInput-notchedOutline': {
+        borderColor: theme.palette.error.main,
+      },
+    },
+  };
+
+  const successInputStyles = {
+    ...inputStyles,
+    '& .MuiOutlinedInput-root': {
+      ...inputStyles['& .MuiOutlinedInput-root'],
+      '& .MuiOutlinedInput-notchedOutline': {
+        borderColor: colors.primary,
+      },
+    },
+  };
+
+  // Função para obter estilos baseado na validação
+  const getFieldStyles = (field) => {
+    if (!touched[field]) return inputStyles;
+    return validations[field] ? successInputStyles : errorInputStyles;
+  };
+
+  // Componente de ícone de validação
+  const ValidationIcon = ({ field }) => {
+    if (!touched[field]) return null;
+    return validations[field] ? (
+      <CheckCircleIcon sx={{ color: colors.primary, fontSize: 20 }} />
+    ) : (
+      <ErrorIcon sx={{ color: theme.palette.error.main, fontSize: 20 }} />
+    );
+  };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Paper elevation={4} sx={{ borderRadius: 4, overflow: 'hidden' }}>
-        {/* Header */}
-        <Box sx={{ 
-          background: 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)',
-          color: 'white',
-          p: 4,
-          textAlign: 'center'
-        }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      bgcolor: theme.palette.mode === 'light' ? '#f5f7fa' : '#0a0a0a',
+      pb: 4,
+    }}>
+      {/* Header */}
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+          pt: 3,
+          pb: 8,
+          px: { xs: 2, md: 4 },
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.1,
+            background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              color: '#fff', 
+              fontWeight: 700,
+              mb: 1,
+              fontSize: { xs: '1.5rem', md: '2rem' },
+            }}
+          >
             Registrar Nova Locação
           </Typography>
-          <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+          <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>
             Preencha os dados abaixo para criar uma nova locação
           </Typography>
-        </Box>
+        </Container>
+      </Box>
 
-        {/* Progress Stepper */}
-        <Box sx={{ 
-          p: 3, 
-          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f8f9fa'
-        }}>
-          <Stepper activeStep={activeStep} alternativeLabel>
-            {steps.map((label, index) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-        </Box>
+      <Container maxWidth="lg" sx={{ mt: -5 }}>
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            borderRadius: 4, 
+            overflow: 'hidden',
+            border: theme.palette.mode === 'light' 
+              ? '1px solid rgba(0,0,0,0.08)' 
+              : '1px solid rgba(255,255,255,0.1)',
+            boxShadow: theme.palette.mode === 'light'
+              ? '0 4px 20px rgba(0,0,0,0.08)'
+              : '0 4px 20px rgba(0,0,0,0.3)',
+          }}
+        >
+          {/* Progress Stepper */}
+          <Box sx={{ 
+            p: 3, 
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : '#fafbfc',
+            borderBottom: theme.palette.mode === 'light' 
+              ? '1px solid rgba(0,0,0,0.06)' 
+              : '1px solid rgba(255,255,255,0.06)',
+          }}>
+            <Stepper 
+              activeStep={activeStep} 
+              alternativeLabel
+              sx={{
+                '& .MuiStepLabel-root .Mui-completed': {
+                  color: colors.primary,
+                },
+                '& .MuiStepLabel-root .Mui-active': {
+                  color: colors.primary,
+                },
+                '& .MuiStepIcon-root': {
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                  },
+                },
+                '& .MuiStepIcon-root.Mui-completed': {
+                  color: colors.primary,
+                },
+                '& .MuiStepIcon-root.Mui-active': {
+                  color: colors.primary,
+                },
+                '& .MuiStepConnector-line': {
+                  borderColor: theme.palette.mode === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.2)' 
+                    : 'rgba(0, 0, 0, 0.2)',
+                },
+                '& .MuiStepConnector-root.Mui-completed .MuiStepConnector-line': {
+                  borderColor: colors.primary,
+                },
+              }}
+            >
+              {steps.map((label, index) => (
+                <Step 
+                  key={label} 
+                  completed={isStepComplete(index)}
+                  onClick={() => setActiveStep(index)}
+                  sx={{ cursor: 'pointer' }}
+                >
+                  <StepLabel>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center' }}>
+                      {label}
+                      {isStepComplete(index) && (
+                        <Chip 
+                          label="✓" 
+                          size="small" 
+                          sx={{ 
+                            ml: 0.5, 
+                            height: 18, 
+                            fontSize: '0.7rem',
+                            backgroundColor: colors.primary,
+                            color: '#fff',
+                          }} 
+                        />
+                      )}
+                    </Box>
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Box>
 
         <Box sx={{ p: 4 }}>
           <form onSubmit={(e) => e.preventDefault()}>
-            <Grid container spacing={4}>
-              {/* Seção de Informações do Cliente */}
-              <Grid item xs={12}>
+            {/* Step 0: Informações do Cliente */}
+            <Fade in={activeStep === 0} timeout={400} unmountOnExit>
+              <Box sx={{ display: activeStep === 0 ? 'block' : 'none' }}>
                 <Card elevation={2} sx={{ 
-                  mb: 2,
+                  mb: 3,
                   backgroundColor: theme.palette.background.paper,
-                  border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+                  border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: theme.palette.mode === 'dark' 
+                      ? '0 8px 32px rgba(0, 0, 0, 0.4)' 
+                      : '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  },
                 }}>
                   <CardHeader
-                    avatar={<PersonIcon color="primary" />}
+                    avatar={
+                      <Box sx={{ 
+                        backgroundColor: `${colors.primary}20`, 
+                        borderRadius: 2, 
+                        p: 1, 
+                        display: 'flex' 
+                      }}>
+                        <PersonIcon sx={{ color: colors.primary }} />
+                      </Box>
+                    }
                     title="Informações do Cliente"
                     titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+                    action={
+                      <Chip 
+                        label={isStepComplete(0) ? "Completo" : "Pendente"} 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: isStepComplete(0) ? `${colors.primary}20` : 'rgba(255, 152, 0, 0.2)',
+                          color: isStepComplete(0) ? colors.primary : '#ff9800',
+                          fontWeight: 500,
+                        }}
+                      />
+                    }
                     sx={{ pb: 1 }}
                   />
                   <CardContent>
@@ -140,9 +418,26 @@ const RegisterFormView = ({
                           name="nome_cliente"
                           value={novaLocacao.nome_cliente}
                           onChange={handleChange}
+                          onBlur={() => handleBlur('nome_cliente')}
+                          error={hasError('nome_cliente')}
+                          helperText={hasError('nome_cliente') ? 'Nome deve ter no mínimo 3 caracteres' : ''}
                           fullWidth
                           required
                           variant="outlined"
+                          placeholder="Digite o nome completo"
+                          sx={getFieldStyles('nome_cliente')}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <PersonIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <ValidationIcon field="nome_cliente" />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -151,9 +446,26 @@ const RegisterFormView = ({
                           name="telefone_cliente"
                           value={novaLocacao.telefone_cliente}
                           onChange={handleChange}
+                          onBlur={() => handleBlur('telefone_cliente')}
+                          error={hasError('telefone_cliente')}
+                          helperText={hasError('telefone_cliente') ? 'Telefone deve ter no mínimo 8 dígitos' : ''}
                           fullWidth
                           required
                           variant="outlined"
+                          placeholder="(00) 00000-0000"
+                          sx={getFieldStyles('telefone_cliente')}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <PhoneIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <ValidationIcon field="telefone_cliente" />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12}>
@@ -162,9 +474,26 @@ const RegisterFormView = ({
                           name="endereco_cliente"
                           value={novaLocacao.endereco_cliente}
                           onChange={handleChange}
+                          onBlur={() => handleBlur('endereco_cliente')}
+                          error={hasError('endereco_cliente')}
+                          helperText={hasError('endereco_cliente') ? 'Endereço deve ter no mínimo 5 caracteres' : ''}
                           fullWidth
                           required
                           variant="outlined"
+                          placeholder="Rua, número, bairro, cidade"
+                          sx={getFieldStyles('endereco_cliente')}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <LocationOnIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <ValidationIcon field="endereco_cliente" />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -173,9 +502,26 @@ const RegisterFormView = ({
                           name="numero_nota"
                           value={novaLocacao.numero_nota}
                           onChange={handleChange}
+                          onBlur={() => handleBlur('numero_nota')}
+                          error={hasError('numero_nota')}
+                          helperText={hasError('numero_nota') ? 'Número da nota é obrigatório' : ''}
                           fullWidth
                           required
                           variant="outlined"
+                          placeholder="Ex: 12345"
+                          sx={getFieldStyles('numero_nota')}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <ReceiptIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <ValidationIcon field="numero_nota" />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -186,22 +532,73 @@ const RegisterFormView = ({
                           onChange={handleChange}
                           fullWidth
                           variant="outlined"
+                          sx={inputStyles}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <BookmarkIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                     </Grid>
                   </CardContent>
                 </Card>
-              </Grid>
 
-              {/* Seção de Datas */}
-              <Grid item xs={12}>
+                {/* Botões de navegação Step 0 */}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleNext}
+                    disabled={!canProceed}
+                    endIcon={<ArrowForwardIcon />}
+                    sx={{
+                      backgroundColor: colors.primary,
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      '&:hover': {
+                        backgroundColor: colors.primaryDark,
+                      },
+                      '&:disabled': {
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                      },
+                    }}
+                  >
+                    Próximo
+                  </Button>
+                </Box>
+              </Box>
+            </Fade>
+
+            {/* Step 1: Datas e Valores */}
+            <Fade in={activeStep === 1} timeout={400} unmountOnExit>
+              <Box sx={{ display: activeStep === 1 ? 'block' : 'none' }}>
+                {/* Seção de Datas */}
                 <Card elevation={2} sx={{ 
-                  mb: 2,
+                  mb: 3,
                   backgroundColor: theme.palette.background.paper,
-                  border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+                  border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: theme.palette.mode === 'dark' 
+                      ? '0 8px 32px rgba(0, 0, 0, 0.4)' 
+                      : '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  },
                 }}>
                   <CardHeader
-                    avatar={<CalendarTodayIcon color="primary" />}
+                    avatar={
+                      <Box sx={{ 
+                        backgroundColor: `${colors.primary}20`, 
+                        borderRadius: 2, 
+                        p: 1, 
+                        display: 'flex' 
+                      }}>
+                        <CalendarTodayIcon sx={{ color: colors.primary }} />
+                      </Box>
+                    }
                     title="Período da Locação"
                     titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
                     sx={{ pb: 1 }}
@@ -215,10 +612,25 @@ const RegisterFormView = ({
                           name="data_inicio"
                           value={novaLocacao.data_inicio}
                           onChange={handleChange}
+                          onBlur={() => handleBlur('data_inicio')}
+                          error={hasError('data_inicio')}
                           InputLabelProps={{ shrink: true }}
                           fullWidth
                           required
                           variant="outlined"
+                          sx={getFieldStyles('data_inicio')}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <EventIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <ValidationIcon field="data_inicio" />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} md={4}>
@@ -228,10 +640,27 @@ const RegisterFormView = ({
                           name="dias_combinados"
                           value={novaLocacao.dias_combinados}
                           onChange={handleDiasCombinadosChange}
-                          InputProps={{ inputProps: { min: 1 } }}
+                          onBlur={() => handleBlur('dias_combinados')}
+                          error={hasError('dias_combinados')}
+                          helperText={hasError('dias_combinados') ? 'Informe pelo menos 1 dia' : ''}
                           fullWidth
                           required
                           variant="outlined"
+                          placeholder="Ex: 30"
+                          sx={getFieldStyles('dias_combinados')}
+                          InputProps={{ 
+                            inputProps: { min: 1 },
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <TimerIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <ValidationIcon field="dias_combinados" />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} md={4}>
@@ -241,28 +670,67 @@ const RegisterFormView = ({
                           name="data_fim"
                           value={novaLocacao.data_fim}
                           onChange={handleChange}
+                          onBlur={() => handleBlur('data_fim')}
+                          error={hasError('data_fim')}
                           InputLabelProps={{ shrink: true }}
                           fullWidth
                           required
                           variant="outlined"
+                          sx={getFieldStyles('data_fim')}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <EventAvailableIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <ValidationIcon field="data_fim" />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                     </Grid>
                   </CardContent>
                 </Card>
-              </Grid>
 
-              {/* Seção de Valores */}
-              <Grid item xs={12}>
+                {/* Seção de Valores */}
                 <Card elevation={2} sx={{ 
-                  mb: 2,
+                  mb: 3,
                   backgroundColor: theme.palette.background.paper,
-                  border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+                  border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: theme.palette.mode === 'dark' 
+                      ? '0 8px 32px rgba(0, 0, 0, 0.4)' 
+                      : '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  },
                 }}>
                   <CardHeader
-                    avatar={<AttachMoneyIcon color="primary" />}
+                    avatar={
+                      <Box sx={{ 
+                        backgroundColor: `${colors.primary}20`, 
+                        borderRadius: 2, 
+                        p: 1, 
+                        display: 'flex' 
+                      }}>
+                        <AttachMoneyIcon sx={{ color: colors.primary }} />
+                      </Box>
+                    }
                     title="Valores Financeiros"
                     titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+                    action={
+                      <Chip 
+                        label={`Saldo: R$ ${(novaLocacao.valor_receber_final || 0).toFixed(2)}`} 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: `${colors.primary}20`,
+                          color: colors.primary,
+                          fontWeight: 600,
+                        }}
+                      />
+                    }
                     sx={{ pb: 1 }}
                   />
                   <CardContent>
@@ -274,13 +742,28 @@ const RegisterFormView = ({
                           name="valor_total"
                           value={novaLocacao.valor_total}
                           onChange={handleChange}
-                          InputProps={{ 
-                            inputProps: { min: 0, step: "0.01" },
-                            startAdornment: <Typography sx={{ mr: 1 }}>R$</Typography>
-                          }}
+                          onBlur={() => handleBlur('valor_total')}
+                          error={hasError('valor_total')}
+                          helperText={hasError('valor_total') ? 'Valor total é obrigatório' : ''}
                           fullWidth
                           required
                           variant="outlined"
+                          placeholder="0.00"
+                          sx={getFieldStyles('valor_total')}
+                          InputProps={{ 
+                            inputProps: { min: 0, step: "0.01" },
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <AttachMoneyIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                                <Typography sx={{ ml: 0.5, color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.7)' : 'inherit' }}>R$</Typography>
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <ValidationIcon field="valor_total" />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} md={4}>
@@ -290,13 +773,21 @@ const RegisterFormView = ({
                           name="valor_pago_entrega"
                           value={novaLocacao.valor_pago_entrega}
                           onChange={handleChange}
-                          InputProps={{ 
-                            inputProps: { min: 0, step: "0.01" },
-                            startAdornment: <Typography sx={{ mr: 1 }}>R$</Typography>
-                          }}
+                          onBlur={() => handleBlur('valor_pago_entrega')}
                           fullWidth
                           required
                           variant="outlined"
+                          placeholder="0.00"
+                          sx={inputStyles}
+                          InputProps={{ 
+                            inputProps: { min: 0, step: "0.01" },
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <PaymentIcon sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                                <Typography sx={{ ml: 0.5, color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.7)' : 'inherit' }}>R$</Typography>
+                              </InputAdornment>
+                            ),
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} md={4}>
@@ -307,16 +798,23 @@ const RegisterFormView = ({
                           value={novaLocacao.valor_receber_final}
                           InputProps={{ 
                             readOnly: true,
-                            startAdornment: <Typography sx={{ mr: 1 }}>R$</Typography>
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <AccountBalanceWalletIcon sx={{ color: colors.primary }} />
+                                <Typography sx={{ ml: 0.5, color: colors.primary, fontWeight: 600 }}>R$</Typography>
+                              </InputAdornment>
+                            ),
                           }}
                           fullWidth
                           variant="outlined"
                           sx={{
+                            ...inputStyles,
                             '& .MuiInputBase-input': {
                               backgroundColor: theme.palette.mode === 'dark' 
-                                ? 'rgba(255, 255, 255, 0.05)' 
-                                : '#f5f5f5',
-                              fontWeight: 600
+                                ? 'rgba(27, 94, 32, 0.1)' 
+                                : 'rgba(27, 94, 32, 0.05)',
+                              fontWeight: 700,
+                              color: colors.primary,
                             }
                           }}
                         />
@@ -324,28 +822,100 @@ const RegisterFormView = ({
                     </Grid>
                   </CardContent>
                 </Card>
-              </Grid>
 
-              {/* Seção de Itens do Inventário */}
-              <Grid item xs={12}>
+                {/* Botões de navegação Step 1 */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleBack}
+                    startIcon={<ArrowBackIcon />}
+                    sx={{
+                      borderColor: colors.primary,
+                      color: colors.primary,
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      '&:hover': {
+                        borderColor: colors.primaryDark,
+                        backgroundColor: `${colors.primary}10`,
+                      },
+                    }}
+                  >
+                    Voltar
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleNext}
+                    disabled={!canProceed}
+                    endIcon={<ArrowForwardIcon />}
+                    sx={{
+                      backgroundColor: colors.primary,
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      '&:hover': {
+                        backgroundColor: colors.primaryDark,
+                      },
+                      '&:disabled': {
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                      },
+                    }}
+                  >
+                    Próximo
+                  </Button>
+                </Box>
+              </Box>
+            </Fade>
+
+            {/* Step 2: Itens do Inventário */}
+            <Fade in={activeStep === 2} timeout={400} unmountOnExit>
+              <Box sx={{ display: activeStep === 2 ? 'block' : 'none' }}>
                 <Card elevation={2} sx={{ 
-                  mb: 2,
+                  mb: 3,
                   backgroundColor: theme.palette.background.paper,
-                  border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+                  border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: theme.palette.mode === 'dark' 
+                      ? '0 8px 32px rgba(0, 0, 0, 0.4)' 
+                      : '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  },
                 }}>
                   <CardHeader
-                    avatar={<InventoryIcon color="primary" />}
+                    avatar={
+                      <Box sx={{ 
+                        backgroundColor: `${colors.primary}20`, 
+                        borderRadius: 2, 
+                        p: 1, 
+                        display: 'flex' 
+                      }}>
+                        <InventoryIcon sx={{ color: colors.primary }} />
+                      </Box>
+                    }
                     title={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 600 }}>
                           Itens do Inventário
                         </Typography>
                         <Badge
-                          badgeContent={novaLocacao.itens.length}
+                          badgeContent={novaLocacao.itens?.length || itensAdicionados.length}
                           color="primary"
                           showZero
                         />
                       </Box>
+                    }
+                    action={
+                      <Chip 
+                        label={isStepComplete(2) ? "Itens selecionados" : "Selecione itens"} 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: isStepComplete(2) ? `${colors.primary}20` : 'rgba(255, 152, 0, 0.2)',
+                          color: isStepComplete(2) ? colors.primary : '#ff9800',
+                          fontWeight: 500,
+                        }}
+                      />
                     }
                     sx={{ pb: 1 }}
                   />
@@ -356,14 +926,11 @@ const RegisterFormView = ({
 
                     <InventoryCheck
                       onItemSelect={(items) => {
-                        // Converter os itens selecionados para o formato esperado pelo formulário
                         const formattedItems = items.map((item) => ({
                           modelo: item.nome_item,
                           quantidade: item.quantidade_solicitada,
                           unidade: "peças",
                         }));
-
-                        // Atualizar a lista de itens na locação
                         novaLocacao.itens = formattedItems;
                         setItensAdicionados(formattedItems);
                       }}
@@ -390,87 +957,149 @@ const RegisterFormView = ({
                     </Grid>
                   </CardContent>
                 </Card>
-              </Grid>
 
-              {/* Seção de Itens Adicionados */}
-              {itensAdicionados.length > 0 && (
-                <Grid item xs={12}>
+                {/* Seção de Itens Adicionados */}
+                {itensAdicionados.length > 0 && (
                   <Card elevation={2} sx={{ 
-                    mb: 2, 
+                    mb: 3, 
                     backgroundColor: theme.palette.mode === 'dark' 
                       ? 'rgba(255, 255, 255, 0.02)' 
                       : '#f8f9fa',
-                    border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : 'none'
+                    border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+                    transition: 'all 0.3s ease',
                   }}>
                     <CardHeader
+                      avatar={
+                        <Box sx={{ 
+                          backgroundColor: `${colors.primary}20`, 
+                          borderRadius: 2, 
+                          p: 1, 
+                          display: 'flex' 
+                        }}>
+                          <CheckCircleIcon sx={{ color: colors.primary }} />
+                        </Box>
+                      }
                       title="Itens Selecionados"
                       titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+                      action={
+                        <Chip 
+                          label={`${itensAdicionados.length} item(s)`} 
+                          size="small"
+                          sx={{ 
+                            backgroundColor: `${colors.primary}20`,
+                            color: colors.primary,
+                            fontWeight: 500,
+                          }}
+                        />
+                      }
                       sx={{ pb: 1 }}
                     />
                     <CardContent>
-                      <List>
+                      <List sx={{ p: 0 }}>
                         {itensAdicionados.map((item, index) => (
-                          <ListItem 
-                            key={index}
-                            sx={{ 
-                              backgroundColor: theme.palette.mode === 'dark' 
-                                ? 'rgba(255, 255, 255, 0.05)' 
-                                : 'white',
-                              borderRadius: 1,
-                              mb: 1,
-                              border: theme.palette.mode === 'dark' 
-                                ? '1px solid rgba(255, 255, 255, 0.12)' 
-                                : '1px solid #e0e0e0'
-                            }}
-                          >
-                            <ListItemText
-                              primary={`${item.modelo} - ${item.quantidade} unidades`}
-                              secondary={item.category ? `Categoria: ${item.category}` : ''}
-                              primaryTypographyProps={{ fontWeight: 500 }}
-                            />
-                            <IconButton 
-                              onClick={() => handleRemoveItem(index)}
-                              color="error"
-                              size="small"
+                          <Grow in key={index} timeout={300 + index * 100}>
+                            <ListItem 
+                              sx={{ 
+                                backgroundColor: theme.palette.mode === 'dark' 
+                                  ? 'rgba(255, 255, 255, 0.05)' 
+                                  : 'white',
+                                borderRadius: 2,
+                                mb: 1,
+                                border: theme.palette.mode === 'dark' 
+                                  ? '1px solid rgba(255, 255, 255, 0.12)' 
+                                  : '1px solid #e0e0e0',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  backgroundColor: theme.palette.mode === 'dark' 
+                                    ? 'rgba(255, 255, 255, 0.08)' 
+                                    : '#f5f5f5',
+                                  transform: 'translateX(4px)',
+                                },
+                              }}
                             >
-                              <DeleteIcon />
-                            </IconButton>
-                          </ListItem>
+                              <ListItemText
+                                primary={`${item.modelo} - ${item.quantidade} unidades`}
+                                secondary={item.category ? `Categoria: ${item.category}` : ''}
+                                primaryTypographyProps={{ fontWeight: 500 }}
+                              />
+                              <Tooltip title="Remover item">
+                                <IconButton 
+                                  onClick={() => handleRemoveItem(index)}
+                                  color="error"
+                                  size="small"
+                                  sx={{
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                      transform: 'scale(1.1)',
+                                    },
+                                  }}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </ListItem>
+                          </Grow>
                         ))}
                       </List>
                     </CardContent>
                   </Card>
-                </Grid>
-              )}
+                )}
 
-              {/* Botão Registrar Locação */}
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                {/* Botões de navegação Step 2 */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleBack}
+                    startIcon={<ArrowBackIcon />}
+                    sx={{
+                      borderColor: colors.primary,
+                      color: colors.primary,
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      '&:hover': {
+                        borderColor: colors.primaryDark,
+                        backgroundColor: `${colors.primary}10`,
+                      },
+                    }}
+                  >
+                    Voltar
+                  </Button>
                   <Button
                     variant="contained"
                     color="success"
                     size="large"
                     onClick={() => setConfirmDialogOpen(true)}
-                    disabled={isLoading}
+                    disabled={isLoading || !isStepComplete(0) || !isStepComplete(1)}
+                    startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
                     sx={{
-                      minWidth: 200,
+                      backgroundColor: colors.primary,
+                      px: 4,
                       py: 1.5,
-                      fontSize: '1.1rem',
+                      borderRadius: 2,
                       fontWeight: 600,
-                      borderRadius: 3,
+                      fontSize: '1rem',
                       boxShadow: 3,
                       '&:hover': {
-                        boxShadow: 6
-                      }
+                        backgroundColor: colors.primaryDark,
+                        boxShadow: 6,
+                      },
+                      '&:disabled': {
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                      },
                     }}
                   >
-                    {isLoading ? <CircularProgress size={24} color="inherit" /> : "Registrar Locação"}
+                    {isLoading ? "Registrando..." : "Registrar Locação"}
                   </Button>
                 </Box>
-              </Grid>
-            </Grid>
+              </Box>
+            </Fade>
           </form>
         </Box>
+
+        </Paper>
+      </Container>
 
       {/* Snackbar */}
       <Snackbar
@@ -496,8 +1125,7 @@ const RegisterFormView = ({
           <Button onClick={handleConfirmSubmit}>Confirmar</Button>
         </DialogActions>
       </Dialog>
-      </Paper>
-    </Container>
+    </Box>
   );
 };
 

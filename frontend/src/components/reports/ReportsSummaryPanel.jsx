@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Grid, useTheme, Paper, Card, CardContent } from '@mui/material';
+import { Box, Typography, Grid, useTheme, Paper, Card, CardContent, Fade } from '@mui/material';
 import { TrendingUp, People, Inventory, Assessment, CheckCircle, Schedule } from '@mui/icons-material';
 
 const ReportsSummaryPanel = ({ overviewData }) => {
@@ -64,95 +64,113 @@ const ReportsSummaryPanel = ({ overviewData }) => {
     }
   ];
 
+  const colors = {
+    primary: '#1B5E20',
+    primaryLight: '#2E7D32',
+    primaryDark: '#0D3D12',
+  };
+
   return (
     <Box sx={{ mb: 4 }}>
       {/* Header */}
       <Paper
         elevation={0}
         sx={{
-          background: 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)',
-          borderRadius: 2,
-          p: 2,
+          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+          borderRadius: 3,
+          p: 2.5,
           mb: 3,
           textAlign: 'center',
           color: 'white',
         }}
       >
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            fontWeight: 600,
-            textShadow: '0 1px 3px rgba(0,0,0,0.3)'
-          }}
-        >
-          Resumo Geral
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <Assessment />
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 600,
+              textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+            }}
+          >
+            Resumo Geral
+          </Typography>
+        </Box>
       </Paper>
 
       {/* Summary Cards */}
       <Grid container spacing={3}>
         {summaryCards.map((card, index) => (
           <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
-            <Card
-              elevation={3}
-              sx={{
-                height: '100%',
-                borderRadius: 3,
-                bgcolor: theme => theme.palette.mode === 'dark' ? '#1e1e1e' : '#fff',
-                border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-                transition: 'all 0.3s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme => theme.palette.mode === 'dark' 
-                    ? '0 12px 24px rgba(0, 0, 0, 0.4)'
-                    : '0 12px 24px rgba(0, 0, 0, 0.15)',
-                }
-              }}
-            >
-              <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-                <Box
-                  sx={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: '50%',
-                    bgcolor: card.bgColor,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mx: 'auto',
-                    mb: 2,
-                    '& svg': {
+            <Fade in timeout={300 + index * 100}>
+              <Card
+                elevation={0}
+                sx={{
+                  height: '100%',
+                  borderRadius: 3,
+                  bgcolor: isDarkMode ? 'rgba(30, 30, 30, 0.9)' : '#fff',
+                  border: isDarkMode 
+                    ? `1px solid ${card.color}30` 
+                    : `1px solid ${card.color}20`,
+                  transition: 'all 0.3s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: isDarkMode 
+                      ? `0 12px 24px ${card.color}20`
+                      : `0 12px 24px ${card.color}15`,
+                    borderColor: `${card.color}50`,
+                  }
+                }}
+              >
+                <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 3,
+                      bgcolor: `${card.color}15`,
+                      border: `1px solid ${card.color}30`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 2,
+                      transition: 'all 0.3s ease',
+                      '& svg': {
+                        color: card.color,
+                        fontSize: '1.5rem'
+                      }
+                    }}
+                  >
+                    {card.icon}
+                  </Box>
+                  
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)',
+                      mb: 1,
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {card.title}
+                  </Typography>
+                  
+                  <Typography 
+                    variant="h5"
+                    sx={{ 
                       color: card.color,
-                      fontSize: '1.5rem'
-                    }
-                  }}
-                >
-                  {card.icon}
-                </Box>
-                
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
-                    mb: 1,
-                    fontSize: '0.875rem'
-                  }}
-                >
-                  {card.title}
-                </Typography>
-                
-                <Typography 
-                  variant="h6"
-                  sx={{ 
-                    color: theme => theme.palette.mode === 'dark' ? '#fff' : '#2c3e50',
-                    fontWeight: 700,
-                    fontSize: '1.25rem'
-                  }}
-                >
-                  {card.value}
-                </Typography>
-              </CardContent>
-            </Card>
+                      fontWeight: 700,
+                      fontSize: '1.5rem',
+                      fontFamily: String(card.value).includes('R$') ? 'monospace' : 'inherit',
+                    }}
+                  >
+                    {card.value}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Fade>
           </Grid>
         ))}
       </Grid>

@@ -1,10 +1,11 @@
 // src/App.js
 import React from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import Navbar from "./components/layouts/Navbar";
 import ThemeToggleButton from "./components/ThemeToggleButton";
-import HomePage from "./components/pages/HomePage"; // Página inicial
+import HomePage from "./components/pages/HomePage"; // Página inicial (Dashboard)
+import LandingPage from "./components/pages/LandingPage"; // Landing Page pública
 import RegisterPage from "./components/pages/RegisterPage"; // Página de registro de locação
 import OrdersPage from "./components/pages/OrdersPage"; // Página para visualizar pedidos
 import InventoryPage from "./components/pages/inventory/InventoryPage"; // Página para controle de estoque
@@ -28,41 +29,44 @@ import { SnackbarProvider } from "notistack";
 // Import future flags configuration
 import "./router-config";
 
-function App() {
+// Componente interno que usa useLocation
+function AppContent() {
+  const location = useLocation();
+  
+  // Rotas que não precisam do layout padrão (full-screen)
+  const fullScreenRoutes = ['/', '/login'];
+  const isFullScreen = fullScreenRoutes.includes(location.pathname);
+
   return (
-    <ThemeProvider>
-      <SnackbarProvider maxSnack={3}>
-        <AuthProvider>
-          <Router>
-            <Box 
-              sx={{ 
-                display: "flex", 
-                flexDirection: "column",
-                height: "100vh", // Full viewport height
-                overflow: "hidden" // Prevent double scrollbars
-              }}
-            >
-              <Navbar /> {/* Navbar fixa no topo */}
-              <Box
-                component="main"
-                sx={{
-                  flexGrow: 1,
-                  p: 3,
-                  mt: 8, // Ajuste de margem para o conteúdo principal
-                  transition: "margin-left 0.3s ease", // Transição suave (caso tenha sidebar)
-                  overflowY: "auto", // Single scrollbar for content
-                  height: "calc(100vh - 64px)" // Full height minus navbar
-                }}
-              >
-                {/* Theme toggle button */}
-                <ThemeToggleButton position="bottom-right" size="large" />
-                <Routes>
-                  {/* Rota pública de login */}
-                  <Route path="/login" element={<LoginPage />} />
+    <Box 
+      sx={{ 
+        display: "flex", 
+        flexDirection: "column",
+        height: "100vh",
+        overflow: "hidden"
+      }}
+    >
+      <Navbar />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: isFullScreen ? 0 : 3,
+          mt: isFullScreen ? 0 : 8,
+          transition: "margin-left 0.3s ease",
+          overflowY: "auto",
+          height: isFullScreen ? "100vh" : "calc(100vh - 64px)"
+        }}
+      >
+        {!isFullScreen && <ThemeToggleButton position="bottom-right" size="large" />}
+        <Routes>
+          {/* Rotas públicas (full-screen) */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
                   
-                  {/* Rota inicial protegida */}
+                  {/* Dashboard protegido */}
                   <Route 
-                    path="/" 
+                    path="/dashboard" 
                     element={
                       <ProtectedRoute>
                         <HomePage />
@@ -142,9 +146,19 @@ function App() {
                       </ProtectedRoute>
                     } 
                   />
-              </Routes>
-              </Box>
-            </Box>
+        </Routes>
+      </Box>
+    </Box>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <SnackbarProvider maxSnack={3}>
+        <AuthProvider>
+          <Router>
+            <AppContent />
           </Router>
         </AuthProvider>
       </SnackbarProvider>

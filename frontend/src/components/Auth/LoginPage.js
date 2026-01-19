@@ -5,20 +5,27 @@ import {
   Typography, 
   TextField, 
   Button, 
-  Paper, 
-  Container, 
   Alert,
   CircularProgress,
   InputAdornment,
-  IconButton
+  IconButton,
+  Fade,
+  Divider
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { 
+  Visibility, 
+  VisibilityOff, 
+  Email as EmailIcon,
+  Lock as LockIcon,
+  Construction as ConstructionIcon
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../../api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage = () => {
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
@@ -57,8 +64,8 @@ const LoginPage = () => {
       // Usar a função de login do contexto para atualizar o estado imediatamente
       authLogin(usuario, token);
       
-      // Redirecionar para a página inicial
-      navigate('/');
+      // Redirecionar para o dashboard
+      navigate('/dashboard');
     } catch (err) {
       console.error('Erro ao fazer login:', err);
       // Só atualiza o estado se o componente ainda estiver montado
@@ -76,177 +83,419 @@ const LoginPage = () => {
     }
   };
 
+  // Cores do tema
+  const colors = {
+    primary: '#1B5E20',
+    primaryLight: '#2E7D32',
+    primaryDark: '#0D3D12',
+    accent: '#4CAF50',
+    gradientStart: '#1B5E20',
+    gradientEnd: '#0D3D12',
+    textLight: '#FFFFFF',
+    textMuted: 'rgba(255,255,255,0.7)',
+  };
+
   return (
-    <Container maxWidth="sm">
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center',
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        background: isDark 
+          ? 'linear-gradient(135deg, #121212 0%, #1a1a2e 100%)'
+          : 'linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)',
+      }}
+    >
+      {/* Painel Esquerdo - Branding */}
+      <Box
+        sx={{
+          display: { xs: 'none', md: 'flex' },
+          width: '50%',
+          background: `linear-gradient(135deg, ${colors.gradientStart} 0%, ${colors.gradientEnd} 100%)`,
+          flexDirection: 'column',
           justifyContent: 'center',
-          minHeight: '80vh'
+          alignItems: 'center',
+          p: 6,
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+            opacity: 0.5,
+          },
         }}
       >
-        <Paper 
-          elevation={3} 
-          sx={{ 
-            p: 4, 
-            width: '100%', 
-            borderRadius: 2,
-            backgroundColor: theme => theme.palette.mode === 'dark' 
-              ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)' 
-              : '#f9f9f9',
-            boxShadow: theme => theme.palette.mode === 'dark'
-              ? '0 4px 20px rgba(0,0,0,0.4)'
-              : '0 4px 20px rgba(0,0,0,0.05)',
-            border: theme => theme.palette.mode === 'dark'
-              ? '1px solid rgba(255,255,255,0.05)'
-              : 'none'
-          }}
-        >
-          <Typography 
-            variant="h4" 
-            align="center" 
-            gutterBottom
-            sx={{ 
-              color: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d', 
-              fontWeight: 'bold', 
-              mb: 3 
-            }}
-          >
-            Login - Andaimes Pini
-          </Typography>
-          
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <form onSubmit={handleSubmit}>
-            <TextField
-              label="Email"
-              type="email"
-              fullWidth
-              margin="normal"
-              variant="outlined"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              sx={{ 
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.3)' : 'transparent',
-                  '& fieldset': {
-                    borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
-                },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d',
-                },
-                '& .MuiInputBase-input': {
-                  color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
-                }
+        <Fade in timeout={800}>
+          <Box sx={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+            {/* Logo/Ícone */}
+            <Box
+              sx={{
+                width: 120,
+                height: 120,
+                borderRadius: '24px',
+                background: 'rgba(255,255,255,0.15)',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 4,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
               }}
-            />
+            >
+              <ConstructionIcon sx={{ fontSize: 60, color: colors.textLight }} />
+            </Box>
             
-            <TextField
-              label="Senha"
-              type={showPassword ? 'text' : 'password'}
-              fullWidth
-              margin="normal"
-              variant="outlined"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
+            <Typography
+              variant="h3"
+              sx={{
+                color: colors.textLight,
+                fontWeight: 700,
+                mb: 2,
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              }}
+            >
+              Andaimes Pini
+            </Typography>
+            
+            <Typography
+              variant="h6"
+              sx={{
+                color: colors.textMuted,
+                fontWeight: 400,
+                maxWidth: 400,
+                lineHeight: 1.6,
+              }}
+            >
+              Sistema de Gestão de Locações
+            </Typography>
+
+            <Divider 
+              sx={{ 
+                my: 4, 
+                borderColor: 'rgba(255,255,255,0.2)',
+                width: '60%',
+                mx: 'auto'
+              }} 
+            />
+
+            {/* Features */}
+            <Box sx={{ mt: 4 }}>
+              {[
+                'Controle completo de inventário',
+                'Gestão de clientes e locações',
+                'Relatórios detalhados'
+              ].map((feature, index) => (
+                <Fade in timeout={1000 + index * 200} key={index}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mb: 2,
+                    }}
+                  >
+                    <Box
                       sx={{
-                        color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.54)',
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: colors.accent,
+                        mr: 2,
+                      }}
+                    />
+                    <Typography
+                      sx={{
+                        color: colors.textMuted,
+                        fontSize: '1rem',
                       }}
                     >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
+                      {feature}
+                    </Typography>
+                  </Box>
+                </Fade>
+              ))}
+            </Box>
+          </Box>
+        </Fade>
+      </Box>
+
+      {/* Painel Direito - Formulário */}
+      <Box
+        sx={{
+          width: { xs: '100%', md: '50%' },
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          p: { xs: 3, sm: 6 },
+        }}
+      >
+        <Fade in timeout={600}>
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 420,
+            }}
+          >
+            {/* Header Mobile */}
+            <Box 
               sx={{ 
-                mb: 3,
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.3)' : 'transparent',
-                  '& fieldset': {
-                    borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
-                },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#2c552d',
-                },
-                '& .MuiInputBase-input': {
-                  color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
-                }
+                display: { xs: 'flex', md: 'none' },
+                flexDirection: 'column',
+                alignItems: 'center',
+                mb: 4,
               }}
-            />
+            >
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '20px',
+                  background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mb: 2,
+                  boxShadow: '0 8px 24px rgba(27, 94, 32, 0.3)',
+                }}
+              >
+                <ConstructionIcon sx={{ fontSize: 40, color: '#fff' }} />
+              </Box>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: isDark ? '#fff' : colors.primary,
+                  fontWeight: 700,
+                }}
+              >
+                Andaimes Pini
+              </Typography>
+            </Box>
+
+            {/* Título do Login */}
+            <Box sx={{ mb: 4 }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  color: isDark ? '#fff' : '#1a1a2e',
+                  fontWeight: 700,
+                  mb: 1,
+                }}
+              >
+                Bem-vindo de volta
+              </Typography>
+              <Typography
+                sx={{
+                  color: isDark ? 'rgba(255,255,255,0.6)' : '#666',
+                  fontSize: '1rem',
+                }}
+              >
+                Entre com suas credenciais para acessar o sistema
+              </Typography>
+            </Box>
+
+            {/* Alerta de Erro */}
+            {error && (
+              <Fade in>
+                <Alert 
+                  severity="error" 
+                  sx={{ 
+                    mb: 3,
+                    borderRadius: 2,
+                    '& .MuiAlert-icon': {
+                      alignItems: 'center',
+                    },
+                  }}
+                >
+                  {error}
+                </Alert>
+              </Fade>
+            )}
             
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-              disabled={loading}
-              sx={{
-                py: 1.5,
-                backgroundColor: theme => theme.palette.mode === 'dark' ? '#3a6e3d' : '#2c552d',
-                '&:hover': {
-                  backgroundColor: theme => theme.palette.mode === 'dark' ? '#4caf50' : '#45a049',
-                },
-                borderRadius: 2,
-                fontWeight: 'bold',
-                boxShadow: theme => theme.palette.mode === 'dark' 
-                  ? '0 4px 12px rgba(76, 175, 80, 0.3)' 
-                  : '0 4px 12px rgba(0, 0, 0, 0.15)'
-              }}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Entrar'}
-            </Button>
-          </form>
-          
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
-            <Typography 
-              variant="body2" 
+            {/* Formulário */}
+            <form onSubmit={handleSubmit}>
+              <TextField
+                label="Email"
+                type="email"
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon sx={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#999' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ 
+                  mb: 3,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff',
+                    transition: 'all 0.2s ease',
+                    '& fieldset': {
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e0e0e0',
+                      borderWidth: 2,
+                    },
+                    '&:hover fieldset': {
+                      borderColor: isDark ? 'rgba(255,255,255,0.2)' : colors.primaryLight,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: colors.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: isDark ? 'rgba(255,255,255,0.6)' : '#666',
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: colors.primary,
+                  },
+                  '& .MuiInputBase-input': {
+                    color: isDark ? '#fff' : '#1a1a2e',
+                    py: 1.75,
+                  },
+                }}
+              />
+              
+              <TextField
+                label="Senha"
+                type={showPassword ? 'text' : 'password'}
+                fullWidth
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon sx={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#999' }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        sx={{
+                          color: isDark ? 'rgba(255,255,255,0.5)' : '#999',
+                          '&:hover': {
+                            color: colors.primary,
+                          },
+                        }}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ 
+                  mb: 4,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff',
+                    transition: 'all 0.2s ease',
+                    '& fieldset': {
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e0e0e0',
+                      borderWidth: 2,
+                    },
+                    '&:hover fieldset': {
+                      borderColor: isDark ? 'rgba(255,255,255,0.2)' : colors.primaryLight,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: colors.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: isDark ? 'rgba(255,255,255,0.6)' : '#666',
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: colors.primary,
+                  },
+                  '& .MuiInputBase-input': {
+                    color: isDark ? '#fff' : '#1a1a2e',
+                    py: 1.75,
+                  },
+                }}
+              />
+              
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={loading}
+                sx={{
+                  py: 1.75,
+                  background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 8px 24px rgba(27, 94, 32, 0.35)',
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  },
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  textTransform: 'none',
+                  boxShadow: '0 4px 16px rgba(27, 94, 32, 0.25)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={24} sx={{ color: '#fff' }} />
+                ) : (
+                  'Entrar'
+                )}
+              </Button>
+            </form>
+            
+            {/* Credenciais de Demo */}
+            <Box 
               sx={{ 
-                color: theme => theme.palette.mode === 'dark' 
-                  ? 'rgba(255, 255, 255, 0.6)' 
-                  : 'rgba(0, 0, 0, 0.6)' 
+                mt: 4, 
+                p: 2.5,
+                borderRadius: 2,
+                backgroundColor: isDark ? 'rgba(76, 175, 80, 0.1)' : 'rgba(27, 94, 32, 0.05)',
+                border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.2)' : 'rgba(27, 94, 32, 0.1)'}`,
               }}
             >
-              Credenciais padrão: admin@andaimespini.com / admin123
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: isDark ? 'rgba(255,255,255,0.7)' : '#666',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <strong style={{ color: isDark ? colors.accent : colors.primary }}>
+                  Credenciais de demonstração:
+                </strong>
+                <br />
+                admin@andaimespini.com / admin123
+              </Typography>
+            </Box>
+
+            {/* Footer */}
+            <Typography
+              sx={{
+                mt: 4,
+                textAlign: 'center',
+                color: isDark ? 'rgba(255,255,255,0.4)' : '#999',
+                fontSize: '0.75rem',
+              }}
+            >
+              © 2024 Andaimes Pini. Todos os direitos reservados.
             </Typography>
           </Box>
-        </Paper>
+        </Fade>
       </Box>
-    </Container>
+    </Box>
   );
 };
 

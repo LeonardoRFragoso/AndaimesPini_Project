@@ -10,36 +10,39 @@ import {
   Card,
   CardContent,
   Button,
-  Tabs,
-  Tab,
   CircularProgress,
   Alert,
   Fade,
-  Grow,
   useTheme,
   useMediaQuery,
-  CardActions,
   Snackbar,
   Slide,
-  Zoom
+  IconButton,
+  LinearProgress,
+  Chip,
+  Avatar,
+  Divider
 } from '@mui/material';
 import {
-  Dashboard as DashboardIcon,
   TrendingUp,
+  TrendingDown,
   Warning,
   CheckCircle,
-  AddCircle,
-  Visibility,
-  Inventory,
-  Assessment,
-  PersonAdd,
-  Home as HomeIcon
+  Inventory2 as InventoryIcon,
+  People as PeopleIcon,
+  Assignment as AssignmentIcon,
+  Refresh as RefreshIcon,
+  ArrowForward as ArrowIcon,
+  Construction as ConstructionIcon,
+  LocalShipping as ShippingIcon,
+  EventNote as EventIcon,
+  AttachMoney as MoneyIcon,
+  MoreVert as MoreIcon
 } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 import { useThemeMode } from '../../contexts/ThemeContext';
 import { listarItens } from '../../api/inventario';
 import { listarLocacoes } from '../../api/locacoes';
-import VisaoGeral from '../Dashboard/VisaoGeral';
 import AlertsPanel from '../Dashboard/AlertsPanel';
 import StockOverview from '../Dashboard/StockOverview';
 import CriticalItems from '../Dashboard/CriticalItems';
@@ -149,386 +152,353 @@ const HomePage = () => {
     setSnackbarOpen(false);
   };
 
+  // Cores do tema
+  const colors = {
+    primary: '#1B5E20',
+    primaryLight: '#2E7D32',
+    primaryDark: '#0D3D12',
+    accent: '#4CAF50',
+  };
+
+  // Calcular estatísticas
+  const totalItems = inventory.reduce((acc, item) => acc + (item.quantidade_total || 0), 0);
+  const availableItems = inventory.reduce((acc, item) => acc + (item.quantidade_disponivel || 0), 0);
+  const rentedItems = totalItems - availableItems;
+  const activeRentals = rentals.filter(r => r.status === 'ativa' || r.status === 'em_andamento').length;
+  const overdueRentals = rentals.filter(r => r.status === 'atrasada').length;
+
+  // Cards de estatísticas
+  const statsCards = [
+    {
+      title: 'Total em Estoque',
+      value: totalItems.toLocaleString(),
+      subtitle: 'unidades cadastradas',
+      icon: <InventoryIcon />,
+      color: colors.primary,
+      gradient: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+    },
+    {
+      title: 'Disponíveis',
+      value: availableItems.toLocaleString(),
+      subtitle: `${totalItems > 0 ? Math.round((availableItems / totalItems) * 100) : 0}% do estoque`,
+      icon: <CheckCircle />,
+      color: '#4CAF50',
+      gradient: 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)',
+      trend: 'up',
+    },
+    {
+      title: 'Em Locação',
+      value: rentedItems.toLocaleString(),
+      subtitle: `${activeRentals} contratos ativos`,
+      icon: <ShippingIcon />,
+      color: '#2196F3',
+      gradient: 'linear-gradient(135deg, #2196F3 0%, #1565C0 100%)',
+    },
+    {
+      title: 'Atenção',
+      value: overdueRentals,
+      subtitle: 'devoluções pendentes',
+      icon: <Warning />,
+      color: overdueRentals > 0 ? '#FF5722' : '#4CAF50',
+      gradient: overdueRentals > 0 
+        ? 'linear-gradient(135deg, #FF5722 0%, #D84315 100%)'
+        : 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)',
+      alert: overdueRentals > 0,
+    },
+  ];
+
+  // Ações rápidas
+  const quickActions = [
+    { title: 'Nova Locação', icon: <AssignmentIcon />, link: '/register', color: colors.primary },
+    { title: 'Ver Pedidos', icon: <EventIcon />, link: '/orders', color: '#2196F3' },
+    { title: 'Estoque', icon: <InventoryIcon />, link: '/inventory', color: '#FF9800' },
+    { title: 'Clientes', icon: <PeopleIcon />, link: '/clients', color: '#9C27B0' },
+  ];
+
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* Modern Gradient Header */}
+    <Box 
+      sx={{ 
+        minHeight: '100vh', 
+        bgcolor: mode === 'light' ? '#f5f7fa' : '#0a0a0a',
+        pb: 4,
+      }}
+    >
+      {/* Header Compacto e Moderno */}
       <Box
         sx={{
-          background: mode === 'light' 
-            ? 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)'
-            : 'linear-gradient(135deg, #1a1a1a 0%, #2c552d 100%)',
-          color: 'white',
-          py: { xs: 6, md: 8 },
+          background: mode === 'light'
+            ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`
+            : 'linear-gradient(135deg, #1a1a2e 0%, #0a0a0a 100%)',
+          pt: { xs: 3, md: 4 },
+          pb: { xs: 12, md: 14 },
+          px: { xs: 2, md: 4 },
           position: 'relative',
           overflow: 'hidden',
-          '&::before': {
-            content: '""',
+        }}
+      >
+        {/* Pattern overlay */}
+        <Box
+          sx={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.08"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-            opacity: 0.4,
-          },
-          '&::after': {
-            content: '""',
-            position: 'absolute',
-            top: '-50%',
-            right: '-20%',
-            width: '40%',
-            height: '200%',
-            background: 'radial-gradient(ellipse, rgba(255,255,255,0.1) 0%, transparent 70%)',
-            transform: 'rotate(-15deg)',
-            animation: 'float 6s ease-in-out infinite',
-          },
-          '@keyframes float': {
-            '0%, 100%': { transform: 'rotate(-15deg) translateY(0px)' },
-            '50%': { transform: 'rotate(-15deg) translateY(-20px)' },
-          }
-        }}
-      >
-        <Container maxWidth="xl">
-          <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <HomeIcon sx={{ fontSize: 40, mr: 2 }} />
-              <Typography
-                variant={isMobile ? "h4" : "h3"}
-                component="h1"
-                fontWeight="bold"
+            opacity: 0.1,
+            background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
+
+        <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                <Avatar
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    bgcolor: 'rgba(255,255,255,0.15)',
+                    backdropFilter: 'blur(10px)',
+                  }}
+                >
+                  <ConstructionIcon sx={{ fontSize: 32, color: '#fff' }} />
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: { xs: '1.5rem', md: '2rem' },
+                    }}
+                  >
+                    Dashboard
+                  </Typography>
+                  <Typography
+                    sx={{
+                      color: 'rgba(255,255,255,0.7)',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Andaimes Pini • Sistema de Gestão
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Chip
+                label={`Atualizado: ${lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
                 sx={{
-                  background: 'linear-gradient(45deg, #ffffff 30%, #e8f5e8 90%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  backdropFilter: 'blur(10px)',
+                }}
+              />
+              <IconButton
+                onClick={handleRefresh}
+                disabled={refreshing}
+                sx={{
+                  color: '#fff',
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                 }}
               >
-                Dashboard Principal
-              </Typography>
+                <RefreshIcon sx={{ animation: refreshing ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '100%': { transform: 'rotate(360deg)' } } }} />
+              </IconButton>
             </Box>
-            <Typography
-              variant={isMobile ? "body1" : "h6"}
-              sx={{
-                opacity: 0.9,
-                maxWidth: 600,
-                lineHeight: 1.6,
-                fontWeight: 300
-              }}
-            >
-              Bem-vindo ao sistema de gestão Andaimes Pini. Acesse rapidamente as principais funcionalidades e monitore o status do seu negócio.
-            </Typography>
           </Box>
         </Container>
       </Box>
 
-      <Container maxWidth="xl" sx={{ py: 4, px: { xs: 1, sm: 2, md: 3 } }}>
-        {/* Tabs are now in the VisaoGeral component */}
-
-      {currentTab === 0 ? (
-        loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-            <CircularProgress size={60} thickness={4} sx={{ color: '#45a049' }} />
-            <Typography variant="h6" color="text.secondary" sx={{ ml: 2 }}>
-              Carregando dados...
-            </Typography>
+      {/* Cards de Estatísticas */}
+      <Container maxWidth="xl" sx={{ mt: { xs: -8, md: -10 }, px: { xs: 2, md: 3 } }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress sx={{ color: colors.primary }} />
           </Box>
         ) : error ? (
-          <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Paper 
-              elevation={0}
-              sx={{ 
-                p: 4, 
-                borderRadius: 2, 
-                bgcolor: 'rgba(244, 67, 54, 0.05)',
-                border: '1px solid rgba(244, 67, 54, 0.2)'
-              }}
-            >
-              <Typography color="error" variant="h6" gutterBottom>
-                Erro ao carregar dados
-              </Typography>
-              <Typography color="text.secondary">{error}</Typography>
-              <Button 
-                variant="contained" 
-                color="primary" 
-                sx={{ mt: 2 }}
-                onClick={handleRefresh}
-                startIcon={<RefreshIcon />}
-              >
-                Tentar novamente
-              </Button>
-            </Paper>
-          </Box>
+          <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
+            <Typography color="error" gutterBottom>{error}</Typography>
+            <Button onClick={handleRefresh} startIcon={<RefreshIcon />}>Tentar novamente</Button>
+          </Paper>
         ) : (
-          <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
-            {/* Visão Geral Header */}
-            <VisaoGeral 
-              title="Visão Geral"
-              subtitle="Acompanhamento de estoque e locações"
-              lastUpdated={lastUpdated}
-              onRefresh={handleRefresh}
-            />
-            
-            <Zoom in={true} style={{ transitionDelay: '100ms' }}>
-              <Grid container spacing={{ xs: 2, sm: 3 }}>
-                <Grid item xs={12} lg={8} order={{ xs: 2, md: 1 }}>
-                  <Fade in={true} timeout={800}>
-                    <Box>
-                      <AlertsPanel />
-                    </Box>
-                  </Fade>
-                  <Fade in={true} timeout={1000}>
-                    <Box>
-                      <StockOverview inventoryData={inventory} />
-                    </Box>
-                  </Fade>
-                </Grid>
-                
-                <Grid item xs={12} lg={4} order={{ xs: 1, md: 2 }}>
-                  <Fade in={true} timeout={1200}>
-                    <Box>
-                      <CriticalItems inventoryData={inventory} />
-                    </Box>
-                  </Fade>
-                </Grid>
-              </Grid>
-            </Zoom>
-          </Container>
-        )
-      ) : (
-        <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
-          <VisaoGeral 
-            title="Acesso Rápido"
-            subtitle="Acesse as principais funcionalidades do sistema"
-            lastUpdated={lastUpdated}
-            onRefresh={handleRefresh}
-          />
-          
-          <Zoom in={true} style={{ transitionDelay: '100ms' }}>
-            <Grid container spacing={{ xs: 3, sm: 4, md: 5 }} justifyContent="center" sx={{ mt: 2 }}>
-              {/* Card Template */}
-              {[
-                {
-                  title: "Registrar Locação",
-                  description:
-                    "Registre uma nova locação de materiais para clientes.",
-                  icon: <AddCircle sx={{ fontSize: 50 }} />,
-                  link: "/register",
-                  buttonText: "Registrar",
-                  color: "#45a049"
-                },
-                {
-                  title: "Visualizar Pedidos",
-                  description:
-                    "Visualize e gerencie todos os pedidos realizados.",
-                  icon: <Visibility sx={{ fontSize: 50 }} />,
-                  link: "/orders",
-                  buttonText: "Visualizar",
-                  color: "#2196f3"
-                },
-                {
-                  title: "Controle de Estoque",
-                  description: "Gerencie os itens disponíveis para locação.",
-                  icon: <Inventory sx={{ fontSize: 50 }} />,
-                  link: "/inventory",
-                  buttonText: "Acessar",
-                  color: "#ff9800"
-                },
-                {
-                  title: "Relatórios",
-                  description: "Visualize relatórios detalhados sobre locações.",
-                  icon: <Assessment sx={{ fontSize: 50 }} />,
-                  link: "/reports",
-                  buttonText: "Visualizar",
-                  color: "#9c27b0"
-                },
-                {
-                  title: "Gerenciar Clientes",
-                  description: "Adicione, edite ou visualize os clientes.",
-                  icon: <PersonAdd sx={{ fontSize: 50 }} />,
-                  link: "/clients",
-                  buttonText: "Acessar",
-                  color: "#e91e63"
-                },
-              ].map((item, index) => (
-                <Grid item xs={12} sm={6} lg={4} key={index}>
-                  <Fade in={true} timeout={600 + (index * 150)}>
-                    <Card
+          <>
+            <Grid container spacing={3}>
+              {statsCards.map((stat, index) => (
+                <Grid item xs={12} sm={6} lg={3} key={index}>
+                  <Fade in timeout={400 + index * 100}>
+                    <Paper
+                      elevation={0}
                       sx={{
-                        textAlign: "center",
-                        transition: "all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                        "&:hover": {
-                          transform: "translateY(-20px) scale(1.02)",
-                          boxShadow: theme => theme.palette.mode === 'dark'
-                            ? `0px 25px 50px rgba(0, 0, 0, 0.5), 0 0 30px ${item.color}40`
-                            : `0px 25px 50px rgba(0, 0, 0, 0.2), 0 0 20px ${item.color}30`,
+                        p: 3,
+                        borderRadius: 4,
+                        background: mode === 'light' ? '#fff' : '#1a1a2e',
+                        border: mode === 'light' ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.08)',
+                        boxShadow: mode === 'light' 
+                          ? '0 4px 20px rgba(0,0,0,0.08)' 
+                          : '0 4px 20px rgba(0,0,0,0.3)',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: mode === 'light'
+                            ? `0 12px 40px ${stat.color}20`
+                            : `0 12px 40px ${stat.color}30`,
                         },
-                        borderRadius: 6,
-                        p: 4,
-                        mx: "auto",
-                        maxWidth: 340,
-                        minHeight: 280,
-                        background: theme => theme.palette.mode === 'dark' 
-                          ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
-                          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-                        border: theme => theme.palette.mode === 'dark'
-                          ? '1px solid rgba(255,255,255,0.08)'
-                          : '1px solid rgba(0,0,0,0.08)',
-                        boxShadow: theme => theme.palette.mode === 'dark'
-                          ? '0 8px 32px rgba(0,0,0,0.4)'
-                          : '0 8px 32px rgba(0,0,0,0.08)',
                         position: 'relative',
                         overflow: 'hidden',
-                        '&::before': {
-                          content: '""',
+                      }}
+                    >
+                      {/* Gradient bar */}
+                      <Box
+                        sx={{
                           position: 'absolute',
                           top: 0,
                           left: 0,
-                          width: '100%',
-                          height: '6px',
-                          background: `linear-gradient(90deg, ${item.color} 0%, ${item.color}99 100%)`,
-                        },
-                        '&::after': {
-                          content: '""',
-                          position: 'absolute',
-                          top: '-50%',
-                          right: '-50%',
-                          width: '100%',
-                          height: '100%',
-                          background: `radial-gradient(circle, ${item.color}10 0%, transparent 70%)`,
-                          opacity: 0,
-                          transition: 'opacity 0.3s ease',
-                        },
-                        '&:hover::after': {
-                          opacity: 1,
-                        }
-                      }}
-                    >
-                      <CardContent>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            width: 90,
-                            height: 90,
-                            borderRadius: "50%",
-                            background: `linear-gradient(135deg, ${item.color} 30%, ${item.color}99 90%)`,
-                            color: "#fff",
-                            mx: "auto",
-                            mb: 3,
-                            boxShadow: `0 12px 30px ${item.color}40`,
-                            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                            position: 'relative',
-                            '&::before': {
-                              content: '""',
-                              position: 'absolute',
-                              top: '-5px',
-                              left: '-5px',
-                              right: '-5px',
-                              bottom: '-5px',
-                              borderRadius: '50%',
-                              background: `linear-gradient(135deg, ${item.color}30, ${item.color}10)`,
-                              opacity: 0,
-                              transition: 'opacity 0.3s ease',
-                            },
-                            '&:hover': {
-                              transform: 'scale(1.15) rotate(5deg)',
-                              boxShadow: `0 20px 40px ${item.color}60`,
-                            },
-                            '&:hover::before': {
-                              opacity: 1,
-                            }
-                          }}
-                        >
-                          {React.cloneElement(item.icon, { sx: { fontSize: 55 } })}
+                          right: 0,
+                          height: 4,
+                          background: stat.gradient,
+                        }}
+                      />
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Box>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: mode === 'light' ? '#666' : 'rgba(255,255,255,0.6)',
+                              fontWeight: 500,
+                              mb: 1,
+                              textTransform: 'uppercase',
+                              fontSize: '0.75rem',
+                              letterSpacing: '0.5px',
+                            }}
+                          >
+                            {stat.title}
+                          </Typography>
+                          <Typography
+                            variant="h3"
+                            sx={{
+                              fontWeight: 800,
+                              color: mode === 'light' ? '#1a1a2e' : '#fff',
+                              fontSize: { xs: '2rem', md: '2.5rem' },
+                              lineHeight: 1,
+                              mb: 0.5,
+                            }}
+                          >
+                            {stat.value}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: mode === 'light' ? '#888' : 'rgba(255,255,255,0.5)',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            {stat.subtitle}
+                          </Typography>
                         </Box>
-                        <Typography
-                          variant="h5"
-                          component="h3"
-                          fontWeight="700"
-                          gutterBottom
+                        <Avatar
                           sx={{
-                            color: theme => theme.palette.mode === 'dark' ? '#fff' : '#2c3e50',
-                            mb: 2,
-                            fontSize: { xs: '1.3rem', sm: '1.5rem' },
-                            letterSpacing: '-0.02em'
+                            width: 56,
+                            height: 56,
+                            background: stat.gradient,
+                            boxShadow: `0 8px 20px ${stat.color}30`,
                           }}
                         >
-                          {item.title}
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          color="text.secondary"
-                          sx={{
-                            lineHeight: 1.7,
-                            mb: 3,
-                            fontSize: '0.95rem',
-                            color: theme => theme.palette.mode === 'dark'
-                              ? 'rgba(255, 255, 255, 0.8)'
-                              : 'rgba(0, 0, 0, 0.7)',
-                            fontWeight: 400
-                          }}
-                        >
-                          {item.description}
-                        </Typography>
-                      </CardContent>
-                      <CardActions sx={{ justifyContent: "center" }}>
-                        <Button
-                          variant="contained"
-                          component={Link}
-                          to={item.link}
-                          sx={{
-                            background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}dd 100%)`,
-                            color: "#fff",
-                            fontWeight: "600",
-                            borderRadius: "16px",
-                            px: 5,
-                            py: 1.8,
-                            fontSize: "1rem",
-                            textTransform: "none",
-                            letterSpacing: "0.3px",
-                            boxShadow: `0 8px 25px ${item.color}40`,
-                            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                            position: 'relative',
-                            overflow: 'hidden',
-                            '&::before': {
-                              content: '""',
-                              position: 'absolute',
-                              top: 0,
-                              left: '-100%',
-                              width: '100%',
-                              height: '100%',
-                              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                              transition: 'left 0.6s ease',
-                            },
-                            "&:hover": {
-                              background: `linear-gradient(135deg, ${item.color}ee 0%, ${item.color} 100%)`,
-                              transform: "translateY(-3px) scale(1.05)",
-                              boxShadow: `0 15px 35px ${item.color}50`,
-                            },
-                            "&:hover::before": {
-                              left: '100%',
-                            },
-                            "&:active": {
-                              transform: "translateY(-1px) scale(1.02)",
-                              boxShadow: `0 8px 20px ${item.color}40`,
-                            },
-                          }}
-                        >
-                          {item.buttonText}
-                        </Button>
-                      </CardActions>
-                    </Card>
+                          {React.cloneElement(stat.icon, { sx: { fontSize: 28, color: '#fff' } })}
+                        </Avatar>
+                      </Box>
+                    </Paper>
                   </Fade>
                 </Grid>
               ))}
             </Grid>
-          </Zoom>
-        </Container>
-      )}
-      
-      {/* Snackbar para notificações */}
+
+            {/* Ações Rápidas */}
+            <Paper
+              elevation={0}
+              sx={{
+                mt: 4,
+                p: 3,
+                borderRadius: 4,
+                background: mode === 'light' ? '#fff' : '#1a1a2e',
+                border: mode === 'light' ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.08)',
+                boxShadow: mode === 'light' ? '0 4px 20px rgba(0,0,0,0.08)' : '0 4px 20px rgba(0,0,0,0.3)',
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: mode === 'light' ? '#1a1a2e' : '#fff' }}>
+                  Ações Rápidas
+                </Typography>
+              </Box>
+              <Grid container spacing={2}>
+                {quickActions.map((action, index) => (
+                  <Grid item xs={6} sm={3} key={index}>
+                    <Button
+                      component={Link}
+                      to={action.link}
+                      fullWidth
+                      sx={{
+                        py: 2.5,
+                        px: 2,
+                        borderRadius: 3,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1,
+                        textTransform: 'none',
+                        bgcolor: mode === 'light' ? `${action.color}08` : `${action.color}15`,
+                        border: `1px solid ${mode === 'light' ? `${action.color}20` : `${action.color}30`}`,
+                        color: mode === 'light' ? action.color : '#fff',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          bgcolor: action.color,
+                          color: '#fff',
+                          transform: 'translateY(-2px)',
+                          boxShadow: `0 8px 20px ${action.color}40`,
+                        },
+                      }}
+                    >
+                      {React.cloneElement(action.icon, { sx: { fontSize: 28 } })}
+                      <Typography variant="body2" fontWeight={600}>
+                        {action.title}
+                      </Typography>
+                    </Button>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+
+            {/* Grid Principal */}
+            <Grid container spacing={3} sx={{ mt: 1 }}>
+              {/* Alertas */}
+              <Grid item xs={12} lg={8}>
+                <Fade in timeout={600}>
+                  <Box>
+                    <AlertsPanel />
+                  </Box>
+                </Fade>
+                <Fade in timeout={800}>
+                  <Box sx={{ mt: 3 }}>
+                    <StockOverview inventoryData={inventory} />
+                  </Box>
+                </Fade>
+              </Grid>
+
+              {/* Sidebar */}
+              <Grid item xs={12} lg={4}>
+                <Fade in timeout={700}>
+                  <Box>
+                    <CriticalItems inventoryData={inventory} />
+                  </Box>
+                </Fade>
+              </Grid>
+            </Grid>
+          </>
+        )}
+      </Container>
+
+      {/* Snackbar */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={4000}
@@ -536,16 +506,15 @@ const HomePage = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         TransitionComponent={Slide}
       >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbarMessage.includes('sucesso') ? "success" : "error"} 
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarMessage.includes('sucesso') ? 'success' : 'error'}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ borderRadius: 2 }}
         >
           {snackbarMessage}
         </Alert>
       </Snackbar>
-      </Container>
     </Box>
   );
 };

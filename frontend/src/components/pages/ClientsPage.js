@@ -20,28 +20,53 @@ import {
   TextField,
   useTheme,
   Container,
+  Chip,
+  Fade,
+  Tooltip,
+  InputAdornment,
 } from "@mui/material";
-import { Add, Edit, Delete, Visibility } from "@mui/icons-material"; // Ícones para ações
+import { 
+  Add, 
+  Edit, 
+  Delete, 
+  Visibility, 
+  Person,
+  LocationOn,
+  Phone,
+  Bookmark,
+  Search,
+  People,
+  TrendingUp,
+  Settings,
+} from "@mui/icons-material";
 import { listarClientes, criarCliente, atualizarCliente, excluirCliente, obterPedidosCliente } from "../../api/clientes";
 
 const ClientsPage = () => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const [clients, setClients] = useState([]);
-  const [orders, setOrders] = useState([]); // Armazena os pedidos do cliente selecionado
-  const [openOrdersModal, setOpenOrdersModal] = useState(false); // Controle do modal de pedidos
-  const [selectedClient, setSelectedClient] = useState(null); // Cliente atualmente selecionado
+  const [filteredClients, setFilteredClients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [openOrdersModal, setOpenOrdersModal] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
   const [openDialog, setOpenDialog] = useState(false);
-  const [dialogType, setDialogType] = useState("add"); // "add" ou "edit"
+  const [dialogType, setDialogType] = useState("add");
   const [currentClient, setCurrentClient] = useState({
     nome: "",
     endereco: "",
     telefone: "",
     referencia: "",
   });
+
+  const colors = {
+    primary: '#1B5E20',
+    primaryLight: '#2E7D32',
+    primaryDark: '#0D3D12',
+  };
 
   useEffect(() => {
     fetchClients();
@@ -51,11 +76,30 @@ const ClientsPage = () => {
     try {
       const data = await listarClientes();
       setClients(data);
+      setFilteredClients(data);
     } catch (error) {
       console.error(error);
       showSnackbar("Erro ao buscar clientes.", "error");
     }
   };
+
+  // Filtro de busca
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredClients(clients);
+    } else {
+      const filtered = clients.filter((client) =>
+        Object.values(client).some((value) =>
+          value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+      setFilteredClients(filtered);
+    }
+  }, [searchTerm, clients]);
+
+  // Estatísticas
+  const totalClients = clients.length;
+  const uniqueCities = [...new Set(clients.map(c => c.endereco?.split(',')[0]?.trim()).filter(Boolean))].length;
 
   const fetchClientOrders = async (clientId) => {
     try {
@@ -152,228 +196,543 @@ const ClientsPage = () => {
 
   return (
     <Box sx={{ 
-      bgcolor: theme => theme.palette.mode === 'dark' ? '#121212' : '#f5f5f5',
+      bgcolor: isDarkMode ? '#0a0a0a' : '#f5f7fa',
       minHeight: '100vh',
-      py: 3
+      pb: 4
     }}>
-      <Container maxWidth="lg">
-        {/* Modern Gradient Header */}
-        <Paper
-          elevation={0}
+      {/* Header */}
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+          pt: 3,
+          pb: 8,
+          px: { xs: 2, md: 4 },
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <Box
           sx={{
-            background: 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)',
-            borderRadius: 3,
-            p: 4,
-            mb: 4,
-            textAlign: 'center',
-            color: 'white',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.1,
+            background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
           }}
-        >
+        />
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
           <Typography 
             variant="h4" 
             sx={{ 
+              color: '#fff', 
               fontWeight: 700,
               mb: 1,
-              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+              fontSize: { xs: '1.5rem', md: '2rem' },
             }}
           >
             Clientes
           </Typography>
-          <Typography
-            variant="h6"
-            sx={{ 
-              opacity: 0.9,
-              fontWeight: 400
-            }}
-          >
+          <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>
             Aqui você pode gerenciar todos os clientes cadastrados
           </Typography>
-        </Paper>
+        </Container>
+      </Box>
 
-        {/* Enhanced Add Button */}
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 4 }}>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleDialogOpen("add")}
-            size="large"
-            sx={{
-              background: 'linear-gradient(135deg, #2c552d 0%, #4caf50 100%)',
-              color: 'white',
-              fontWeight: 600,
-              fontSize: '1.1rem',
-              padding: '12px 32px',
-              borderRadius: '25px',
-              textTransform: 'none',
-              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
-              "&:hover": { 
-                background: 'linear-gradient(135deg, #1b3a1c 0%, #388e3c 100%)',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
-              },
-              transition: 'all 0.3s ease-in-out',
-            }}
-          >
-            Adicionar Novo Cliente
-          </Button>
-        </Box>
+      <Container maxWidth="lg" sx={{ mt: -5 }}>
 
-        {/* Enhanced Table Container */}
-        <Paper
-          elevation={3}
-          sx={{
-            borderRadius: 3,
+        {/* Card Container */}
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            borderRadius: 4, 
             overflow: 'hidden',
-            bgcolor: theme => theme.palette.mode === 'dark' ? '#1e1e1e' : '#fff',
-            border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-            boxShadow: theme => theme.palette.mode === 'dark' 
-              ? '0 8px 32px rgba(0, 0, 0, 0.3)' 
-              : '0 8px 32px rgba(0, 0, 0, 0.1)',
+            border: isDarkMode 
+              ? '1px solid rgba(255,255,255,0.1)' 
+              : '1px solid rgba(0,0,0,0.08)',
+            boxShadow: isDarkMode
+              ? '0 4px 20px rgba(0,0,0,0.3)'
+              : '0 4px 20px rgba(0,0,0,0.08)',
+            bgcolor: isDarkMode ? '#1a1a2e' : '#fff',
+            p: 4,
           }}
         >
+          {/* Enhanced Add Button */}
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 4 }}>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleDialogOpen("add")}
+              size="large"
+              sx={{
+                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '1rem',
+                padding: '12px 32px',
+                borderRadius: 3,
+                textTransform: 'none',
+                boxShadow: `0 4px 12px ${colors.primary}40`,
+                "&:hover": { 
+                  background: `linear-gradient(135deg, ${colors.primaryDark} 0%, ${colors.primary} 100%)`,
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 8px 20px ${colors.primary}50`,
+                },
+                transition: 'all 0.3s ease-in-out',
+              }}
+            >
+              Adicionar Novo Cliente
+            </Button>
+          </Box>
+
+          {/* Cards de Estatísticas */}
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, 
+            gap: 3, 
+            mb: 4 
+          }}>
+            <Fade in timeout={300}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  backgroundColor: isDarkMode ? 'rgba(46, 125, 50, 0.1)' : 'rgba(46, 125, 50, 0.05)',
+                  border: `1px solid ${isDarkMode ? 'rgba(46, 125, 50, 0.3)' : 'rgba(46, 125, 50, 0.2)'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: isDarkMode 
+                      ? '0 8px 24px rgba(0, 0, 0, 0.3)' 
+                      : '0 8px 24px rgba(0, 0, 0, 0.1)',
+                  },
+                }}
+              >
+                <Box sx={{ 
+                  backgroundColor: `${colors.primary}20`, 
+                  borderRadius: 2, 
+                  p: 1.5, 
+                  display: 'flex' 
+                }}>
+                  <People sx={{ color: colors.primary, fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 700, color: colors.primary }}>
+                    {totalClients}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)' }}>
+                    Clientes Cadastrados
+                  </Typography>
+                </Box>
+              </Paper>
+            </Fade>
+
+            <Fade in timeout={500}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  backgroundColor: isDarkMode ? 'rgba(33, 150, 243, 0.1)' : 'rgba(33, 150, 243, 0.05)',
+                  border: `1px solid ${isDarkMode ? 'rgba(33, 150, 243, 0.3)' : 'rgba(33, 150, 243, 0.2)'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: isDarkMode 
+                      ? '0 8px 24px rgba(0, 0, 0, 0.3)' 
+                      : '0 8px 24px rgba(0, 0, 0, 0.1)',
+                  },
+                }}
+              >
+                <Box sx={{ 
+                  backgroundColor: 'rgba(33, 150, 243, 0.2)', 
+                  borderRadius: 2, 
+                  p: 1.5, 
+                  display: 'flex' 
+                }}>
+                  <LocationOn sx={{ color: '#2196f3', fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 700, color: '#2196f3' }}>
+                    {uniqueCities}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)' }}>
+                    Regiões Atendidas
+                  </Typography>
+                </Box>
+              </Paper>
+            </Fade>
+          </Box>
+
+          {/* Campo de Busca Melhorado */}
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              p: 3, 
+              borderRadius: 3,
+              backgroundColor: isDarkMode ? 'rgba(40, 40, 40, 0.8)' : '#ffffff',
+              border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.08)',
+              mb: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: isDarkMode 
+                  ? '0 8px 32px rgba(0, 0, 0, 0.3)' 
+                  : '0 8px 32px rgba(0, 0, 0, 0.08)',
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Box sx={{ 
+                backgroundColor: `${colors.primary}20`, 
+                borderRadius: 2, 
+                p: 1, 
+                display: 'flex' 
+              }}>
+                <Search sx={{ color: colors.primary }} />
+              </Box>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Buscar Cliente
+              </Typography>
+              {searchTerm && (
+                <Chip 
+                  label={`"${searchTerm}"`}
+                  size="small"
+                  onDelete={() => setSearchTerm('')}
+                  sx={{ 
+                    ml: 1,
+                    backgroundColor: `${colors.primary}20`,
+                    color: colors.primary,
+                    fontWeight: 500,
+                  }}
+                />
+              )}
+              {searchTerm && (
+                <Chip 
+                  label={`${filteredClients.length} encontrado(s)`}
+                  size="small"
+                  sx={{ 
+                    backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                    fontWeight: 500,
+                  }}
+                />
+              )}
+            </Box>
+            <TextField
+              placeholder="Digite o nome, telefone, endereço ou referência..."
+              variant="outlined"
+              fullWidth
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : '#fafafa',
+                  },
+                  '&.Mui-focused': {
+                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#fff',
+                    boxShadow: `0 0 0 2px ${colors.primaryLight}40`,
+                  },
+                },
+                '& .MuiOutlinedInput-input': {
+                  color: isDarkMode ? '#fff' : 'inherit',
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
+                },
+              }}
+            />
+          </Paper>
+
+          {/* Table Container */}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              overflow: 'hidden',
+              bgcolor: isDarkMode ? 'rgba(255,255,255,0.02)' : '#fafbfc',
+              border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+            }}
+          >
           <TableContainer>
             <Table>
               <TableHead 
                 sx={{ 
-                  background: theme => theme.palette.mode === 'dark' 
-                    ? 'linear-gradient(135deg, #2a2a2a 0%, #333 100%)'
-                    : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                  borderBottom: '3px solid #4caf50'
+                  background: isDarkMode 
+                    ? `linear-gradient(135deg, ${colors.primary}40 0%, ${colors.primaryLight}30 100%)`
+                    : `linear-gradient(135deg, ${colors.primary}15 0%, ${colors.primaryLight}10 100%)`,
+                  borderBottom: isDarkMode 
+                    ? `2px solid ${colors.primaryLight}60` 
+                    : `2px solid ${colors.primary}`,
                 }}
               >
                 <TableRow>
                   <TableCell sx={{ 
-                    color: theme => theme.palette.mode === 'dark' ? '#fff' : '#2c3e50',
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    py: 2.5
-                  }}>Nome</TableCell>
+                    color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.87)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    py: 2,
+                    borderBottom: 'none',
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Person fontSize="small" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                      Nome
+                    </Box>
+                  </TableCell>
                   <TableCell sx={{ 
-                    color: theme => theme.palette.mode === 'dark' ? '#fff' : '#2c3e50',
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    py: 2.5
-                  }}>Endereço</TableCell>
+                    color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.87)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    py: 2,
+                    borderBottom: 'none',
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <LocationOn fontSize="small" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                      Endereço
+                    </Box>
+                  </TableCell>
                   <TableCell sx={{ 
-                    color: theme => theme.palette.mode === 'dark' ? '#fff' : '#2c3e50',
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    py: 2.5
-                  }}>Telefone</TableCell>
+                    color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.87)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    py: 2,
+                    borderBottom: 'none',
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Phone fontSize="small" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                      Telefone
+                    </Box>
+                  </TableCell>
                   <TableCell sx={{ 
-                    color: theme => theme.palette.mode === 'dark' ? '#fff' : '#2c3e50',
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    py: 2.5
-                  }}>Referência</TableCell>
+                    color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.87)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    py: 2,
+                    borderBottom: 'none',
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Bookmark fontSize="small" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                      Referência
+                    </Box>
+                  </TableCell>
                   <TableCell align="center" sx={{ 
-                    color: theme => theme.palette.mode === 'dark' ? '#fff' : '#2c3e50',
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    py: 2.5
-                  }}>Ações</TableCell>
+                    color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.87)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    py: 2,
+                    borderBottom: 'none',
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                      <Settings fontSize="small" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }} />
+                      Ações
+                    </Box>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {clients.map((client, index) => (
-                  <TableRow
-                    key={client.id}
-                    sx={{
-                      "&:nth-of-type(odd)": { 
-                        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(76, 175, 80, 0.02)'
-                      },
-                      "&:hover": { 
-                        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(76, 175, 80, 0.08)',
-                        transform: 'translateY(-1px)',
-                        boxShadow: theme => theme.palette.mode === 'dark' 
-                          ? '0 4px 12px rgba(76, 175, 80, 0.2)'
-                          : '0 4px 12px rgba(76, 175, 80, 0.15)',
-                      },
-                      borderBottom: theme => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(0, 0, 0, 0.05)',
-                      transition: 'all 0.2s ease-in-out',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <TableCell sx={{ 
-                      color: theme => theme.palette.mode === 'dark' ? '#fff' : '#2c3e50',
-                      fontWeight: 500,
-                      py: 2
-                    }}>{client.nome}</TableCell>
-                    <TableCell sx={{ 
-                      color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.8)' : '#546e7a',
-                      py: 2
-                    }}>{client.endereco}</TableCell>
-                    <TableCell sx={{ 
-                      color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.8)' : '#546e7a',
-                      py: 2
-                    }}>{client.telefone}</TableCell>
-                    <TableCell sx={{ 
-                      color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.8)' : '#546e7a',
-                      py: 2
-                    }}>{client.referencia}</TableCell>
-                    <TableCell align="center" sx={{ py: 2 }}>
-                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                        <IconButton
-                          size="small"
-                          sx={{
-                            bgcolor: '#2196f3',
-                            color: 'white',
-                            width: 36,
-                            height: 36,
-                            '&:hover': {
-                              bgcolor: '#1976d2',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)'
-                            },
-                            transition: 'all 0.2s ease-in-out'
-                          }}
-                          onClick={() => handleDialogOpen("edit", client)}
-                        >
-                          <Edit fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          sx={{
-                            bgcolor: '#f44336',
-                            color: 'white',
-                            width: 36,
-                            height: 36,
-                            '&:hover': {
-                              bgcolor: '#d32f2f',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(244, 67, 54, 0.4)'
-                            },
-                            transition: 'all 0.2s ease-in-out'
-                          }}
-                          onClick={() => handleDeleteClient(client.id)}
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          sx={{
-                            bgcolor: '#4caf50',
-                            color: 'white',
-                            width: 36,
-                            height: 36,
-                            '&:hover': {
-                              bgcolor: '#388e3c',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)'
-                            },
-                            transition: 'all 0.2s ease-in-out'
-                          }}
-                          onClick={() => handleOpenOrdersModal(client)}
-                        >
-                          <Visibility fontSize="small" />
-                        </IconButton>
+                {filteredClients.length > 0 ? (
+                  filteredClients.map((client, index) => (
+                    <Fade in timeout={200 + index * 50} key={client.id}>
+                      <TableRow
+                        sx={{
+                          "&:nth-of-type(odd)": { 
+                            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'
+                          },
+                          "&:hover": { 
+                            backgroundColor: isDarkMode 
+                              ? 'rgba(46, 125, 50, 0.08)' 
+                              : 'rgba(46, 125, 50, 0.04)',
+                            transform: 'translateY(-1px)',
+                            boxShadow: isDarkMode 
+                              ? '0 4px 12px rgba(0, 0, 0, 0.2)' 
+                              : '0 4px 12px rgba(0, 0, 0, 0.08)',
+                          },
+                          borderBottom: isDarkMode 
+                            ? '1px solid rgba(255, 255, 255, 0.06)' 
+                            : '1px solid rgba(0, 0, 0, 0.06)',
+                          transition: 'all 0.2s ease-in-out',
+                        }}
+                      >
+                        <TableCell sx={{ 
+                          color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.87)',
+                          fontWeight: 600,
+                          py: 2,
+                          px: 2,
+                        }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ 
+                              backgroundColor: `${colors.primary}15`,
+                              borderRadius: 1.5,
+                              p: 0.75,
+                              display: 'flex',
+                            }}>
+                              <Person fontSize="small" sx={{ color: colors.primary, fontSize: 16 }} />
+                            </Box>
+                            {client.nome || (
+                              <Typography sx={{ color: isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', fontStyle: 'italic' }}>
+                                Não informado
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ 
+                          color: isDarkMode ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)',
+                          py: 2,
+                          px: 2,
+                        }}>
+                          {client.endereco || (
+                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', fontStyle: 'italic' }}>
+                              Não informado
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell sx={{ 
+                          color: isDarkMode ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)',
+                          py: 2,
+                          px: 2,
+                          fontFamily: 'monospace',
+                          fontWeight: 500,
+                        }}>
+                          {client.telefone || (
+                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', fontStyle: 'italic' }}>
+                              Não informado
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell sx={{ 
+                          color: isDarkMode ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)',
+                          py: 2,
+                          px: 2,
+                        }}>
+                          {client.referencia ? (
+                            <Chip 
+                              label={client.referencia}
+                              size="small"
+                              sx={{ 
+                                backgroundColor: isDarkMode ? 'rgba(156, 39, 176, 0.15)' : 'rgba(156, 39, 176, 0.1)',
+                                color: isDarkMode ? '#ce93d8' : '#7b1fa2',
+                                fontWeight: 500,
+                                fontSize: '0.75rem',
+                                border: `1px solid ${isDarkMode ? 'rgba(156, 39, 176, 0.3)' : 'rgba(156, 39, 176, 0.2)'}`,
+                              }}
+                            />
+                          ) : (
+                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', fontStyle: 'italic' }}>
+                              Não informado
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <Tooltip title="Editar cliente" arrow>
+                              <IconButton
+                                size="small"
+                                sx={{
+                                  backgroundColor: isDarkMode ? 'rgba(33, 150, 243, 0.15)' : 'rgba(33, 150, 243, 0.1)',
+                                  borderRadius: 2,
+                                  width: 36,
+                                  height: 36,
+                                  border: `1px solid ${isDarkMode ? 'rgba(33, 150, 243, 0.3)' : 'rgba(33, 150, 243, 0.2)'}`,
+                                  '&:hover': {
+                                    backgroundColor: isDarkMode ? 'rgba(33, 150, 243, 0.25)' : 'rgba(33, 150, 243, 0.15)',
+                                    transform: 'scale(1.1)',
+                                    boxShadow: '0 4px 12px rgba(33, 150, 243, 0.25)',
+                                  },
+                                  transition: 'all 0.2s ease-in-out',
+                                }}
+                                onClick={() => handleDialogOpen("edit", client)}
+                              >
+                                <Edit fontSize="small" sx={{ color: '#2196f3' }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Excluir cliente" arrow>
+                              <IconButton
+                                size="small"
+                                sx={{
+                                  backgroundColor: isDarkMode ? 'rgba(244, 67, 54, 0.15)' : 'rgba(244, 67, 54, 0.1)',
+                                  borderRadius: 2,
+                                  width: 36,
+                                  height: 36,
+                                  border: `1px solid ${isDarkMode ? 'rgba(244, 67, 54, 0.3)' : 'rgba(244, 67, 54, 0.2)'}`,
+                                  '&:hover': {
+                                    backgroundColor: isDarkMode ? 'rgba(244, 67, 54, 0.25)' : 'rgba(244, 67, 54, 0.15)',
+                                    transform: 'scale(1.1)',
+                                    boxShadow: '0 4px 12px rgba(244, 67, 54, 0.25)',
+                                  },
+                                  transition: 'all 0.2s ease-in-out',
+                                }}
+                                onClick={() => handleDeleteClient(client.id)}
+                              >
+                                <Delete fontSize="small" sx={{ color: '#f44336' }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Ver pedidos" arrow>
+                              <IconButton
+                                size="small"
+                                sx={{
+                                  backgroundColor: isDarkMode ? 'rgba(46, 125, 50, 0.15)' : 'rgba(46, 125, 50, 0.1)',
+                                  borderRadius: 2,
+                                  width: 36,
+                                  height: 36,
+                                  border: `1px solid ${isDarkMode ? 'rgba(46, 125, 50, 0.3)' : 'rgba(46, 125, 50, 0.2)'}`,
+                                  '&:hover': {
+                                    backgroundColor: isDarkMode ? 'rgba(46, 125, 50, 0.25)' : 'rgba(46, 125, 50, 0.15)',
+                                    transform: 'scale(1.1)',
+                                    boxShadow: '0 4px 12px rgba(46, 125, 50, 0.25)',
+                                  },
+                                  transition: 'all 0.2s ease-in-out',
+                                }}
+                                onClick={() => handleOpenOrdersModal(client)}
+                              >
+                                <Visibility fontSize="small" sx={{ color: colors.primary }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    </Fade>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell 
+                      colSpan={5} 
+                      align="center"
+                      sx={{ 
+                        color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0,0,0,0.5)',
+                        py: 6,
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <People sx={{ fontSize: 48, color: isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)' }} />
+                        <Typography>
+                          {searchTerm ? `Nenhum cliente encontrado para "${searchTerm}"` : 'Nenhum cliente cadastrado'}
+                        </Typography>
                       </Box>
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </TableContainer>
+          </Paper>
         </Paper>
       </Container>
 
