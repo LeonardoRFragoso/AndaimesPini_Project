@@ -104,15 +104,20 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         onChange={(e) => handleDateChange('start', e.target.value)}
         InputLabelProps={{ shrink: true }}
         sx={{
-          minWidth: 160,
+          minWidth: 180,
           '& .MuiInputLabel-root': {
             whiteSpace: 'nowrap',
+            overflow: 'visible',
+            fontSize: '0.9rem',
           },
           '& .MuiOutlinedInput-root': {
             backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.8)' : '#fff',
             borderRadius: 2,
             '& fieldset': {
               borderColor: isDarkMode ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
+              '& legend': {
+                maxWidth: '100%',
+              },
             },
             '&:hover fieldset': {
               borderColor: '#4caf50',
@@ -134,15 +139,20 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         onChange={(e) => handleDateChange('end', e.target.value)}
         InputLabelProps={{ shrink: true }}
         sx={{
-          minWidth: 160,
+          minWidth: 180,
           '& .MuiInputLabel-root': {
             whiteSpace: 'nowrap',
+            overflow: 'visible',
+            fontSize: '0.9rem',
           },
           '& .MuiOutlinedInput-root': {
             backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.8)' : '#fff',
             borderRadius: 2,
             '& fieldset': {
               borderColor: isDarkMode ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
+              '& legend': {
+                maxWidth: '100%',
+              },
             },
             '&:hover fieldset': {
               borderColor: '#4caf50',
