@@ -104,11 +104,14 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         onChange={(e) => handleDateChange('start', e.target.value)}
         InputLabelProps={{ shrink: true }}
         sx={{
-          minWidth: 180,
+          minWidth: 200,
           '& .MuiInputLabel-root': {
             whiteSpace: 'nowrap',
             overflow: 'visible',
-            fontSize: '0.9rem',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+            px: 0.5,
           },
           '& .MuiOutlinedInput-root': {
             backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.8)' : '#fff',
@@ -116,7 +119,7 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
             '& fieldset': {
               borderColor: isDarkMode ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
               '& legend': {
-                maxWidth: '100%',
+                maxWidth: 'unset',
               },
             },
             '&:hover fieldset': {
@@ -139,11 +142,14 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
         onChange={(e) => handleDateChange('end', e.target.value)}
         InputLabelProps={{ shrink: true }}
         sx={{
-          minWidth: 180,
+          minWidth: 200,
           '& .MuiInputLabel-root': {
             whiteSpace: 'nowrap',
             overflow: 'visible',
-            fontSize: '0.9rem',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.8)' : '#fff',
+            px: 0.5,
           },
           '& .MuiOutlinedInput-root': {
             backgroundColor: isDarkMode ? 'rgba(50, 50, 50, 0.8)' : '#fff',
@@ -151,7 +157,7 @@ const ReportsFilterForm = ({ filter, onFilterChange, onClientIdChange, onItemIdC
             '& fieldset': {
               borderColor: isDarkMode ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.5)',
               '& legend': {
-                maxWidth: '100%',
+                maxWidth: 'unset',
               },
             },
             '&:hover fieldset': {
