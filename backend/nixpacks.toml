@@ -2,7 +2,7 @@
 nixPkgs = ["python312", "postgresql"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["pip install -r requirements.prod.txt"]
 
 [phases.build]
 cmds = ["python database.py"]
