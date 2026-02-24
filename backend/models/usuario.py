@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg2
 from database import get_connection, release_connection
 import logging
 import hashlib
@@ -70,7 +70,7 @@ class Usuario:
             usuario_id = cursor.fetchone()[0]
             logger.info(f"Usuário criado com sucesso: ID {usuario_id}")
             return usuario_id
-        except Exception as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro ao criar usuário: {e}")
             return None
         finally:
@@ -94,7 +94,7 @@ class Usuario:
             cursor.execute("""
                 SELECT id, nome, email, hash_senha, salt, cargo
                 FROM usuarios
-                WHERE email = ?
+                WHERE email = %s
             """, (email,))
             
             usuario = cursor.fetchone()
@@ -117,7 +117,7 @@ class Usuario:
                 "email": email,
                 "cargo": cargo
             }
-        except Exception as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro ao verificar credenciais: {e}")
             return None
         finally:
@@ -140,7 +140,7 @@ class Usuario:
             cursor.execute("""
                 SELECT id, nome, email, cargo
                 FROM usuarios
-                WHERE id = ?
+                WHERE id = %s
             """, (usuario_id,))
             
             usuario = cursor.fetchone()
@@ -156,7 +156,7 @@ class Usuario:
                 "email": email,
                 "cargo": cargo
             }
-        except Exception as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro ao buscar usuário por ID: {e}")
             return None
         finally:
@@ -188,7 +188,7 @@ class Usuario:
                 }
                 for u in usuarios
             ]
-        except Exception as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro ao listar usuários: {e}")
             return []
         finally:
@@ -217,14 +217,14 @@ class Usuario:
         try:
             cursor = conn.cursor()
             # Verificar se o usuário existe
-            cursor.execute("SELECT id FROM usuarios WHERE id = ?", (usuario_id,))
+            cursor.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
             if not cursor.fetchone():
                 logger.warning(f"Usuário ID {usuario_id} não encontrado.")
                 return False
             
             # Verificar se o novo email já está em uso
             if email:
-                cursor.execute("SELECT id FROM usuarios WHERE email = ? AND id != ?", (email, usuario_id))
+                cursor.execute("SELECT id FROM usuarios WHERE email = %s AND id != %s", (email, usuario_id))
                 if cursor.fetchone():
                     logger.warning(f"Email já cadastrado: {email}")
                     return False
@@ -234,29 +234,29 @@ class Usuario:
             valores = []
             
             if nome:
-                campos.append("nome = ?")
+                campos.append("nome = %s")
                 valores.append(nome)
             
             if email:
-                campos.append("email = ?")
+                campos.append("email = %s")
                 valores.append(email)
             
             if senha:
                 hash_senha, salt = Usuario._hash_senha(senha)
-                campos.append("hash_senha = ?")
+                campos.append("hash_senha = %s")
                 valores.append(hash_senha)
-                campos.append("salt = ?")
+                campos.append("salt = %s")
                 valores.append(salt)
             
             if cargo:
-                campos.append("cargo = ?")
+                campos.append("cargo = %s")
                 valores.append(cargo)
             
             # Adicionar o ID ao final dos valores
             valores.append(usuario_id)
             
             # Executar a query
-            query = f"UPDATE usuarios SET {', '.join(campos)} WHERE id = ?"
+            query = f"UPDATE usuarios SET {', '.join(campos)} WHERE id = %s"
             cursor.execute(query, valores)
             conn.commit()
             
@@ -266,7 +266,7 @@ class Usuario:
             else:
                 logger.warning(f"Nenhuma alteração feita para o usuário ID {usuario_id}.")
                 return False
-        except Exception as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro ao atualizar usuário: {e}")
             return False
         finally:
@@ -286,7 +286,7 @@ class Usuario:
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
+            cursor.execute("DELETE FROM usuarios WHERE id = %s", (usuario_id,))
             conn.commit()
             
             if cursor.rowcount > 0:
@@ -295,7 +295,7 @@ class Usuario:
             else:
                 logger.warning(f"Usuário ID {usuario_id} não encontrado para exclusão.")
                 return False
-        except Exception as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro ao excluir usuário: {e}")
             return False
         finally:

@@ -161,11 +161,11 @@ const HomePage = () => {
   };
 
   // Calcular estatísticas
-  const totalItems = inventory.reduce((acc, item) => acc + (item.quantidade_total || 0), 0);
-  const availableItems = inventory.reduce((acc, item) => acc + (item.quantidade_disponivel || 0), 0);
+  const totalItems = Array.isArray(inventory) ? inventory.reduce((acc, item) => acc + (item.quantidade_total || item.quantidade || 0), 0) : 0;
+  const availableItems = Array.isArray(inventory) ? inventory.reduce((acc, item) => acc + (item.quantidade_disponivel || 0), 0) : 0;
   const rentedItems = totalItems - availableItems;
-  const activeRentals = rentals.filter(r => r.status === 'ativa' || r.status === 'em_andamento').length;
-  const overdueRentals = rentals.filter(r => r.status === 'atrasada').length;
+  const activeRentals = Array.isArray(rentals) ? rentals.filter(r => r.status === 'ativa' || r.status === 'em_andamento').length : 0;
+  const overdueRentals = Array.isArray(rentals) ? rentals.filter(r => r.status === 'atrasada').length : 0;
 
   // Cards de estatísticas
   const statsCards = [

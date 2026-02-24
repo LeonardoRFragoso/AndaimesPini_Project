@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg2
 import os
 import logging
 from datetime import date
@@ -28,7 +28,7 @@ def add_data_alocacao_column():
             logger.info("Coluna 'data_alocacao' adicionada com sucesso à tabela 'itens_locados'.")
             
             # Atualizar registros existentes com a data atual
-            cursor.execute("UPDATE itens_locados SET data_alocacao = ? WHERE data_alocacao IS NULL", (date.today().isoformat(),))
+            cursor.execute("UPDATE itens_locados SET data_alocacao = %s WHERE data_alocacao IS NULL", (date.today().isoformat(),))
             conn.commit()
             logger.info(f"Atualizados {cursor.rowcount} registros com data_alocacao = {date.today().isoformat()}")
         else:

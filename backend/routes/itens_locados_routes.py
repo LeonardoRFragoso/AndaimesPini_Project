@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models.itens_locados import ItensLocados
 from helpers import handle_database_error
-import sqlite3
+import psycopg2
 import logging
 
 # Configuração de logging
@@ -22,7 +22,7 @@ def obter_itens_por_locacao(locacao_id):
         
         logger.info(f"{len(itens)} itens encontrados para a locação ID {locacao_id}.")
         return jsonify(itens), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -54,7 +54,7 @@ def adicionar_item():
         else:
             logger.error("Erro ao adicionar item à locação.")
             return jsonify({"error": "Erro ao adicionar item à locação."}), 500
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -85,7 +85,7 @@ def devolver_item():
         else:
             logger.warning(f"Erro ao marcar item(s) como devolvido(s) para locação ID {locacao_id}.")
             return jsonify({"error": "Erro ao marcar item(s) como devolvido(s)."}), 400
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -117,7 +117,7 @@ def registrar_problema():
         else:
             logger.error("Erro ao registrar problema.")
             return jsonify({"error": "Erro ao registrar problema."}), 500
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados: {e}")
         return handle_database_error(e)
     except Exception as ex:

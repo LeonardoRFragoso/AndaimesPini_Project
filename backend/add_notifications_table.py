@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg2
 import os
 import logging
 from database import get_connection, release_connection
@@ -24,7 +24,7 @@ def criar_tabela_notificacoes():
         # Criar a tabela de notificações
         cursor.execute('''
             CREATE TABLE notificacoes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY SERIAL,
                 tipo TEXT NOT NULL,
                 titulo TEXT NOT NULL,
                 mensagem TEXT NOT NULL,
@@ -68,7 +68,7 @@ def adicionar_notificacoes_iniciais():
         
         cursor.executemany('''
             INSERT INTO notificacoes (tipo, titulo, mensagem, data_criacao, lida, relacionado_id)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
         ''', notificacoes)
         
         conn.commit()

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from models.cliente import Cliente  # Import específico para modularidade
-import sqlite3
+import psycopg2
 import logging
 
 # Configuração de logging
@@ -19,12 +19,32 @@ def get_clientes():
         clientes = Cliente.get_all()
         logger.info(f"{len(clientes)} clientes encontrados.")
         return jsonify(clientes), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error("Erro ao buscar clientes no banco de dados.", exc_info=True)
         return jsonify({"error": "Erro ao buscar clientes."}), 500
     except Exception as ex:
         logger.error("Erro inesperado ao buscar clientes.", exc_info=True)
         return jsonify({"error": "Erro inesperado ao buscar clientes."}), 500
+
+@clientes_routes.route("/<int:cliente_id>", methods=["GET"])
+def get_cliente(cliente_id):
+    """
+    Rota para obter um cliente específico pelo ID.
+    """
+    try:
+        cliente = Cliente.obter_por_id(cliente_id)
+        if cliente:
+            logger.info(f"Cliente ID {cliente_id} encontrado.")
+            return jsonify(cliente), 200
+        else:
+            logger.warning(f"Cliente ID {cliente_id} não encontrado.")
+            return jsonify({"error": "Cliente não encontrado."}), 404
+    except psycopg2.Error as e:
+        logger.error("Erro ao buscar cliente no banco de dados.", exc_info=True)
+        return jsonify({"error": "Erro ao buscar cliente."}), 500
+    except Exception as ex:
+        logger.error("Erro inesperado ao buscar cliente.", exc_info=True)
+        return jsonify({"error": "Erro inesperado ao buscar cliente."}), 500
 
 @clientes_routes.route("/", methods=["POST"])
 def add_cliente():
@@ -50,7 +70,7 @@ def add_cliente():
 
         logger.info(f"Cliente adicionado com sucesso: ID {cliente_id}")
         return jsonify({"message": "Cliente adicionado com sucesso!", "cliente_id": cliente_id}), 201
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error("Erro ao adicionar cliente.", exc_info=True)
         return jsonify({"error": "Erro ao adicionar cliente."}), 500
     except Exception as ex:
@@ -81,7 +101,7 @@ def update_cliente(cliente_id):
 
         logger.info(f"Cliente atualizado com sucesso: ID {cliente_id}")
         return jsonify({"message": "Cliente atualizado com sucesso!"}), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error("Erro ao atualizar cliente.", exc_info=True)
         return jsonify({"error": "Erro ao atualizar cliente."}), 500
     except Exception as ex:
@@ -101,7 +121,7 @@ def delete_cliente(cliente_id):
 
         logger.info(f"Cliente excluído com sucesso: ID {cliente_id}")
         return jsonify({"message": "Cliente excluído com sucesso!"}), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error("Erro ao excluir cliente.", exc_info=True)
         return jsonify({"error": "Erro ao excluir cliente."}), 500
     except Exception as ex:
@@ -121,7 +141,7 @@ def get_pedidos_cliente(cliente_id):
 
         logger.info(f"{len(pedidos)} pedidos encontrados para o cliente ID {cliente_id}.")
         return jsonify(pedidos), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error("Erro ao buscar pedidos do cliente.", exc_info=True)
         return jsonify({"error": "Erro ao buscar pedidos do cliente."}), 500
     except Exception as ex:

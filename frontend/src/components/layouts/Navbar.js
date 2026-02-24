@@ -48,6 +48,7 @@ const Navbar = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [anchorEl, setAnchorEl] = useState(null);
   const [mobileMenuAnchorEl, setMobileMenuAnchorEl] = useState(null);
+  const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null);
   const [notifications, setNotifications] = useState([]);
   
   // Efeito para carregar notificações reais do backend
@@ -240,9 +241,7 @@ const Navbar = () => {
               
               <Tooltip title="Notificações">
                 <IconButton 
-                  component={Link}
-                  to="/"
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  onClick={(e) => setNotificationsAnchorEl(e.currentTarget)}
                   sx={{ 
                     color: '#fff',
                     backgroundColor: 'rgba(255,255,255,0.1)',
@@ -267,6 +266,50 @@ const Navbar = () => {
                   </Badge>
                 </IconButton>
               </Tooltip>
+              
+              {/* Menu de Notificações */}
+              <Menu
+                anchorEl={notificationsAnchorEl}
+                open={Boolean(notificationsAnchorEl)}
+                onClose={() => setNotificationsAnchorEl(null)}
+                PaperProps={{
+                  sx: {
+                    mt: 1.5,
+                    minWidth: 320,
+                    maxWidth: 400,
+                    maxHeight: 400,
+                  }
+                }}
+              >
+                {notifications.length === 0 ? (
+                  <MenuItem disabled>
+                    <Typography variant="body2" color="text.secondary">
+                      Nenhuma notificação
+                    </Typography>
+                  </MenuItem>
+                ) : (
+                  notifications.map((notif, index) => (
+                    <MenuItem 
+                      key={index}
+                      onClick={() => setNotificationsAnchorEl(null)}
+                      sx={{ 
+                        whiteSpace: 'normal',
+                        py: 1.5,
+                        borderBottom: index < notifications.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none'
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {notif.titulo}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {notif.mensagem}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  ))
+                )}
+              </Menu>
             </>
           )}
           

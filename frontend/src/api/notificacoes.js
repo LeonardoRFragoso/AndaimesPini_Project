@@ -1,8 +1,4 @@
-import axios from 'axios';
 import api from './config';
-
-const API_BASE_URL = 'http://localhost:5000';
-const NOTIFICACOES_URL = `${API_BASE_URL}/notificacoes`;
 
 /**
  * Serviço para gerenciar notificações
@@ -14,8 +10,8 @@ export const NotificacoesService = {
    */
   obterTodas: async () => {
     try {
-      const response = await axios.get(NOTIFICACOES_URL);
-      return response.data;
+      const response = await api.get('/notificacoes');
+      return response;
     } catch (error) {
       console.error('Erro ao obter notificações:', error);
       throw error;
@@ -28,8 +24,8 @@ export const NotificacoesService = {
    */
   obterNaoLidas: async () => {
     try {
-      const response = await axios.get(`${NOTIFICACOES_URL}/nao-lidas`);
-      return response.data;
+      const response = await api.get('/notificacoes/nao-lidas');
+      return response;
     } catch (error) {
       console.error('Erro ao obter notificações não lidas:', error);
       throw error;
@@ -43,8 +39,8 @@ export const NotificacoesService = {
    */
   marcarComoLida: async (id) => {
     try {
-      const response = await axios.put(`${NOTIFICACOES_URL}/${id}/marcar-lida`);
-      return response.data;
+      const response = await api.put(`/notificacoes/${id}/marcar-lida`);
+      return response;
     } catch (error) {
       console.error(`Erro ao marcar notificação ${id} como lida:`, error);
       throw error;
@@ -57,8 +53,8 @@ export const NotificacoesService = {
    */
   marcarTodasComoLidas: async () => {
     try {
-      const response = await axios.put(`${NOTIFICACOES_URL}/marcar-todas-lidas`);
-      return response.data;
+      const response = await api.put('/notificacoes/marcar-todas-lidas');
+      return response;
     } catch (error) {
       console.error('Erro ao marcar todas notificações como lidas:', error);
       throw error;
@@ -72,8 +68,8 @@ export const NotificacoesService = {
    */
   excluir: async (id) => {
     try {
-      const response = await axios.delete(`${NOTIFICACOES_URL}/${id}`);
-      return response.data;
+      const response = await api.delete(`/notificacoes/${id}`);
+      return response;
     } catch (error) {
       console.error(`Erro ao excluir notificação ${id}:`, error);
       throw error;
@@ -87,8 +83,8 @@ export const NotificacoesService = {
    */
   criar: async (dados) => {
     try {
-      const response = await axios.post(NOTIFICACOES_URL, dados);
-      return response.data;
+      const response = await api.post('/notificacoes', dados);
+      return response;
     } catch (error) {
       console.error('Erro ao criar notificação:', error);
       throw error;
@@ -101,8 +97,8 @@ export const NotificacoesService = {
    */
   gerarAutomaticas: async () => {
     try {
-      const response = await axios.post(`${NOTIFICACOES_URL}/gerar-automaticas`);
-      return response.data;
+      const response = await api.post('/notificacoes/gerar-automaticas');
+      return response;
     } catch (error) {
       console.error('Erro ao gerar notificações automáticas:', error);
       throw error;

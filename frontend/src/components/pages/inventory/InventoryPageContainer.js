@@ -20,9 +20,10 @@ const InventoryPageContainer = () => {
     setLoading(true);
     try {
       const data = await listarItens();
-      setItems(data); // Atualiza o estado com os dados retornados
+      setItems(Array.isArray(data) ? data : []); // Garante que sempre seja um array
     } catch (error) {
       console.error("Erro ao buscar itens do inventário:", error);
+      setItems([]); // Define array vazio em caso de erro
       setFeedback({
         open: true,
         message: "Erro ao buscar itens do inventário.",

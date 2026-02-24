@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg2
 from database import get_connection, release_connection
 import logging
 from datetime import datetime
@@ -68,7 +68,7 @@ class Cliente:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO clientes (nome, endereco, telefone, referencia)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
                 RETURNING id
             """, (nome, endereco, telefone, referencia))
             conn.commit()
@@ -101,7 +101,7 @@ class Cliente:
             cursor.execute("""
                 SELECT id, nome, endereco, telefone, referencia
                 FROM clientes
-                WHERE nome = ? AND endereco = ? AND telefone = ?
+                WHERE nome = %s AND endereco = %s AND telefone = %s
             """, (nome, endereco, telefone))
             cliente = cursor.fetchone()
             if cliente:
@@ -138,7 +138,7 @@ class Cliente:
             cursor.execute("""
                 SELECT id, nome, endereco, telefone, referencia
                 FROM clientes
-                WHERE id = ?
+                WHERE id = %s
             """, (cliente_id,))
             cliente = cursor.fetchone()
             if cliente:
@@ -157,6 +157,13 @@ class Cliente:
             return None
         finally:
             release_connection(conn)
+    
+    @staticmethod
+    def obter_por_id(cliente_id):
+        """
+        Alias para obter_cliente_por_id. Mantém consistência com nomenclatura das rotas.
+        """
+        return Cliente.obter_cliente_por_id(cliente_id)
 
     @staticmethod
     def atualizar_cliente(cliente_id, nome=None, endereco=None, telefone=None, referencia=None):
@@ -178,11 +185,11 @@ class Cliente:
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE clientes
-                SET nome = COALESCE(?, nome),
-                    endereco = COALESCE(?, endereco),
-                    telefone = COALESCE(?, telefone),
-                    referencia = COALESCE(?, referencia)
-                WHERE id = ?
+                SET nome = COALESCE(%s, nome),
+                    endereco = COALESCE(%s, endereco),
+                    telefone = COALESCE(%s, telefone),
+                    referencia = COALESCE(%s, referencia)
+                WHERE id = %s
             """, (nome, endereco, telefone, referencia, cliente_id))
             conn.commit()
             atualizado = cursor.rowcount > 0
@@ -211,7 +218,7 @@ class Cliente:
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM clientes WHERE id = ?", (cliente_id,))
+            cursor.execute("DELETE FROM clientes WHERE id = %s", (cliente_id,))
             conn.commit()
             excluido = cursor.rowcount > 0
             if excluido:
@@ -252,7 +259,7 @@ class Cliente:
                 FROM locacoes AS l
                 JOIN itens_locados AS il ON l.id = il.locacao_id
                 JOIN inventario AS i ON il.item_id = i.id
-                WHERE l.cliente_id = ?
+                WHERE l.cliente_id = %s
             """, (cliente_id,))
             pedidos = cursor.fetchall()
             if not pedidos:

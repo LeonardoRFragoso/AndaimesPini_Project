@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 from io import BytesIO
 import pandas as pd
-import sqlite3
+import psycopg2
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -59,12 +59,12 @@ class Relatorios:
         if data_inicio:
             if not Relatorios.validar_data(data_inicio):
                 return Relatorios.gerar_resposta_erro(f"Formato de data inválido para '{prefixo}data_inicio'")
-            query += f" AND {prefixo}data_inicio >= ?"
+            query += f" AND {prefixo}data_inicio >= %s"
             params.append(data_inicio)
         if data_fim:
             if not Relatorios.validar_data(data_fim):
                 return Relatorios.gerar_resposta_erro(f"Formato de data inválido para '{prefixo}data_fim'")
-            query += f" AND {prefixo}data_fim <= ?"
+            query += f" AND {prefixo}data_fim <= %s"
             params.append(data_fim)
         return query, params
 
@@ -101,7 +101,7 @@ class Relatorios:
                     }
                     logger.info("Dados de visão geral obtidos com sucesso.")
                     return resumo
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             return Relatorios.gerar_resposta_erro(f"Erro ao obter dados de visão geral: {e}")
     
     @staticmethod
@@ -137,10 +137,10 @@ class Relatorios:
             params = []
             
             if data_inicio:
-                date_conditions.append("data_inicio >= ?")
+                date_conditions.append("data_inicio >= %s")
                 params.append(data_inicio)
             if data_fim:
-                date_conditions.append("data_fim <= ?")
+                date_conditions.append("data_fim <= %s")
                 params.append(data_fim)
             
             where_clause = ""
@@ -199,7 +199,7 @@ class Relatorios:
             logger.info("Dados de visão geral com filtros obtidos com sucesso.")
             return resumo
             
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro SQLite ao obter dados de visão geral: {e}")
             if 'cursor' in locals() and cursor:
                 cursor.close()
@@ -237,7 +237,7 @@ class Relatorios:
                         FROM locacoes AS l
                         JOIN itens_locados AS il ON l.id = il.locacao_id
                         JOIN inventario AS i ON il.item_id = i.id
-                        WHERE l.cliente_id = ?
+                        WHERE l.cliente_id = %s
                     """
                     resultado = Relatorios.aplicar_filtros_de_data(query, params, data_inicio, data_fim, prefixo="l.")
                     if isinstance(resultado, dict):
@@ -261,7 +261,7 @@ class Relatorios:
                     ]
                     logger.info(f"Relatório do cliente ID {cliente_id} obtido com sucesso. Total de locações: {len(relatorio)}.")
                     return relatorio
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             return Relatorios.gerar_resposta_erro(f"Erro ao obter relatório do cliente {cliente_id}: {e}")
     
     @staticmethod
@@ -287,7 +287,7 @@ class Relatorios:
                         FROM locacoes AS l
                         JOIN itens_locados AS il ON l.id = il.locacao_id
                         JOIN inventario AS i ON il.item_id = i.id
-                        WHERE i.id = ?
+                        WHERE i.id = %s
                     """
                     resultado = Relatorios.aplicar_filtros_de_data(query, params, data_inicio, data_fim, prefixo="l.")
                     if isinstance(resultado, dict):
@@ -310,7 +310,7 @@ class Relatorios:
                     ]
                     logger.info(f"Uso do inventário para item ID {item_id} obtido com sucesso. Total de locações: {len(uso_inventario)}.")
                     return uso_inventario
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             return Relatorios.gerar_resposta_erro(f"Erro ao obter uso do inventário para o item {item_id}: {e}")
     
     @staticmethod
@@ -352,7 +352,7 @@ class Relatorios:
                     ]
                     logger.info(f"Relatório de status obtido com sucesso. Total de status diferentes: {len(relatorio_status)}.")
                     return relatorio_status
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             return Relatorios.gerar_resposta_erro(f"Erro ao obter relatório de status: {e}")
     
     @staticmethod
@@ -370,7 +370,7 @@ class Relatorios:
             with get_connection() as conn:
                 with conn.cursor() as cursor:
                     logger.info(f"Executando consulta para obter relatório com ID {relatorio_id}.")
-                    cursor.execute("SELECT * FROM relatorios WHERE id = ?", (relatorio_id,))
+                    cursor.execute("SELECT * FROM relatorios WHERE id = %s", (relatorio_id,))
                     resultado = cursor.fetchone()
                     if resultado is None:
                         return Relatorios.gerar_resposta_erro(f"Relatório com ID {relatorio_id} não encontrado.")
@@ -383,5 +383,5 @@ class Relatorios:
                     }
                     logger.info(f"Relatório com ID {relatorio_id} obtido com sucesso.")
                     return relatorio
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             return Relatorios.gerar_resposta_erro(f"Erro ao obter relatório com ID {relatorio_id}: {e}")

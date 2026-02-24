@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg2
 from database import get_connection, release_connection
 import logging
 
@@ -25,7 +25,7 @@ class Inventario:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO inventario (nome_item, quantidade, quantidade_disponivel, tipo_item)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
                 RETURNING id
             """, (nome_item, quantidade, quantidade, tipo_item))
             conn.commit()
@@ -121,7 +121,7 @@ class Inventario:
             cursor.execute("""
                 SELECT id, nome_item, quantidade_disponivel, tipo_item
                 FROM inventario
-                WHERE nome_item = ?
+                WHERE nome_item = %s
             """, (modelo,))
             item = cursor.fetchone()
             if item:
@@ -156,7 +156,7 @@ class Inventario:
             cursor = conn.cursor()
             logger.info(f"Buscando ID do item no inventário pelo modelo: {modelo}")
             cursor.execute("""
-                SELECT id FROM inventario WHERE nome_item = ?
+                SELECT id FROM inventario WHERE nome_item = %s
             """, (modelo,))
             item = cursor.fetchone()
             if item:
@@ -188,7 +188,7 @@ class Inventario:
             cursor.execute("""
                 SELECT id, nome_item, quantidade, quantidade_disponivel, tipo_item
                 FROM inventario
-                WHERE id = ?
+                WHERE id = %s
             """, (item_id,))
             item = cursor.fetchone()
             if item:
@@ -226,7 +226,7 @@ class Inventario:
             cursor = conn.cursor()
             # Primeiro, obter a quantidade atual e disponível
             cursor.execute("""
-                SELECT quantidade, quantidade_disponivel FROM inventario WHERE id = ?
+                SELECT quantidade, quantidade_disponivel FROM inventario WHERE id = %s
             """, (item_id,))
             item = cursor.fetchone()
             
@@ -244,9 +244,9 @@ class Inventario:
             
             cursor.execute("""
                 UPDATE inventario
-                SET quantidade = ?,
-                    quantidade_disponivel = ?
-                WHERE id = ?
+                SET quantidade = %s,
+                    quantidade_disponivel = %s
+                WHERE id = %s
             """, (nova_quantidade, nova_quantidade_disponivel, item_id))
             conn.commit()
             
@@ -272,7 +272,7 @@ class Inventario:
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM inventario WHERE id = ?", (item_id,))
+            cursor.execute("DELETE FROM inventario WHERE id = %s", (item_id,))
             conn.commit()
             excluido = cursor.rowcount > 0
             if excluido:
@@ -303,7 +303,7 @@ class Inventario:
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT quantidade_disponivel, quantidade FROM inventario WHERE id = ?
+                SELECT quantidade_disponivel, quantidade FROM inventario WHERE id = %s
             """, (item_id,))
             item = cursor.fetchone()
 
@@ -328,8 +328,8 @@ class Inventario:
 
             cursor.execute("""
                 UPDATE inventario
-                SET quantidade_disponivel = ?
-                WHERE id = ?
+                SET quantidade_disponivel = %s
+                WHERE id = %s
             """, (new_quantity, item_id))
             conn.commit()
             logger.info(f"Estoque do item ID {item_id} atualizado com sucesso. Nova quantidade disponível: {new_quantity}")

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from models.usuario import Usuario
 from helpers import handle_database_error
-import sqlite3
+import psycopg2
 import logging
 import secrets
 import functools
@@ -78,7 +78,7 @@ def login():
                 "cargo": usuario['cargo']
             }
         }), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados durante login: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -122,7 +122,7 @@ def listar_usuarios():
     try:
         usuarios = Usuario.listar_todos()
         return jsonify(usuarios), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados ao listar usuários: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -157,7 +157,7 @@ def criar_usuario():
         
         logger.info(f"Usuário criado com sucesso: ID {usuario_id}")
         return jsonify({"message": "Usuário criado com sucesso", "id": usuario_id}), 201
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados ao criar usuário: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -189,7 +189,7 @@ def atualizar_usuario(usuario_id):
         
         logger.info(f"Usuário ID {usuario_id} atualizado com sucesso")
         return jsonify({"message": "Usuário atualizado com sucesso"}), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados ao atualizar usuário: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -215,7 +215,7 @@ def excluir_usuario(usuario_id):
         
         logger.info(f"Usuário ID {usuario_id} excluído com sucesso")
         return jsonify({"message": "Usuário excluído com sucesso"}), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados ao excluir usuário: {e}")
         return handle_database_error(e)
     except Exception as ex:

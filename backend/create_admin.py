@@ -1,9 +1,9 @@
-import sqlite3
 import sys
-import os
 import hashlib
 import secrets
 import string
+from database import get_connection, release_connection
+import psycopg2
 
 # Função para criar hash de senha
 def hash_senha(senha, salt=None):
@@ -19,39 +19,24 @@ def hash_senha(senha, salt=None):
     return hash_senha, salt
 
 def criar_admin(nome, email, senha):
-    # Caminho para o banco de dados
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'db.sqlite3')
+    """
+    Cria um usuário administrador no PostgreSQL.
+    """
+    # Conectar ao banco de dados PostgreSQL
+    conn = get_connection()
     
-    # Verificar se o banco de dados existe
-    if not os.path.exists(db_path):
-        print(f"Erro: Banco de dados não encontrado em {db_path}")
+    if not conn:
+        print("❌ Erro: Não foi possível conectar ao PostgreSQL.")
+        print("Verifique se o PostgreSQL está rodando e as credenciais no .env estão corretas.")
         return False
     
-    # Conectar ao banco de dados
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    
     try:
-        # Verificar se a tabela usuarios existe
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'")
-        if not cursor.fetchone():
-            # Criar a tabela usuarios se não existir
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS usuarios (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nome TEXT NOT NULL,
-                    email TEXT NOT NULL UNIQUE,
-                    hash_senha TEXT NOT NULL,
-                    salt TEXT NOT NULL,
-                    cargo TEXT NOT NULL DEFAULT 'operador'
-                )
-            ''')
-            print("Tabela 'usuarios' criada com sucesso.")
+        cursor = conn.cursor()
         
         # Verificar se o email já está em uso
-        cursor.execute("SELECT id FROM usuarios WHERE email = ?", (email,))
+        cursor.execute("SELECT id FROM usuarios WHERE email = %s", (email,))
         if cursor.fetchone():
-            print(f"Erro: Email '{email}' já está em uso.")
+            print(f"❌ Erro: Email '{email}' já está em uso.")
             return False
         
         # Hash da senha
@@ -60,21 +45,30 @@ def criar_admin(nome, email, senha):
         # Inserir o usuário administrador
         cursor.execute('''
             INSERT INTO usuarios (nome, email, hash_senha, salt, cargo)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         ''', (nome, email, hash_senha_valor, salt, 'admin'))
         
         # Commit das alterações
         conn.commit()
         
-        print(f"Usuário administrador '{nome}' criado com sucesso!")
+        print(f"✅ Usuário administrador '{nome}' criado com sucesso!")
+        print(f"   Email: {email}")
+        print(f"   Cargo: admin")
         return True
     
+    except psycopg2.Error as e:
+        print(f"❌ Erro ao criar usuário administrador: {e}")
+        conn.rollback()
+        return False
+    
     except Exception as e:
-        print(f"Erro ao criar usuário administrador: {e}")
+        print(f"❌ Erro inesperado: {e}")
+        conn.rollback()
         return False
     
     finally:
-        conn.close()
+        cursor.close()
+        release_connection(conn)
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:

@@ -13,6 +13,7 @@ import ClientsPage from "./components/pages/ClientsPage"; // Página para gerenc
 import ClientOrdersView from "./components/Orders/ClientOrdersView"; // Página para pedidos específicos de um cliente
 import ReportsPage from "./components/pages/ReportsPage"; // Página de relatórios
 import OverdueOrdersPage from "./components/pages/OverdueOrdersPage"; // Página para pedidos atrasados
+import DamagesPage from "./components/Damages/DamagesPage"; // Página para gerenciar danos
 import LoginPage from "./components/Auth/LoginPage"; // Página de login
 import ProtectedRoute from "./components/Auth/ProtectedRoute"; // Componente de proteção de rotas
 
@@ -143,6 +144,15 @@ function AppContent() {
                     element={
                       <ProtectedRoute>
                         <OverdueOrdersPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/damages" 
+                    element={
+                      <ProtectedRoute>
+                        <DamagesPage />
                       </ProtectedRoute>
                     } 
                   />

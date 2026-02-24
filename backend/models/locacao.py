@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg2
 from database import get_connection, release_connection
 from models.itens_locados import ItensLocados
 from models.cliente import Cliente
@@ -88,7 +88,7 @@ class Locacao:
                 
                 cursor.execute("""
                     INSERT INTO clientes (nome, endereco, telefone, referencia)
-                    VALUES (?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s)
                     RETURNING id
                 """, (nome_cliente, endereco_cliente, telefone_cliente, None))
                 cliente_id = cursor.fetchone()[0]
@@ -99,7 +99,7 @@ class Locacao:
             # Criar a locação
             cursor.execute('''
                 INSERT INTO locacoes (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status, numero_nota)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             ''', (cliente_id, data_inicio, data_fim, valor_total, valor_pago_entrega, valor_receber_final, status, numero_nota))
             locacao_id = cursor.fetchone()[0]
@@ -130,7 +130,7 @@ class Locacao:
 
                     cursor.execute('''
                         INSERT INTO itens_locados (locacao_id, item_id, quantidade)
-                        VALUES (?, ?, ?)
+                        VALUES (%s, %s, %s)
                     ''', (locacao_id, item_id, quantidade))
                     logger.debug(f"Item adicionado à locação: {modelo} (Qtd: {quantidade})")
 
@@ -141,7 +141,7 @@ class Locacao:
             conn.commit()
             logger.info(f"Locação registrada com sucesso: ID {locacao_id}")
             return locacao_id
-        except (sqlite3.Error, ValueError) as e:
+        except (psycopg2.Error, ValueError) as e:
             logger.error(f"Erro ao criar locação: {e}")
             return None
         finally:
@@ -238,7 +238,7 @@ class Locacao:
 
             logger.info(f"{len(resultado)} locações processadas com sucesso.")
             return resultado
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro ao buscar locações detalhadas: {e}")
             return []
         finally:
@@ -262,7 +262,7 @@ class Locacao:
             cursor.execute('''
                 SELECT status
                 FROM locacoes
-                WHERE id = ?
+                WHERE id = %s
             ''', (locacao_id,))
             locacao = cursor.fetchone()
 
@@ -284,8 +284,8 @@ class Locacao:
             data_devolucao = datetime.now()
             cursor.execute('''
                 UPDATE locacoes
-                SET status = 'concluido', data_devolucao_efetiva = ?
-                WHERE id = ?
+                SET status = 'concluido', data_devolucao_efetiva = %s
+                WHERE id = %s
             ''', (data_devolucao, locacao_id))
             conn.commit()
             logger.debug(f"Status da locação ID {locacao_id} atualizado para 'concluido'.")
@@ -301,7 +301,7 @@ class Locacao:
                 "mensagem": "Devolução confirmada com sucesso.",
                 "data_devolucao": data_devolucao.strftime('%Y-%m-%d %H:%M:%S')
             }
-        except (sqlite3.Error, ValueError) as e:
+        except (psycopg2.Error, ValueError) as e:
             logger.error(f"Erro ao confirmar devolução para locação ID {locacao_id}: {e}")
             return {"sucesso": False, "mensagem": "Erro ao confirmar devolução."}
         finally:
@@ -342,7 +342,7 @@ class Locacao:
 
             logger.info(f"Estoque restaurado para todos os itens da locação ID {locacao_id}.")
             return True
-        except (sqlite3.Error, ValueError) as e:
+        except (psycopg2.Error, ValueError) as e:
             logger.error(f"Erro ao restaurar estoque para locação ID {locacao_id}: {e}")
             return False
         finally:
@@ -365,8 +365,8 @@ class Locacao:
             cursor = conn.cursor()
             cursor.execute('''
                 UPDATE locacoes
-                SET status = ?
-                WHERE id = ?
+                SET status = %s
+                WHERE id = %s
             ''', (novo_status, locacao_id))
             conn.commit()
 
@@ -377,7 +377,7 @@ class Locacao:
             else:
                 logger.warning(f"Não foi possível atualizar o status da locação ID {locacao_id}.")
                 return False
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro no banco de dados ao atualizar status da locação ID {locacao_id}: {e}")
             return False
         finally:
@@ -402,7 +402,7 @@ class Locacao:
                        clientes.nome, clientes.endereco, clientes.telefone, locacoes.numero_nota
                 FROM locacoes
                 JOIN clientes ON locacoes.cliente_id = clientes.id
-                WHERE locacoes.data_fim < ? AND locacoes.status = 'ativo'
+                WHERE locacoes.data_fim < %s AND locacoes.status = 'ativo'
                 ORDER BY locacoes.data_fim ASC
             ''', (data_atual,))
             
@@ -442,9 +442,158 @@ class Locacao:
             
             logger.info(f"{len(resultado)} locações atrasadas encontradas.")
             return resultado
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro ao buscar locações atrasadas: {e}")
             return []
+        finally:
+            release_connection(conn)
+    
+    @staticmethod
+    def obter_por_id(locacao_id):
+        """
+        Obtém uma locação específica pelo ID com todos os detalhes.
+        
+        Parâmetros:
+            locacao_id (int): ID da locação.
+        
+        Retorna:
+            dict: Dados da locação ou None se não encontrada.
+        """
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT l.*, c.nome as nome_cliente, c.endereco as endereco_cliente, 
+                       c.telefone as telefone_cliente
+                FROM locacoes l
+                LEFT JOIN clientes c ON l.cliente_id = c.id
+                WHERE l.id = %s
+            ''', (locacao_id,))
+            
+            row = cursor.fetchone()
+            if not row:
+                return None
+            
+            columns = [description[0] for description in cursor.description]
+            locacao = dict(zip(columns, row))
+            
+            # Buscar itens locados
+            itens = ItensLocados.obter_por_locacao(locacao_id)
+            locacao['itens'] = itens
+            
+            return locacao
+        except psycopg2.Error as e:
+            logger.error(f"Erro ao buscar locação ID {locacao_id}: {e}")
+            return None
+        finally:
+            release_connection(conn)
+    
+    @staticmethod
+    def prorrogar_locacao(locacao_id, nova_data_fim, valor_adicional=0):
+        """
+        Prorroga uma locação existente.
+        
+        Parâmetros:
+            locacao_id (int): ID da locação.
+            nova_data_fim (str): Nova data de término.
+            valor_adicional (float): Valor adicional pela prorrogação.
+        
+        Retorna:
+            bool: True se prorrogada com sucesso, False caso contrário.
+        """
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Verificar se a locação existe
+            cursor.execute('SELECT data_fim, valor_total FROM locacoes WHERE id = %s', (locacao_id,))
+            locacao = cursor.fetchone()
+            if not locacao:
+                logger.warning(f"Locação ID {locacao_id} não encontrada.")
+                return False
+            
+            data_fim_atual, valor_total_atual = locacao
+            
+            # Validar nova data
+            try:
+                nova_data = datetime.strptime(nova_data_fim, '%Y-%m-%d').date()
+                data_atual = datetime.strptime(data_fim_atual, '%Y-%m-%d').date()
+                if nova_data <= data_atual:
+                    logger.warning("Nova data de fim deve ser posterior à data atual.")
+                    return False
+            except ValueError:
+                logger.error("Formato de data inválido.")
+                return False
+            
+            # Atualizar locação
+            novo_valor_total = valor_total_atual + valor_adicional
+            cursor.execute('''
+                UPDATE locacoes 
+                SET data_fim = %s, valor_total = %s
+                WHERE id = %s
+            ''', (nova_data_fim, novo_valor_total, locacao_id))
+            
+            conn.commit()
+            logger.info(f"Locação ID {locacao_id} prorrogada até {nova_data_fim}.")
+            return True
+            
+        except psycopg2.Error as e:
+            logger.error(f"Erro ao prorrogar locação ID {locacao_id}: {e}")
+            conn.rollback()
+            return False
+        finally:
+            release_connection(conn)
+    
+    @staticmethod
+    def finalizar_antecipadamente(locacao_id, data_finalizacao=None, motivo=''):
+        """
+        Finaliza uma locação antecipadamente.
+        
+        Parâmetros:
+            locacao_id (int): ID da locação.
+            data_finalizacao (str): Data de finalização (opcional, usa data atual se None).
+            motivo (str): Motivo da finalização antecipada.
+        
+        Retorna:
+            bool: True se finalizada com sucesso, False caso contrário.
+        """
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Verificar se a locação existe
+            cursor.execute('SELECT id, status FROM locacoes WHERE id = %s', (locacao_id,))
+            locacao = cursor.fetchone()
+            if not locacao:
+                logger.warning(f"Locação ID {locacao_id} não encontrada.")
+                return False
+            
+            if locacao[1] == 'concluido':
+                logger.warning(f"Locação ID {locacao_id} já está concluída.")
+                return False
+            
+            # Usar data atual se não fornecida
+            if not data_finalizacao:
+                data_finalizacao = datetime.now().strftime('%Y-%m-%d')
+            
+            # Atualizar status para concluído
+            cursor.execute('''
+                UPDATE locacoes 
+                SET status = 'concluido', data_fim = %s
+                WHERE id = %s
+            ''', (data_finalizacao, locacao_id))
+            
+            # Restaurar estoque
+            Locacao.atualizar_estoque_devolucao(locacao_id)
+            
+            conn.commit()
+            logger.info(f"Locação ID {locacao_id} finalizada antecipadamente. Motivo: {motivo}")
+            return True
+            
+        except psycopg2.Error as e:
+            logger.error(f"Erro ao finalizar locação ID {locacao_id} antecipadamente: {e}")
+            conn.rollback()
+            return False
         finally:
             release_connection(conn)
     
@@ -464,22 +613,22 @@ class Locacao:
             cursor = conn.cursor()
             
             # Primeiro, verificar se a locação existe
-            cursor.execute('SELECT id FROM locacoes WHERE id = ?', (locacao_id,))
+            cursor.execute('SELECT id FROM locacoes WHERE id = %s', (locacao_id,))
             if not cursor.fetchone():
                 logger.warning(f"Locação ID {locacao_id} não encontrada para exclusão.")
                 return False
             
             # Verificar se há itens locados associados a esta locação
-            cursor.execute('SELECT id FROM itens_locados WHERE locacao_id = ?', (locacao_id,))
+            cursor.execute('SELECT id FROM itens_locados WHERE locacao_id = %s', (locacao_id,))
             itens_locados = cursor.fetchall()
             
             # Excluir os itens locados associados
             if itens_locados:
-                cursor.execute('DELETE FROM itens_locados WHERE locacao_id = ?', (locacao_id,))
+                cursor.execute('DELETE FROM itens_locados WHERE locacao_id = %s', (locacao_id,))
                 logger.info(f"Excluídos {len(itens_locados)} itens locados associados à locação ID {locacao_id}.")
             
             # Excluir a locação
-            cursor.execute('DELETE FROM locacoes WHERE id = ?', (locacao_id,))
+            cursor.execute('DELETE FROM locacoes WHERE id = %s', (locacao_id,))
             conn.commit()
             
             if cursor.rowcount > 0:
@@ -489,7 +638,7 @@ class Locacao:
                 logger.warning(f"Falha ao excluir locação ID {locacao_id}.")
                 return False
                 
-        except sqlite3.Error as e:
+        except psycopg2.Error as e:
             logger.error(f"Erro no banco de dados ao excluir locação ID {locacao_id}: {e}")
             return False
         finally:

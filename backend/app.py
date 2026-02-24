@@ -28,8 +28,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configuração de CORS
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000", "supports_credentials": True, "allow_headers": ["Content-Type", "Authorization"], "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]}}, expose_headers=["Content-Type", "Authorization"])
+# Configuração de CORS - permitir portas 3000 e 3001
+CORS(app, resources={r"/*": {
+    "origins": ["http://localhost:3000", "http://localhost:3001"], 
+    "supports_credentials": True, 
+    "allow_headers": ["Content-Type", "Authorization"], 
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+}}, expose_headers=["Content-Type", "Authorization"])
 
 
 # Função para inicializar o banco de dados ao iniciar a aplicação
@@ -138,11 +143,13 @@ atexit.register(fechar_conexoes)
 if __name__ == "__main__":
     inicializar_banco()
     try:
-        logger.info(f"Iniciando a aplicação Flask no ambiente '{ENVIRONMENT}'...")
+        import os
+        port = int(os.environ.get("PORT", 5000))
+        logger.info(f"Iniciando a aplicação Flask no ambiente '{ENVIRONMENT}' na porta {port}...")
         app.run(
             debug=(ENVIRONMENT == "development"),
             host="0.0.0.0",
-            port=5000,
+            port=port,
             use_reloader=False
         )
     except Exception as e:

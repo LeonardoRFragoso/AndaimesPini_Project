@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg2
 from database import get_connection, release_connection
 import logging
 from datetime import datetime
@@ -62,7 +62,7 @@ class Notificacao:
             cursor.execute("""
                 SELECT id, tipo, titulo, mensagem, data_criacao, lida, relacionado_id
                 FROM notificacoes
-                WHERE lida = 0
+                WHERE lida = FALSE
                 ORDER BY data_criacao DESC
             """)
             notificacoes = cursor.fetchall()
@@ -111,7 +111,7 @@ class Notificacao:
             data_atual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute("""
                 INSERT INTO notificacoes (tipo, titulo, mensagem, data_criacao, lida, relacionado_id)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (tipo, titulo, mensagem, data_atual, False, relacionado_id))
             conn.commit()
@@ -141,7 +141,7 @@ class Notificacao:
             cursor.execute("""
                 UPDATE notificacoes
                 SET lida = 1
-                WHERE id = ?
+                WHERE id = %s
             """, (notificacao_id,))
             conn.commit()
             atualizado = cursor.rowcount > 0
@@ -169,8 +169,8 @@ class Notificacao:
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE notificacoes
-                SET lida = 1
-                WHERE lida = 0
+                SET lida = TRUE
+                WHERE lida = FALSE
             """)
             conn.commit()
             atualizado = cursor.rowcount > 0
@@ -199,7 +199,7 @@ class Notificacao:
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM notificacoes WHERE id = ?", (notificacao_id,))
+            cursor.execute("DELETE FROM notificacoes WHERE id = %s", (notificacao_id,))
             conn.commit()
             excluido = cursor.rowcount > 0
             if excluido:
@@ -243,7 +243,7 @@ class Notificacao:
                 # Verificar se já existe notificação para este item
                 cursor.execute("""
                     SELECT id FROM notificacoes 
-                    WHERE tipo = 'estoque_critico' AND relacionado_id = ? AND lida = 0
+                    WHERE tipo = 'estoque_critico' AND relacionado_id = %s AND lida = 0
                 """, (item_id,))
                 
                 if not cursor.fetchone():
@@ -252,7 +252,7 @@ class Notificacao:
                     
                     cursor.execute("""
                         INSERT INTO notificacoes (tipo, titulo, mensagem, data_criacao, lida, relacionado_id)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s, %s, %s)
                     """, ('estoque_critico', titulo, mensagem, data_atual, False, item_id))
                     notificacoes_geradas += 1
             
@@ -261,7 +261,7 @@ class Notificacao:
                 SELECT l.id, c.nome, l.data_fim
                 FROM locacoes l
                 JOIN clientes c ON l.cliente_id = c.id
-                WHERE l.data_fim < ? AND l.status != 'concluido'
+                WHERE l.data_fim < %s AND l.status != 'concluido'
             """, (data_atual,))
             
             devolucoes_atrasadas = cursor.fetchall()
@@ -272,7 +272,7 @@ class Notificacao:
                 # Verificar se já existe notificação para esta devolução
                 cursor.execute("""
                     SELECT id FROM notificacoes 
-                    WHERE tipo = 'devolucao_atrasada' AND relacionado_id = ? AND lida = 0
+                    WHERE tipo = 'devolucao_atrasada' AND relacionado_id = %s AND lida = 0
                 """, (locacao_id,))
                 
                 if not cursor.fetchone():
@@ -281,7 +281,7 @@ class Notificacao:
                     
                     cursor.execute("""
                         INSERT INTO notificacoes (tipo, titulo, mensagem, data_criacao, lida, relacionado_id)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s, %s, %s)
                     """, ('devolucao_atrasada', titulo, mensagem, data_atual, False, locacao_id))
                     notificacoes_geradas += 1
             

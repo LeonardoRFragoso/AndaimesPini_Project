@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models.locacao import Locacao
 from helpers import handle_database_error
-import sqlite3
+import psycopg2
 import logging
 
 # Configuração de logging
@@ -49,7 +49,7 @@ def criar_locacao():
     except ValueError as ve:
         logger.error(f"Erro de validação: {ve}")
         return jsonify({"error": str(ve)}), 400
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -63,7 +63,7 @@ def listar_locacoes():
         locacoes = Locacao.obter_todas_detalhadas()
         logger.info(f"{len(locacoes)} locações encontradas.")
         return jsonify(locacoes), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -81,7 +81,7 @@ def confirmar_devolucao(locacao_id):
         else:
             logger.warning(f"Erro ao confirmar devolução: {resultado['mensagem']}")
             return jsonify(resultado), 400
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados: {e}")
         return handle_database_error(e)
     except Exception as ex:
@@ -95,12 +95,30 @@ def listar_locacoes_atrasadas():
         locacoes_atrasadas = Locacao.obter_locacoes_atrasadas()
         logger.info(f"{len(locacoes_atrasadas)} locações atrasadas encontradas.")
         return jsonify(locacoes_atrasadas), 200
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados: {e}")
         return handle_database_error(e)
     except Exception as ex:
         logger.error(f"Erro inesperado: {ex}")
         return jsonify({"error": "Erro ao listar locações atrasadas."}), 500
+
+@locacoes_routes.route('/<int:locacao_id>', methods=['GET'])
+def obter_locacao(locacao_id):
+    """Rota para obter uma locação específica pelo ID."""
+    try:
+        locacao = Locacao.obter_por_id(locacao_id)
+        if locacao:
+            logger.info(f"Locação ID {locacao_id} encontrada.")
+            return jsonify(locacao), 200
+        else:
+            logger.warning(f"Locação ID {locacao_id} não encontrada.")
+            return jsonify({"error": "Locação não encontrada."}), 404
+    except psycopg2.Error as e:
+        logger.error(f"Erro no banco de dados: {e}")
+        return handle_database_error(e)
+    except Exception as ex:
+        logger.error(f"Erro inesperado: {ex}")
+        return jsonify({"error": "Erro ao buscar locação."}), 500
 
 @locacoes_routes.route('/<int:locacao_id>/status', methods=['PATCH'])
 def atualizar_status(locacao_id):
@@ -120,9 +138,59 @@ def atualizar_status(locacao_id):
         else:
             logger.warning(f"Locação ID {locacao_id} não encontrada ou erro na atualização.")
             return jsonify({"error": "Erro ao atualizar status ou locação não encontrada."}), 404
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Erro no banco de dados: {e}")
         return handle_database_error(e)
     except Exception as ex:
         logger.error(f"Erro inesperado: {ex}")
         return jsonify({"error": "Erro ao atualizar status."}), 500
+
+@locacoes_routes.route('/<int:locacao_id>/prorrogar', methods=['POST'])
+def prorrogar_locacao(locacao_id):
+    """Rota para prorrogar uma locação."""
+    try:
+        dados = request.get_json()
+        if 'nova_data_fim' not in dados:
+            logger.warning("Campo 'nova_data_fim' não fornecido.")
+            return jsonify({"error": "O campo 'nova_data_fim' é obrigatório."}), 400
+        
+        nova_data_fim = dados['nova_data_fim']
+        valor_adicional = dados.get('valor_adicional', 0)
+        
+        sucesso = Locacao.prorrogar_locacao(locacao_id, nova_data_fim, valor_adicional)
+        
+        if sucesso:
+            logger.info(f"Locação ID {locacao_id} prorrogada até {nova_data_fim}.")
+            return jsonify({"message": "Locação prorrogada com sucesso."}), 200
+        else:
+            logger.warning(f"Erro ao prorrogar locação ID {locacao_id}.")
+            return jsonify({"error": "Erro ao prorrogar locação."}), 400
+    except psycopg2.Error as e:
+        logger.error(f"Erro no banco de dados: {e}")
+        return handle_database_error(e)
+    except Exception as ex:
+        logger.error(f"Erro inesperado: {ex}")
+        return jsonify({"error": "Erro ao prorrogar locação."}), 500
+
+@locacoes_routes.route('/<int:locacao_id>/finalizar-antecipadamente', methods=['POST'])
+def finalizar_antecipadamente(locacao_id):
+    """Rota para finalizar uma locação antecipadamente."""
+    try:
+        dados = request.get_json()
+        data_finalizacao = dados.get('data_finalizacao')
+        motivo = dados.get('motivo', '')
+        
+        sucesso = Locacao.finalizar_antecipadamente(locacao_id, data_finalizacao, motivo)
+        
+        if sucesso:
+            logger.info(f"Locação ID {locacao_id} finalizada antecipadamente.")
+            return jsonify({"message": "Locação finalizada antecipadamente com sucesso."}), 200
+        else:
+            logger.warning(f"Erro ao finalizar locação ID {locacao_id} antecipadamente.")
+            return jsonify({"error": "Erro ao finalizar locação antecipadamente."}), 400
+    except psycopg2.Error as e:
+        logger.error(f"Erro no banco de dados: {e}")
+        return handle_database_error(e)
+    except Exception as ex:
+        logger.error(f"Erro inesperado: {ex}")
+        return jsonify({"error": "Erro ao finalizar locação antecipadamente."}), 500

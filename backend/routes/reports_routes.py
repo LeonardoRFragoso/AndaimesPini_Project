@@ -115,3 +115,75 @@ def report_by_id(relatorio_id):
         return jsonify(data), 200
     except Exception as ex:
         return jsonify({"error": f"Erro ao obter relatório pelo ID: {str(ex)}"}), 500
+
+# Endpoint para buscar clientes (para autocomplete/filtros)
+@reports_bp.route("/clients", methods=["GET"])
+def search_clients():
+    """
+    Retorna lista de clientes para filtros e buscas.
+    """
+    from models.cliente import Cliente
+    try:
+        search_term = request.args.get("search", "")
+        clientes = Cliente.get_all()
+        
+        # Filtrar por termo de busca se fornecido
+        if search_term:
+            clientes = [c for c in clientes if search_term.lower() in c.get('nome', '').lower()]
+        
+        return jsonify(clientes), 200
+    except Exception as ex:
+        return jsonify({"error": f"Erro ao buscar clientes: {str(ex)}"}), 500
+
+# Endpoint para buscar itens do inventário (para autocomplete/filtros)
+@reports_bp.route("/items", methods=["GET"])
+def search_items():
+    """
+    Retorna lista de itens do inventário para filtros e buscas.
+    """
+    from models.inventario import Inventario
+    try:
+        search_term = request.args.get("search", "")
+        itens = Inventario.get_all()
+        
+        # Filtrar por termo de busca se fornecido
+        if search_term:
+            itens = [i for i in itens if search_term.lower() in i.get('nome_item', '').lower()]
+        
+        return jsonify(itens), 200
+    except Exception as ex:
+        return jsonify({"error": f"Erro ao buscar itens: {str(ex)}"}), 500
+
+# Endpoint para download de relatórios em CSV
+@reports_bp.route("/download", methods=["POST"])
+def download_report():
+    """
+    Gera e retorna um arquivo CSV com os dados do relatório.
+    """
+    import csv
+    from io import StringIO
+    try:
+        dados = request.get_json()
+        report_data = dados.get('report_data', [])
+        
+        if not report_data:
+            return jsonify({"error": "Nenhum dado fornecido para download."}), 400
+        
+        # Criar CSV em memória
+        output = StringIO()
+        if len(report_data) > 0:
+            writer = csv.DictWriter(output, fieldnames=report_data[0].keys())
+            writer.writeheader()
+            writer.writerows(report_data)
+        
+        # Converter para bytes
+        csv_data = output.getvalue().encode('utf-8-sig')
+        
+        return send_file(
+            BytesIO(csv_data),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name='relatorio.csv'
+        )
+    except Exception as ex:
+        return jsonify({"error": f"Erro ao gerar download: {str(ex)}"}), 500

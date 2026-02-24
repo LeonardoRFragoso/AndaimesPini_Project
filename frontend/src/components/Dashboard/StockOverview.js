@@ -8,11 +8,11 @@ const StockOverview = ({ inventoryData }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [animate, setAnimate] = useState(false);
   
-  // Calcular estatísticas
-  const totalItems = inventoryData.reduce((sum, item) => sum + item.quantidade, 0);
-  const availableItems = inventoryData.reduce((sum, item) => sum + item.quantidade_disponivel, 0);
+  // Calcular estatísticas com validação de array
+  const totalItems = Array.isArray(inventoryData) ? inventoryData.reduce((sum, item) => sum + (item.quantidade || 0), 0) : 0;
+  const availableItems = Array.isArray(inventoryData) ? inventoryData.reduce((sum, item) => sum + (item.quantidade_disponivel || 0), 0) : 0;
   const rentedItems = totalItems - availableItems;
-  const availabilityPercentage = Math.round((availableItems / totalItems) * 100) || 0;
+  const availabilityPercentage = totalItems > 0 ? Math.round((availableItems / totalItems) * 100) : 0;
   
   // Cores para o gráfico de barras personalizado
   const COLORS = {

@@ -23,15 +23,19 @@ const CriticalItems = ({ inventoryData }) => {
   }, []);
 
   // Identificar itens com menos de 20% de disponibilidade
-  const criticalItems = inventoryData
-    .filter(item => item.quantidade > 0 && (item.quantidade_disponivel / item.quantidade) < 0.2)
-    .sort((a, b) => (a.quantidade_disponivel / a.quantidade) - (b.quantidade_disponivel / b.quantidade));
+  const criticalItems = Array.isArray(inventoryData) 
+    ? inventoryData
+        .filter(item => item.quantidade > 0 && (item.quantidade_disponivel / item.quantidade) < 0.2)
+        .sort((a, b) => (a.quantidade_disponivel / a.quantidade) - (b.quantidade_disponivel / b.quantidade))
+    : [];
   
   // Identificar os 5 itens mais alugados
-  const mostRentedItems = [...inventoryData]
-    .filter(item => item.quantidade > 0)
-    .sort((a, b) => (b.quantidade - b.quantidade_disponivel) - (a.quantidade - a.quantidade_disponivel))
-    .slice(0, 5);
+  const mostRentedItems = Array.isArray(inventoryData)
+    ? [...inventoryData]
+        .filter(item => item.quantidade > 0)
+        .sort((a, b) => (b.quantidade - b.quantidade_disponivel) - (a.quantidade - a.quantidade_disponivel))
+        .slice(0, 5)
+    : [];
 
   // Função para renderizar o item com barra de progresso
   const renderItemWithProgress = (item, isRented = false) => {
