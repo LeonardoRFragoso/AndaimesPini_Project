@@ -28,9 +28,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configuração de CORS - permitir portas 3000 e 3001
+# Configuração de CORS - permitir localhost e Vercel
 CORS(app, resources={r"/*": {
-    "origins": ["http://localhost:3000", "http://localhost:3001"], 
+    "origins": [
+        "http://localhost:3000", 
+        "http://localhost:3001",
+        "https://andaimes-pini-project.vercel.app"
+    ], 
     "supports_credentials": True, 
     "allow_headers": ["Content-Type", "Authorization"], 
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
