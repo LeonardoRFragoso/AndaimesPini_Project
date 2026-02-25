@@ -9,7 +9,10 @@ cmds = [
 ]
 
 [phases.build]
-cmds = [". /opt/venv/bin/activate && python database.py"]
+cmds = [
+  ". /opt/venv/bin/activate && python database.py",
+  ". /opt/venv/bin/activate && python create_admin_simple.py"
+]
 
 [start]
 cmd = ". /opt/venv/bin/activate && python app.py"
