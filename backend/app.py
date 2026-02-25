@@ -53,11 +53,12 @@ def inicializar_banco():
         logger.error(f"Erro ao criar/verificar tabelas: {e}")
     
     # Criar admin apenas em produção (Railway)
-    if os.getenv('RAILWAY_ENVIRONMENT'):
+    # Railway sempre define RAILWAY_STATIC_URL ou RAILWAY_ENVIRONMENT_NAME
+    if os.getenv('RAILWAY_STATIC_URL') or os.getenv('RAILWAY_ENVIRONMENT_NAME'):
         try:
             import subprocess
             import sys
-            logger.info("Executando script de criação do admin...")
+            logger.info("Ambiente Railway detectado. Executando script de criação do admin...")
             result = subprocess.run([sys.executable, "create_admin_simple.py"], 
                                   capture_output=True, text=True, 
                                   cwd=os.path.dirname(os.path.abspath(__file__)))
@@ -65,6 +66,7 @@ def inicializar_banco():
                 logger.info(result.stdout)
             if result.stderr:
                 logger.warning(result.stderr)
+            logger.info("Script de admin executado.")
         except Exception as e:
             logger.error(f"Erro ao criar admin: {e}")
 

@@ -477,7 +477,7 @@ const LoginPage = () => {
                   Credenciais de demonstração:
                 </strong>
                 <br />
-                admin@andaimespini.com / admin123
+                admin@andaimespini.com / Admin@2026
               </Typography>
             </Box>
 
