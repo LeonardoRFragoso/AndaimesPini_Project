@@ -2,7 +2,12 @@
 // Configuração centralizada para todas as chamadas de API
 
 // URL base da API
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Em produção (Vercel), usa a URL do Railway
+// Em desenvolvimento, usa localhost
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (window.location.hostname === 'localhost' 
+    ? 'http://localhost:5000' 
+    : 'https://andaimespiniproject-production.up.railway.app');
 
 // Timeout padrão para requisições (em milissegundos)
 const DEFAULT_TIMEOUT = 10000;
