@@ -8,11 +8,5 @@ cmds = [
   ". /opt/venv/bin/activate && pip install -r requirements.prod.txt"
 ]
 
-[phases.build]
-cmds = [
-  ". /opt/venv/bin/activate && python database.py",
-  ". /opt/venv/bin/activate && python create_admin_simple.py"
-]
-
 [start]
-cmd = ". /opt/venv/bin/activate && python app.py"
+cmd = ". /opt/venv/bin/activate && python database.py && python create_admin_simple.py && python app.py"
