@@ -11,6 +11,9 @@ from routes.auth_routes import auth_routes, requer_autenticacao
 from database import create_tables, close_all_connections
 import logging
 import atexit
+import os
+import subprocess
+import sys
 
 # Criação da aplicação Flask
 app = Flask(__name__)
