@@ -30,8 +30,7 @@ import CompleteButton from "../common/CompleteButton";
 import DetailsButton from "../common/DetailsButton";
 import ExtendButton from "../common/ExtendButton";
 import ReturnButton from "../common/ReturnButton";
-
-const API_BASE_URL = "http://localhost:5000";
+import api from "../../api/config";
 
 const OrdersTable = ({ orders, onAction, loadOrders }) => {
   const [openDetails, setOpenDetails] = useState(false);

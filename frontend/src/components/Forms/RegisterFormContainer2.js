@@ -1,6 +1,6 @@
 // src/components/Forms/RegisterFormContainer.js
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/config";
 import RegisterFormView from "./RegisterFormView";
 
 const RegisterFormContainer = () => {
@@ -37,7 +37,7 @@ const RegisterFormContainer = () => {
 
   const fetchClientes = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:5000/clientes");
+      const response = await api.get("/clientes");
       setClientes(response.data);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
@@ -46,7 +46,7 @@ const RegisterFormContainer = () => {
 
   const fetchInventario = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:5000/inventario");
+      const response = await api.get("/inventario");
       if (response.data) {
         const estoqueMap = response.data.reduce((acc, item) => {
           acc[item.nome_item] = item.quantidade;
@@ -149,10 +149,7 @@ const RegisterFormContainer = () => {
     };
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:5000/locacoes",
-        locacaoData
-      );
+      const response = await api.post("/locacoes", locacaoData);
       if (response.status === 201) {
         alert("Locação registrada com sucesso!");
 

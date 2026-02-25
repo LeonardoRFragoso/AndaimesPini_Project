@@ -10,7 +10,7 @@ import {
   Snackbar,
   CircularProgress,
 } from "@mui/material";
-import axios from "axios";
+import api from "../../../api/config";
 
 const InventoryDetail = () => {
   const { id } = useParams(); // Pega o ID do item na URL
@@ -29,9 +29,7 @@ const InventoryDetail = () => {
   const fetchItemDetails = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:5000/inventario/${id}`
-      );
+      const response = await api.get(`/inventario/${id}`);
       setItem(response.data);
     } catch (error) {
       console.error("Erro ao buscar detalhes do item:", error);
@@ -50,7 +48,7 @@ const InventoryDetail = () => {
     }
 
     try {
-      await axios.put(`http://127.0.0.1:5000/inventario/${id}`, item);
+      await api.put(`/inventario/${id}`, item);
       setIsEditing(false);
       setFeedback({ open: true, message: "Item atualizado com sucesso!" });
     } catch (error) {
@@ -63,7 +61,7 @@ const InventoryDetail = () => {
   const handleDeleteItem = async () => {
     if (window.confirm("Tem certeza de que deseja excluir este item?")) {
       try {
-        await axios.delete(`http://127.0.0.1:5000/inventario/${id}`);
+        await api.delete(`/inventario/${id}`);
         setFeedback({ open: true, message: "Item excluído com sucesso!" });
         navigate("/inventory"); // Redireciona para a página de inventário
       } catch (error) {

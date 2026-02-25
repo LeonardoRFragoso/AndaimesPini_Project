@@ -1,10 +1,4 @@
-import axios from "axios";
-
-// Configuração global do axios
-const api = axios.create({
-  baseURL: "http://127.0.0.1:5000", // Atualize para a URL de produção, se necessário
-  timeout: 5000, // Tempo limite para requisições
-});
+import api from './config';
 
 /**
  * Trata os erros das requisições.
