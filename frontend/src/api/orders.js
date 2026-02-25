@@ -19,10 +19,12 @@ const handleRequestError = (error) => {
 export const fetchOrders = async () => {
   try {
     const response = await api.get("/locacoes");
-    console.log("Pedidos carregados com sucesso:", response.data);
-    return response.data;
+    console.log("Pedidos carregados com sucesso:", response);
+    // Garantir que sempre retornamos um array
+    return Array.isArray(response) ? response : (response?.data || []);
   } catch (error) {
     handleRequestError(error);
+    return []; // Retornar array vazio em caso de erro
   }
 };
 
